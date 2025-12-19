@@ -1,37 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+// ESSA LINHA ABAIXO É VITAL: Ela importa o Controller para que o Laravel o encontre
+use App\Http\Controllers\DashboardController;
 
-Route::get('/debug-db', function () {
-    try {
-        // Tenta buscar todas as empresas (vai retornar um array vazio se não houver dados)
-        $companies = Company::all();
-        return response()->json([
-            'status' => 'Conectado com sucesso!',
-            'tabelas' => DB::select('SHOW TABLES'),
-            'dados_companies' => $companies
-        ]);
-    } catch (\Exception $e) {
-        return "Erro ao conectar: " . $e->getMessage();
-    }
-});
+// Rota para o Dashboard (Página Inicial)
+Route::get('/', [DashboardController::class, 'index']);
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Rota para o Estoque Verde
+Route::get('/estoque', [DashboardController::class, 'estoque']);
 
-use App\Models\Company;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
-
-Route::get('/', function () {
-    // Pegamos estatísticas reais do seu banco SQL
-    $stats = [
-        'empresas' => Company::count(),
-        'usuarios' => User::count(),
-        'lotes' => DB::table('green_coffee_lots')->count(),
-        'maquinas' => DB::table('roasting_machines')->count(),
-    ];
-
-    return view('welcome', compact('stats'));
-});
+// Rota para o Laboratório Sensorial
+Route::get('/laboratorio', [DashboardController::class, 'laboratorio']);
