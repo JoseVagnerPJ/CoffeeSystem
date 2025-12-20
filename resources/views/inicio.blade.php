@@ -1,14 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard')
+@section('title', 'Início')
 
 @section('content')
 <div class="fade-in">
-    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
-        <h2 class="h4 fw-bold">Painel de Controle Real-Time</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 fw-bold mb-0" style="color: var(--coffee-brown);">Bem-vindo, José! 👋</h2>
+            <p class="text-muted small mb-0">Painel de Controle Real-Time da Unique Cafés</p>
+        </div>
         <div class="input-group" style="width: 250px;">
-            <input type="text" class="form-control form-control-sm" placeholder="Buscar ID (Rastrear)...">
-            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
+            <input type="text" class="form-control form-control-sm border-0 shadow-sm" placeholder="Buscar ID (Rastrear)...">
+            <button class="btn btn-sm btn-dark shadow-sm"><i class="bi bi-search"></i></button>
         </div>
     </div>
 
