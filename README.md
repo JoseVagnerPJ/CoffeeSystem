@@ -1,64 +1,52 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
-
 <p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <a href="#" target="_blank">
+    <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo">
+  </a>
 </p>
 
-## About Laravel
+# ☕ Sistema de Gestão de Torrefação
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Ainda não decidi o nome, mas é uma aplicação robusta desenvolvida em Laravel para o controle total do ciclo de vida do café. O sistema foca na rastreabilidade, desde a entrada do lote de café verde até a análise sensorial (cupping) e o registro final da torra.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Estrutura do Banco de Dados
 
-## Learning Laravel
+O banco de dados foi projetado para garantir integridade referencial e facilitar a auditoria de processos. Abaixo estão os principais módulos modelados:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Núcleo e Acesso
+* **`companies`**: Suporte multi-empresa, permitindo que várias torrefações usem a mesma instância.
+* **`users`**: Gestão de usuários com níveis de acesso (Admin, Gestor, Mestre de Torra e Provador).
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Inventário de Café Verde
+* **`partners`**: Registro de produtores, fornecedores e parceiros.
+* **`green_coffee_lots`**: Controle de lotes recebidos, incluindo variedade, safra, umidade e localização no armazém.
 
-## Laravel Sponsors
+### 3. Laboratório e Qualidade (SCA)
+* **`samples`**: Amostras vinculadas aos lotes para testes de qualidade.
+* **`cupping_sessions`**: Sessões de prova organizadas por data e responsável.
+* **`cups`**: Avaliações individuais seguindo o protocolo SCA (Fragrância, Sabor, Acidez, Corpo, Balanço, etc.).
+* **`tags`**: Sistema de hashtags para identificar notas sensoriais (ex: #frutado, #chocolate).
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+### 4. Produção e Torra
+* **`roasting_machines`**: Cadastro de máquinas com limite de ciclos para manutenção preventiva.
+* **`roast_demands`**: Ordens de serviço geradas pela gestão para os Mestres de Torra.
+* **`roast_logs`**: Registro real da execução da torra, controlando o peso de entrada e saída (quebra).
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+## Tecnologias Utilizadas
 
-## Contributing
+- **Framework:** [Laravel 11](https://laravel.com)
+- **Banco de Dados:** MySQL 8.0 (Relacional)
+- **Linguagem:** PHP 8.3
+- **Documentação do Banco:** Migrations e SQL nativo.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## Como subir o Banco de Dados
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Para criar a estrutura do banco de dados em seu ambiente local (MySQL Workbench ou via terminal), utilize o script SQL disponível na pasta `/database` ou execute as migrations do Laravel:
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan migrate
