@@ -20,6 +20,9 @@
         .main-content { margin-top: 80px; padding-bottom: 40px; }
         .fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Divisor de seção no menu */
+        .sidebar-heading { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; }
     </style>
 </head>
 <body>
@@ -35,12 +38,45 @@
     <div class="container-fluid">
         <div class="row">
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-                <div class="p-3 text-white border-bottom border-secondary mb-2 small opacity-50">MENU</div>
+                
+                <div class="sidebar-heading">Menu Operacional</div>
                 <ul class="nav flex-column">
-                    <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ url('/') }}"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a></li>
-                    <li><a class="nav-link {{ Request::is('estoque*') ? 'active' : '' }}" href="{{ url('/estoque') }}"><i class="bi bi-box-seam me-2"></i> Estoque Verde</a></li>
-                    <li><a class="nav-link {{ Request::is('laboratorio*') ? 'active' : '' }}" href="{{ url('/laboratorio') }}"><i class="bi bi-clipboard-pulse me-2"></i> Laboratório</a></li>
+                    <li>
+                        <a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ url('/') }}">
+                            <i class="bi bi-house-door me-2"></i> Início
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link {{ Request::is('estoque*') ? 'active' : '' }}" href="{{ url('/estoque') }}">
+                            <i class="bi bi-box-seam me-2"></i> Estoque Verde
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link {{ Request::is('laboratorio*') ? 'active' : '' }}" href="{{ url('/laboratorio') }}">
+                            <i class="bi bi-clipboard-pulse me-2"></i> Laboratório
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link {{ Request::is('torrefacao*') ? 'active' : '' }}" href="{{ url('/torrefacao') }}">
+                            <i class="bi bi-fire me-2"></i> Torrefação
+                        </a>
+                    </li>
                 </ul>
+
+                <div class="sidebar-heading">Gestão & Cadastros</div>
+                <ul class="nav flex-column">
+                    <li>
+                        <a class="nav-link {{ Request::is('cadastros*') ? 'active' : '' }}" href="{{ url('/cadastros') }}">
+                            <i class="bi bi-people me-2"></i> Cadastros
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link {{ Request::is('configuracoes*') ? 'active' : '' }}" href="{{ url('/configuracoes') }}">
+                            <i class="bi bi-gear me-2"></i> Configurações
+                        </a>
+                    </li>
+                </ul>
+                
             </nav>
 
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">

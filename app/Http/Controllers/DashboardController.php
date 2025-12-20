@@ -9,8 +9,7 @@ use Illuminate\Support\Facades\DB;
 class DashboardController extends Controller
 {
     /**
-     * Função privada para buscar os dados globais do menu lateral.
-     * Assim não precisamos repetir esse código em cada página.
+     * Retorna as estatísticas globais usadas no menu lateral (app.blade.php)
      */
     private function getStats()
     {
@@ -23,38 +22,75 @@ class DashboardController extends Controller
     }
 
     /**
-     * Exibe a Página Inicial (Dashboard)
+     * View: Dashboard (Página Inicial)
      */
-    public function index()
-    {
-        $stats = $this->getStats();
-        return view('welcome', compact('stats'));
-    }
+    public function index() 
+{
+    $stats = $this->getStats();
+    return view('inicio', compact('stats'));
+}
 
     /**
-     * Exibe a Página de Estoque Verde
+     * View: Gestão de Estoque Verde
      */
-    public function estoque()
+    public function estoque() 
     {
         $stats = $this->getStats();
         return view('estoque', compact('stats'));
     }
 
     /**
-     * Exibe a Página do Laboratório Sensorial
+     * View: Laboratório Sensorial
      */
-    public function laboratorio()
+    public function laboratorio() 
     {
         $stats = $this->getStats();
-
-        // Dados temporários para os KPIs do Laboratório
-        // No futuro, buscaremos isso das tabelas 'cupping_sessions' e 'cups'
+        
+        // Dados simulados para os KPIs do Laboratório
         $labStats = [
-            'total_mesas'   => 42,
+            'total_mesas' => 42,
             'total_xicaras' => 156,
-            'maior_nota'    => 91.5,
+            'maior_nota' => 91.5,
         ];
 
         return view('laboratorio', compact('stats', 'labStats'));
+    }
+
+    /**
+     * View: Controle de Torrefação (Kanban)
+     */
+    public function torrefacao() 
+    {
+        $stats = $this->getStats();
+        // Se no futuro a tela de torrefação precisar de KPIs próprios,
+        // você pode criá-los aqui como fizemos no laboratório.
+        return view('torrefacao', compact('stats'));
+    }
+
+    /**
+     * View: Hub de Cadastros
+     */
+    public function cadastros()
+    {
+        $stats = $this->getStats();
+        
+        // Dados para o resumo dos cards na tela de cadastros
+        $cadastrosStats = [
+            'variedades'   => 12, // Ex: Bourbon, Catuaí...
+            'fornecedores' => 28, // Soma de empresas e produtores
+            'maquinas'     => 2,  // Probat e CarmoMaq
+            'equipe'       => 5   // Mestres e Provadores
+        ];
+
+        return view('cadastros', compact('stats', 'cadastrosStats'));
+    }
+
+    /**
+     * View: Configurações do Sistema
+     */
+    public function configuracoes() 
+    {
+        $stats = $this->getStats();
+        return view('configuracoes', compact('stats'));
     }
 }
