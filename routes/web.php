@@ -3,31 +3,23 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 
-/*
-|--------------------------------------------------------------------------
-| Rotas do Sistema Unique Cafés - ERP Torrefação
-|--------------------------------------------------------------------------
-*/
+// 1. Rotas de Autenticação (Breeze) - DEVEM FICAR FORA DO MIDDLEWARE AUTH
+require __DIR__.'/auth.php';
 
-// --- MÓDULOS OPERACIONAIS ---
+// 2. Rotas Protegidas (Exigem Login)
+// routes/web.php
 
-// Dashboard Principal
-Route::get('/', [DashboardController::class, 'index']);
+// routes/web.php
 
-// Gestão de Estoque Verde
-Route::get('/estoque', [DashboardController::class, 'estoque']);
+Route::middleware(['auth'])->group(function () {
+    // Certifique-se de que o ->name('inicio') está aqui
+    Route::get('/', [DashboardController::class, 'index'])->name('inicio');
+    
+    Route::get('/estoque', [DashboardController::class, 'estoque'])->name('estoque');
+    Route::get('/laboratorio', [DashboardController::class, 'laboratorio'])->name('laboratorio');
+    Route::get('/torrefacao', [DashboardController::class, 'torrefacao'])->name('torrefacao');
+    Route::get('/cadastros', [DashboardController::class, 'cadastros'])->name('cadastros');
+    Route::get('/configuracoes', [DashboardController::class, 'configuracoes'])->name('configuracoes');
+});
 
-// Laboratório de Qualidade (SCA / Amostras)
-Route::get('/laboratorio', [DashboardController::class, 'laboratorio']);
-
-// Controle de Torrefação (Kanban)
-Route::get('/torrefacao', [DashboardController::class, 'torrefacao']);
-
-
-// --- GESTÃO E CONFIGURAÇÕES ---
-
-// Hub de Cadastros (Fornecedores, Cafés, Maquinário, Equipe)
-Route::get('/cadastros', [DashboardController::class, 'cadastros']);
-
-// Configurações do Sistema e Regras de Negócio
-Route::get('/configuracoes', [DashboardController::class, 'configuracoes']);
+require __DIR__.'/auth.php';

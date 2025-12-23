@@ -11,25 +11,15 @@ use Illuminate\Support\Facades\Route;
 class RouteServiceProvider extends ServiceProvider
 {
     /**
-     * The path to the "home" route for your application.
-     *
-     * This is used by Laravel authentication to redirect users after login.
+     * O caminho para a rota "home" da sua aplicação.
+     * Após o login, o Laravel redirecionará o usuário para esta rota.
      *
      * @var string
      */
-    public const HOME = '/home';
+    public const HOME = '/';
 
     /**
-     * The controller namespace for the application.
-     *
-     * When present, controller route declarations will automatically be prefixed with this namespace.
-     *
-     * @var string|null
-     */
-    // protected $namespace = 'App\\Http\\Controllers';
-
-    /**
-     * Define your route model bindings, pattern filters, etc.
+     * Define seus modelos de rota, filtros de padrão, etc.
      *
      * @return void
      */
@@ -40,23 +30,25 @@ class RouteServiceProvider extends ServiceProvider
         $this->routes(function () {
             Route::prefix('api')
                 ->middleware('api')
-                ->namespace($this->namespace)
                 ->group(base_path('routes/api.php'));
 
             Route::middleware('web')
-                ->namespace($this->namespace)
                 ->group(base_path('routes/web.php'));
         });
     }
 
     /**
-     * Configure the rate limiters for the application.
+     * Configura os limitadores de taxa (Rate Limit) para a API.
      *
      * @return void
      */
     protected function configureRateLimiting()
     {
         RateLimiter::for('api', function (Request $request) {
+            /**
+             * PHP 7.4: Usamos a função helper optional() 
+             * para evitar o erro de sintaxe do operador "?->"
+             */
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
         });
     }
