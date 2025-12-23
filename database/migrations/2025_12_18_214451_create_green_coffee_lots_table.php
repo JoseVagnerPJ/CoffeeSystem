@@ -11,18 +11,27 @@ class CreateGreenCoffeeLotsTable extends Migration
      *
      * @return void
      */
-    public function up(): void {
+    public function up()
+{
     Schema::create('green_coffee_lots', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('partner_id')->constrained()->onDelete('restrict');
-        $table->string('variety');
-        $table->string('crop_year', 10);
-        $table->decimal('bag_weight', 5, 2);
-        $table->integer('total_bags');
-        $table->string('map_coordinates')->nullable();
-        $table->text('general_notes')->nullable();
+        $table->foreignId('user_id')->constrained(); // Quem cadastrou
+        $table->string('reference');       // Nome fácil (Ex: "Lote Especial Jan/24")
+        $table->string('origin');          // Produtor / Fornecedor
+        $table->string('process');         // Natural, Lavado, etc.
+        
+        // Endereçamento simples
+        $table->string('address_row');     // Letra (A, B, C)
+        $table->integer('address_pos');    // Número (1, 2, 3)
+        
+        // Quantidades e Pesos
+        $table->integer('quantity_bags');
+        $table->decimal('unit_weight', 8, 2);  
+        $table->decimal('total_weight', 10, 2); 
+        
         $table->timestamps();
     });
+
 }
 
     /**
