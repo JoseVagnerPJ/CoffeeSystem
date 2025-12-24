@@ -40,10 +40,12 @@
         <p class="text-muted">Gerencie os ativos, parceiros e a estrutura da Unique Cafés.</p>
     </div>
 
+    {{-- AQUI ESTÁ O SEGREDO: Abrir a DIV ROW --}}
     <div class="row g-4">
+
         {{-- Módulo: Fornecedores --}}
         <div class="col-md-6 col-lg-3">
-            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center">
+            <a href="{{ route('suppliers.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-truck fs-1"></i>
@@ -56,20 +58,20 @@
 
         {{-- Módulo: Equipe --}}
         <div class="col-md-6 col-lg-3">
-            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center">
+            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-people fs-1"></i>
                     </div>
                 </div>
                 <h5 class="fw-bold text-dark">Equipe</h5>
-                <p class="small text-muted mb-0">Gestão de colaboradores e permissões de acesso.</p>
+                <p class="small text-muted mb-0">Gest de colaboradores e permissões de acesso.</p>
             </a>
         </div>
 
         {{-- Módulo: Máquinas --}}
         <div class="col-md-6 col-lg-3">
-            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center">
+            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-nut fs-1"></i>
@@ -82,7 +84,7 @@
 
         {{-- Módulo: Armazéns --}}
         <div class="col-md-6 col-lg-3">
-            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center">
+            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-buildings fs-1"></i>
@@ -92,9 +94,10 @@
                 <p class="small text-muted mb-0">Estrutura física, silos e setores de estocagem.</p>
             </a>
         </div>
-    </div>
 
-    {{-- Seção secundária: Cadastros Técnicos --}}
+    </div> {{-- FIM DA ROW --}}
+
+    {{-- Seção secundária --}}
     <div class="mt-5">
         <h5 class="fw-bold mb-4 opacity-50" style="color: var(--coffee-brown);">Configurações Técnicas</h5>
         <div class="row g-3">

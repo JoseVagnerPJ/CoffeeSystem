@@ -2,10 +2,27 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Company extends Model
 {
-    // O Laravel assume que a tabela é o plural do nome (companies), então já está certo.
-    protected $fillable = ['name', 'cnpj', 'logo'];
+
+    public function farms()
+{
+    return $this->belongsToMany(Farm::class, 'origin_links');
+}
+
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'cnpj',
+        'contact',
+        'action_type',
+        'is_international',
+        'city',
+        'state',
+        'country'
+    ];
 }

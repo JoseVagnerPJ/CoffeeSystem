@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GreenCoffeeLotController;
+use App\Http\Controllers\SupplierController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/laboratorio', [DashboardController::class, 'laboratorio'])->name('laboratorio');
     Route::get('/torrefacao', [DashboardController::class, 'torrefacao'])->name('torrefacao');
     Route::get('/cadastros', [DashboardController::class, 'cadastros'])->name('cadastros');
+    Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');    
+    Route::get('/suppliers/capture/{type}/{id}', [SupplierController::class, 'capture'])->name('suppliers.capture');
+    Route::get('/suppliers/clear', [SupplierController::class, 'clearCapture'])->name('suppliers.clear');
+    Route::get('/suppliers/link/{type}/{id}', [SupplierController::class, 'link'])->name('suppliers.link');
+    Route::post('/suppliers/producer', [SupplierController::class, 'storeProducer'])->name('suppliers.storeProducer');
+    Route::post('/suppliers/farm', [SupplierController::class, 'storeFarm'])->name('suppliers.storeFarm');
+    Route::post('/suppliers/company', [SupplierController::class, 'storeCompany'])->name('suppliers.storeCompany');
     Route::get('/configuracoes', [DashboardController::class, 'configuracoes'])->name('configuracoes');
 
 });
+// Rotas de Captura e Vínculo de Entidades
