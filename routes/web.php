@@ -26,6 +26,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/estoque', [GreenCoffeeLotController::class, 'index'])->name('estoque');
     // Salvar Novo Lote (POST)
     Route::post('/estoque', [GreenCoffeeLotController::class, 'store'])->name('estoque.store');
+    // Deletar Lote (Delete)
+    Route::delete('/estoque/{id}', [GreenCoffeeLotController::class, 'destroy'])->name('estoque.destroy');
     // Capturar Lote (Sessão)
     Route::get('/estoque/capture/{id}', [GreenCoffeeLotController::class, 'capture'])->name('estoque.capture');
     // Soltar Lote (Limpar Sessão)

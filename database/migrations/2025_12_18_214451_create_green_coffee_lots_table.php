@@ -15,7 +15,7 @@ class CreateGreenCoffeeLotsTable extends Migration
 {
     Schema::create('green_coffee_lots', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('user_id')->constrained(); // Quem cadastrou
+        $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Quem cadastrou
         $table->string('reference');       // Nome fácil (Ex: "Lote Especial Jan/24")
         $table->string('origin');          // Produtor / Fornecedor
         $table->string('process');         // Natural, Lavado, etc.

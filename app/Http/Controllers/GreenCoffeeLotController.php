@@ -51,6 +51,13 @@ class GreenCoffeeLotController extends Controller
 
         return redirect()->route('estoque')->with('success', 'Lote cadastrado com sucesso!');
     }
+    
+    public function destroy($id)
+    {
+    $lote = GreenCoffeeLot::findOrFail($id);
+    $lote->delete();
+    return redirect()->back()->with('success', 'Lote removido do estoque!');
+    }
 
     /**
      * "Captura" um lote na sessão para uso posterior.

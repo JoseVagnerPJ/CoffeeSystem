@@ -3,92 +3,112 @@
 @section('title', 'Central de Cadastros')
 
 @section('content')
-<div class="fade-in">
-    <div class="mb-4">
-        <h2 class="h4 fw-bold text-dark">Central de Cadastros</h2>
-        <p class="text-muted small">Gerencie as bases técnicas e operacionais da Unique Cafés.</p>
+<style>
+    /* Estilo para os cards de módulo */
+    .card-modulo {
+        transition: all 0.3s ease;
+        border: 2px solid transparent !important;
+        cursor: pointer;
+        min-height: 200px;
+    }
+    .card-modulo:hover {
+        transform: translateY(-10px);
+        border-color: var(--coffee-gold) !important;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    }
+    .icon-box {
+        width: 70px;
+        height: 70px;
+        background-color: var(--coffee-cream);
+        color: var(--coffee-brown);
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        transition: all 0.3s;
+    }
+    .card-modulo:hover .icon-box {
+        background-color: var(--coffee-brown);
+        color: var(--coffee-gold);
+    }
+</style>
+
+<div class="fade-in px-3">
+    <div class="mb-5">
+        <h2 class="h4 fw-bold" style="color: var(--coffee-brown);">Central de Cadastros</h2>
+        <p class="text-muted">Gerencie os ativos, parceiros e a estrutura da Unique Cafés.</p>
     </div>
 
     <div class="row g-4">
-        <div class="col-md-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100 transition-hover" style="cursor: pointer; border-radius: 15px;">
-                <div class="card-body p-4 text-center">
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                        <i class="bi bi-building fs-3"></i>
-                    </div>
-                    <h5 class="fw-bold mb-2">Fornecedores</h5>
-                    <p class="text-muted small mb-3">Gestão de Empresas e Produtores para rastreabilidade de origem.</p>
-                    <div class="badge bg-light text-dark border px-3 py-2 rounded-pill">
-                        {{ $cadastrosStats['fornecedores'] }} Registros
+        {{-- Módulo: Fornecedores --}}
+        <div class="col-md-6 col-lg-3">
+            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center">
+                <div class="d-flex justify-content-center">
+                    <div class="icon-box">
+                        <i class="bi bi-truck fs-1"></i>
                     </div>
                 </div>
-                <div class="card-footer bg-transparent border-0 pb-4 text-center">
-                    <button class="btn btn-outline-dark btn-sm rounded-pill px-4 fw-bold">GERENCIAR</button>
-                </div>
-            </div>
+                <h5 class="fw-bold text-dark">Fornecedores</h5>
+                <p class="small text-muted mb-0">Fazendas, produtores e parceiros de café verde.</p>
+            </a>
         </div>
 
-        <div class="col-md-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100 transition-hover" style="cursor: pointer; border-radius: 15px;">
-                <div class="card-body p-4 text-center">
-                    <div class="bg-success bg-opacity-10 text-success rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                        <i class="bi bi-tags fs-3"></i>
-                    </div>
-                    <h5 class="fw-bold mb-2">Cafés & Variedades</h5>
-                    <p class="text-muted small mb-3">Catálogo de espécies e tipos para laboratório e estoque.</p>
-                    <div class="badge bg-light text-dark border px-3 py-2 rounded-pill">
-                        {{ $cadastrosStats['variedades'] }} Tipos
+        {{-- Módulo: Equipe --}}
+        <div class="col-md-6 col-lg-3">
+            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center">
+                <div class="d-flex justify-content-center">
+                    <div class="icon-box">
+                        <i class="bi bi-people fs-1"></i>
                     </div>
                 </div>
-                <div class="card-footer bg-transparent border-0 pb-4 text-center">
-                    <button class="btn btn-outline-dark btn-sm rounded-pill px-4 fw-bold">GERENCIAR</button>
-                </div>
-            </div>
+                <h5 class="fw-bold text-dark">Equipe</h5>
+                <p class="small text-muted mb-0">Gestão de colaboradores e permissões de acesso.</p>
+            </a>
         </div>
 
-        <div class="col-md-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100 transition-hover" style="cursor: pointer; border-radius: 15px;">
-                <div class="card-body p-4 text-center">
-                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                        <i class="bi bi-gear-wide-connected fs-3"></i>
-                    </div>
-                    <h5 class="fw-bold mb-2">Maquinário</h5>
-                    <p class="text-muted small mb-3">Configuração de capacidades e manutenção de torradores.</p>
-                    <div class="badge bg-light text-dark border px-3 py-2 rounded-pill">
-                        {{ $cadastrosStats['maquinas'] }} Máquinas
+        {{-- Módulo: Máquinas --}}
+        <div class="col-md-6 col-lg-3">
+            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center">
+                <div class="d-flex justify-content-center">
+                    <div class="icon-box">
+                        <i class="bi bi-nut fs-1"></i>
                     </div>
                 </div>
-                <div class="card-footer bg-transparent border-0 pb-4 text-center">
-                    <button class="btn btn-outline-dark btn-sm rounded-pill px-4 fw-bold">GERENCIAR</button>
-                </div>
-            </div>
+                <h5 class="fw-bold text-dark">Máquinas</h5>
+                <p class="small text-muted mb-0">Cadastro de torrefadores (Probat, Carmomaq) e equipamentos.</p>
+            </a>
         </div>
 
-        <div class="col-md-6 col-xl-3">
-            <div class="card border-0 shadow-sm h-100 transition-hover" style="cursor: pointer; border-radius: 15px;">
-                <div class="card-body p-4 text-center">
-                    <div class="bg-info bg-opacity-10 text-info rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                        <i class="bi bi-people fs-3"></i>
-                    </div>
-                    <h5 class="fw-bold mb-2">Equipe Técnica</h5>
-                    <p class="text-muted small mb-3">Gestão de Mestres de Torra e Q-Graders do sistema.</p>
-                    <div class="badge bg-light text-dark border px-3 py-2 rounded-pill">
-                        {{ $cadastrosStats['equipe'] }} Membros
+        {{-- Módulo: Armazéns --}}
+        <div class="col-md-6 col-lg-3">
+            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center">
+                <div class="d-flex justify-content-center">
+                    <div class="icon-box">
+                        <i class="bi bi-buildings fs-1"></i>
                     </div>
                 </div>
-                <div class="card-footer bg-transparent border-0 pb-4 text-center">
-                    <button class="btn btn-outline-dark btn-sm rounded-pill px-4 fw-bold">GERENCIAR</button>
+                <h5 class="fw-bold text-dark">Armazéns</h5>
+                <p class="small text-muted mb-0">Estrutura física, silos e setores de estocagem.</p>
+            </a>
+        </div>
+    </div>
+
+    {{-- Seção secundária: Cadastros Técnicos --}}
+    <div class="mt-5">
+        <h5 class="fw-bold mb-4 opacity-50" style="color: var(--coffee-brown);">Configurações Técnicas</h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="bg-white p-3 rounded shadow-sm d-flex align-items-center border-start border-4" style="border-color: var(--coffee-gold) !important;">
+                    <i class="bi bi-tag-fill me-3 fs-4 text-muted"></i>
+                    <div>
+                        <h6 class="mb-0 fw-bold">Variedades</h6>
+                        <small class="text-muted">Bourbon, Catuaí, Arábica...</small>
+                    </div>
+                    <a href="#" class="ms-auto text-dark"><i class="bi bi-arrow-right-short fs-4"></i></a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    .transition-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .transition-hover:hover { 
-        transform: translateY(-5px); 
-        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important; 
-    }
-</style>
 @endsection
