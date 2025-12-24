@@ -65,7 +65,7 @@
                     </div>
                 </div>
                 <h5 class="fw-bold text-dark">Equipe</h5>
-                <p class="small text-muted mb-0">Gest de colaboradores e permissões de acesso.</p>
+                <p class="small text-muted mb-0">Gestão de colaboradores e permissões de acesso.</p>
             </a>
         </div>
 
@@ -78,7 +78,7 @@
                     </div>
                 </div>
                 <h5 class="fw-bold text-dark">Máquinas</h5>
-                <p class="small text-muted mb-0">Cadastro de torrefadores (Probat, Carmomaq) e equipamentos.</p>
+                <p class="small text-muted mb-0">Cadastro de Máquinas e equipamentos.</p>
             </a>
         </div>
 
