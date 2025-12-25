@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Machine extends Model
+{
+    use HasFactory;
+
+    // Campos que podem ser preenchidos em massa
+    protected $fillable = [
+        'name', 
+        'brand', 
+        'model', 
+        'year', 
+        'serial_number', 
+        'max_capacity', 
+        'min_capacity', 
+        'cleaning_threshold', 
+        'current_roasts', 
+        'is_active'
+    ];
+
+    /**
+     * Relacionamento: Uma máquina tem muitas manutenções.
+     */
+    public function maintenances()
+    {
+        return $this->hasMany(MachineMaintenance::class)->orderBy('maintenance_date', 'desc');
+    }
+}

@@ -71,7 +71,7 @@
 
         {{-- Módulo: Máquinas --}}
         <div class="col-md-6 col-lg-3">
-            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            <a href="{{ route('machines.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-nut fs-1"></i>
