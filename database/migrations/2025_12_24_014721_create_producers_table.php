@@ -17,6 +17,7 @@ class CreateProducersTable extends Migration
         $table->string('name');
         $table->string('cpf')->nullable();
         $table->string('contact')->nullable();
+        $table->boolean('is_active')->default(true);
         $table->timestamps();
     });
 }

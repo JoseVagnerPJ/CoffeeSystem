@@ -13,6 +13,11 @@ class Company extends Model
     return $this->belongsToMany(Farm::class, 'origin_links');
 }
 
+    public function producers() 
+{
+    return $this->belongsToMany(Producer::class, 'origin_links', 'company_id', 'producer_id');
+}
+
     use HasFactory;
 
     protected $fillable = [

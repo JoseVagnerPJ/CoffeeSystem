@@ -6,7 +6,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-
                 <div class="mb-4">
                     <span class="info-label">Nome Completo</span>
                     <h5 class="fw-bold text-dark">{{ $p->name }}</h5>
@@ -15,16 +14,17 @@
                 <div class="row g-3 mb-4">
                     <div class="col-6">
                         <span class="info-label">CPF</span>
-                        <p class="fw-bold mb-0">{{ $p->cpf ?? 'Não informado' }}</p>
+                        <p class="fw-bold mb-0">{{ $p->cpf ?? '---' }}</p>
                     </div>
                     <div class="col-6">
                         <span class="info-label">Contato</span>
-                        <p class="fw-bold mb-0">{{ $p->contact ?? 'Não informado' }}</p>
+                        <p class="fw-bold mb-0">{{ $p->contact ?? '---' }}</p>
                     </div>
                 </div>
                 
-                <h6 class="fw-bold small border-bottom pb-2 mb-3 text-uppercase">Fazendas Vinculadas ({{ $p->farms->count() }})</h6>
-                <div class="list-group list-group-flush">
+                {{-- Seção de Fazendas --}}
+                <h6 class="fw-bold small border-bottom pb-2 mb-3 text-uppercase text-secondary">Fazendas Vinculadas</h6>
+                <div class="list-group list-group-flush mb-4">
                     @forelse($p->farms as $farm)
                         <div class="list-group-item px-0 py-2 d-flex align-items-center border-0">
                             <i class="bi bi-patch-check-fill text-success me-2"></i>
@@ -32,7 +32,21 @@
                             <span class="ms-auto badge bg-light text-dark border fw-normal">{{ $farm->city }}/{{ $farm->state }}</span>
                         </div>
                     @empty
-                        <p class="small text-muted italic">Nenhum vínculo encontrado no banco para este produtor.</p>
+                        <p class="small text-muted italic">Nenhuma fazenda vinculada.</p>
+                    @endforelse
+                </div>
+
+                {{-- NOVA SEÇÃO: Empresas Vinculadas Diretamente --}}
+                <h6 class="fw-bold small border-bottom pb-2 mb-3 text-uppercase text-secondary">Vínculos Diretos com Empresas</h6>
+                <div class="list-group list-group-flush">
+                    @forelse($p->companies as $company)
+                        <div class="list-group-item px-0 py-2 d-flex align-items-center border-0">
+                            <i class="bi bi-buildings text-primary me-2"></i>
+                            <span class="small fw-bold">{{ $company->name }}</span>
+                            <span class="ms-auto badge bg-primary bg-opacity-10 text-primary border-0 fw-bold" style="font-size: 0.6rem;">{{ $company->action_type }}</span>
+                        </div>
+                    @empty
+                        <p class="small text-muted italic">Nenhum vínculo direto com empresas.</p>
                     @endforelse
                 </div>
             </div>

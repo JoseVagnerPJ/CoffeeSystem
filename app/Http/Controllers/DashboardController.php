@@ -17,7 +17,7 @@ class DashboardController extends Controller
             'empresas' => Company::count(),
             'usuarios' => DB::table('users')->count(),
             'lotes'    => DB::table('green_coffee_lots')->count(),
-            'maquinas' => DB::table('roasting_machines')->count(),
+            'maquinas' => DB::table('machines')->count(),
         ];
     }
 

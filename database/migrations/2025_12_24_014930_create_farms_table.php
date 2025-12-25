@@ -16,6 +16,7 @@ class CreateFarmsTable extends Migration
         $table->id();
         $table->string('name');
         $table->decimal('altitude', 8, 2);
+        $table->boolean('is_active')->default(true);
         $table->boolean('is_international')->default(false);
         // Nacional
         $table->string('city')->nullable();

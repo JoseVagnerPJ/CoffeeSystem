@@ -16,4 +16,10 @@ class Producer extends Model
     {
         return $this->belongsToMany(Farm::class, 'origin_links', 'producer_id', 'farm_id');
     }
+
+    public function companies() 
+    {
+        return $this->belongsToMany(Company::class, 'origin_links', 'producer_id', 'company_id');
+    }
+
 }

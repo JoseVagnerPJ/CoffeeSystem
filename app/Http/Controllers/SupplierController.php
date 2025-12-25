@@ -12,10 +12,10 @@ class SupplierController extends Controller
 {
    public function index()
 {
-    // O .with() é obrigatório para carregar os vínculos
-    $producers = Producer::with('farms')->get();
-    $farms = Farm::with(['producers', 'companies'])->get();
-    $companies = Company::with('farms')->get();
+    // Filtra para trazer apenas os registros que NÃO foram "excluídos"
+    $producers = \App\Models\Producer::where('is_active', true)->get();
+    $farms = \App\Models\Farm::where('is_active', true)->get();
+    $companies = \App\Models\Company::where('is_active', true)->get();
 
     return view('suppliers.index', compact('producers', 'farms', 'companies'));
 }
@@ -51,7 +51,7 @@ class SupplierController extends Controller
     // --- LÓGICA DE VÍNCULO ---
     public function link($targetType, $targetId)
     {
-        // Se temos um Produtor na mão e clicamos em Vincular numa Fazenda
+        // Vincular produtor a fazenda
         if (session('captured_producer_id') && $targetType == 'farm') {
             DB::table('origin_links')->insert([
                 'producer_id' => session('captured_producer_id'),
@@ -63,7 +63,18 @@ class SupplierController extends Controller
             return redirect()->back()->with('success', 'Produtor vinculado à Fazenda com sucesso!');
         }
 
-        // Se temos uma Fazenda na mão e clicamos em Vincular numa Empresa
+        // Vincular produtor a empresa
+        if (session('captured_producer_id') && $targetType == 'company') {
+        DB::table('origin_links')->insert([
+            'producer_id' => session('captured_producer_id'),
+            'company_id' => $targetId,
+            'created_at' => now(), 'updated_at' => now()
+        ]);
+        $this->clearCaptureInternal();
+        return redirect()->back()->with('success', 'Produtor vinculado à Empresa/Cooperativa!');
+        }
+
+        // Vincular fazenda a empresa
         if (session('captured_farm_id') && $targetType == 'company') {
             DB::table('origin_links')->insert([
                 'farm_id' => session('captured_farm_id'),
@@ -97,5 +108,29 @@ class SupplierController extends Controller
         $data['is_international'] = $request->has('is_international');
         Company::create($data);
         return redirect()->back()->with('success', 'Empresa cadastrada!');
+    }
+
+    public function inactivate($type, $id)
+    {
+    // 1. Busca o item
+    if ($type === 'producer') {
+        $item = \App\Models\Producer::findOrFail($id);
+    } elseif ($type === 'farm') {
+        $item = \App\Models\Farm::findOrFail($id);
+    } elseif ($type === 'company') {
+        $item = \App\Models\Company::findOrFail($id);
+    } else {
+        return redirect()->back()->with('error', 'Tipo inválido.');
+    }
+
+    // 2. Força a alteração manualmente (isso ignora o $fillable)
+    $item->is_active = 0; // Usando 0 explicitamente para garantir o boolean false
+    $item->save();
+
+    // 3. TESTE DE DEPURAÇÃO: 
+    // Se você chegar na página preta e 'is_active' estiver 0, o código funcionou.
+    // dd($item->toArray()); 
+
+    return redirect()->back()->with('success', 'Cadastro removido com sucesso.');
     }
 }

@@ -96,18 +96,20 @@
                                 <td>{{ $p->contact ?? '---' }}</td>
                                 <td class="text-end">
                                     <div class="btn-group-custom">
-                                        {{-- Botão Info aponta para modalInfoProducer --}}
                                         <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoProducer{{ $p->id }}"><i class="bi bi-info-circle-fill"></i></button>
                                         <a href="{{ route('suppliers.capture', ['producer', $p->id]) }}" class="btn btn-sm btn-white border btn-action shadow-sm {{ session('captured_producer_id') == $p->id ? 'bg-warning border-warning' : '' }}"><i class="bi bi-hand-index-thumb"></i></a>
-                                        <button class="btn btn-sm btn-white border btn-action shadow-sm text-muted"><i class="bi bi-pencil"></i></button>
+                                        
+                                        {{-- Inativação de Produtor --}}
+                                        <form action="{{ route('suppliers.inactivate', ['producer', $p->id]) }}" method="POST" onsubmit="return confirm('Deseja realmente excluir o produtor {{ $p->name }}?')">
+                                            @csrf @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm"><i class="bi bi-trash3"></i></button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
-                            {{-- CHAMA O ARQUIVO EXTERNO CORRETO --}}
                             @include('suppliers.partials.modal_info_producer', ['p' => $p])
-
                             @empty
-                            <tr><td colspan="4" class="text-center py-4">Nenhum produtor cadastrado.</td></tr>
+                            <tr><td colspan="4" class="text-center py-4 text-muted">Nenhum produtor cadastrado.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -133,21 +135,23 @@
                                 <td>{{ $f->is_international ? $f->country : $f->city.'/'.$f->state }}</td>
                                 <td class="text-end">
                                     <div class="btn-group-custom">
-                                        {{-- Botão Info aponta para modalInfoFarm --}}
                                         <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoFarm{{ $f->id }}"><i class="bi bi-info-circle-fill"></i></button>
                                         @if(session('captured_producer_id'))
                                             <a href="{{ route('suppliers.link', ['farm', $f->id]) }}" class="btn btn-sm btn-success btn-action shadow-sm text-white"><i class="bi bi-link-45deg"></i></a>
                                         @endif
                                         <a href="{{ route('suppliers.capture', ['farm', $f->id]) }}" class="btn btn-sm btn-white border btn-action shadow-sm {{ session('captured_farm_id') == $f->id ? 'bg-warning border-warning' : '' }}"><i class="bi bi-hand-index-thumb"></i></a>
-                                        <button class="btn btn-sm btn-white border btn-action shadow-sm text-muted"><i class="bi bi-pencil"></i></button>
+                                        
+                                        {{-- Inativação de Fazenda --}}
+                                        <form action="{{ route('suppliers.inactivate', ['farm', $f->id]) }}" method="POST" onsubmit="return confirm('Deseja realmente excluir a fazenda {{ $f->name }}?')">
+                                            @csrf @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm"><i class="bi bi-trash3"></i></button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
-                            {{-- CHAMA O ARQUIVO EXTERNO CORRETO --}}
                             @include('suppliers.partials.modal_info_farm', ['f' => $f])
-
                             @empty
-                            <tr><td colspan="4" class="text-center py-4">Nenhuma fazenda cadastrada.</td></tr>
+                            <tr><td colspan="4" class="text-center py-4 text-muted">Nenhuma fazenda cadastrada.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -173,20 +177,27 @@
                                 <td>{{ $c->cnpj ?? '---' }}</td>
                                 <td class="text-end">
                                     <div class="btn-group-custom">
-                                        {{-- Botão Info aponta para modalInfoCompany --}}
                                         <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoCompany{{ $c->id }}"><i class="bi bi-info-circle-fill"></i></button>
-                                        @if(session('captured_farm_id'))
-                                            <a href="{{ route('suppliers.link', ['company', $c->id]) }}" class="btn btn-sm btn-success btn-action shadow-sm text-white"><i class="bi bi-link-45deg"></i></a>
+                                        
+                                        {{-- BOTÃO DE LINK CORRIGIDO --}}
+                                        @if(session('captured_farm_id') || session('captured_producer_id'))
+                                            <a href="{{ route('suppliers.link', ['company', $c->id]) }}" 
+                                            class="btn btn-sm btn-success btn-action shadow-sm text-white" 
+                                            title="Vincular item capturado a esta empresa">
+                                            <i class="bi bi-link-45deg"></i>
+                                            </a>
                                         @endif
-                                        <button class="btn btn-sm btn-white border btn-action shadow-sm text-muted"><i class="bi bi-pencil"></i></button>
+                                        
+                                        <form action="{{ route('suppliers.inactivate', ['company', $c->id]) }}" method="POST" onsubmit="return confirm('Deseja realmente excluir a empresa {{ $c->name }}?')">
+                                            @csrf @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm"><i class="bi bi-trash3"></i></button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
-                            {{-- CHAMA O ARQUIVO EXTERNO CORRETO --}}
                             @include('suppliers.partials.modal_info_company', ['c' => $c])
-
                             @empty
-                            <tr><td colspan="4" class="text-center py-4">Nenhuma empresa cadastrada.</td></tr>
+                            <tr><td colspan="4" class="text-center py-4 text-muted">Nenhuma empresa cadastrada.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

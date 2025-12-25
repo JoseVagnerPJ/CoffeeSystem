@@ -11,35 +11,27 @@
                         <small class="badge bg-white text-dark border fw-normal">{{ $c->action_type }}</small>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
             <div class="modal-body p-4 text-start">
+                {{-- Dados da Empresa --}}
                 <div class="row g-3 mb-4">
                     <div class="col-6">
                         <span class="info-label">CNPJ / Identificação</span>
-                        <p class="fw-bold mb-0 text-dark">{{ $c->cnpj ?? 'Não informado' }}</p>
+                        <p class="fw-bold mb-0 text-dark">{{ $c->cnpj ?? '---' }}</p>
                     </div>
                     <div class="col-6">
                         <span class="info-label">Contato</span>
-                        <p class="fw-bold mb-0 text-dark">{{ $c->contact ?? 'Não informado' }}</p>
-                    </div>
-                    <div class="col-12">
-                        <span class="info-label">Sede / Localização</span>
-                        <p class="fw-bold mb-0 text-dark">
-                            @if($c->is_international)
-                                <i class="bi bi-globe me-1 text-primary"></i> {{ $c->country }}
-                            @else
-                                <i class="bi bi-geo-alt me-1 text-danger"></i> {{ $c->city }} / {{ $c->state }}
-                            @endif
-                        </p>
+                        <p class="fw-bold mb-0 text-dark">{{ $c->contact ?? '---' }}</p>
                     </div>
                 </div>
 
                 <hr class="opacity-10">
 
-                <div class="mb-2">
-                    <label class="info-label mb-2 text-uppercase" style="font-size: 0.7rem;">Fazendas que entregam para esta Empresa</label>
+                {{-- Fazendas Vinculadas --}}
+                <div class="mb-4">
+                    <label class="info-label mb-2 text-uppercase" style="font-size: 0.7rem;">Fazendas Vinculadas</label>
                     <div class="list-group list-group-flush">
                         @forelse($c->farms as $farm)
                             <div class="list-group-item px-0 py-2 d-flex align-items-center border-0 border-bottom">
@@ -48,9 +40,23 @@
                                 <span class="ms-auto small text-muted">{{ $farm->city }}/{{ $farm->state }}</span>
                             </div>
                         @empty
-                            <div class="bg-light p-3 rounded-3 text-center">
-                                <p class="small text-muted mb-0 italic">Nenhuma fazenda vinculada a esta cooperativa.</p>
+                            <p class="small text-muted italic">Nenhuma fazenda vinculada.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- NOVA SEÇÃO: Produtores Vinculados Diretamente --}}
+                <div>
+                    <label class="info-label mb-2 text-uppercase" style="font-size: 0.7rem;">Produtores Vinculados Diretamente</label>
+                    <div class="list-group list-group-flush">
+                        @forelse($c->producers as $producer)
+                            <div class="list-group-item px-0 py-2 d-flex align-items-center border-0 border-bottom">
+                                <i class="bi bi-person-check-fill text-success me-2"></i>
+                                <span class="small fw-bold">{{ $producer->name }}</span>
+                                <span class="ms-auto small text-muted">{{ $producer->contact ?? 'Sem contato' }}</span>
                             </div>
+                        @empty
+                            <p class="small text-muted italic">Nenhum produtor vinculado diretamente.</p>
                         @endforelse
                     </div>
                 </div>

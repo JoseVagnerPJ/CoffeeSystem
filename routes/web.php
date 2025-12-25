@@ -38,6 +38,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/suppliers/producer', [SupplierController::class, 'storeProducer'])->name('suppliers.storeProducer');
     Route::post('/suppliers/farm', [SupplierController::class, 'storeFarm'])->name('suppliers.storeFarm');
     Route::post('/suppliers/company', [SupplierController::class, 'storeCompany'])->name('suppliers.storeCompany');
+    Route::patch('/suppliers/inactivate/{type}/{id}', [App\Http\Controllers\SupplierController::class, 'inactivate'])->name('suppliers.inactivate');
+
+    // --- CONFIGURAÇÕES ---
     Route::get('/configuracoes', [DashboardController::class, 'configuracoes'])->name('configuracoes');
 
     // --- LABORATÓRIO ---

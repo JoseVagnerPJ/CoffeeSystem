@@ -167,7 +167,7 @@
                             <input type="text" name="country" class="form-control shadow-sm">
                         </div>
                         <div class="col-md-6">
-                            <label class="info-label">Cidade (Texto Livre)</label>
+                            <label class="info-label">Cidade</label>
                             <input type="text" name="city_ext" class="form-control shadow-sm">
                         </div>
                     </div>
