@@ -47,7 +47,7 @@
 
                 {{-- NOVA SEÇÃO: Produtores Vinculados Diretamente --}}
                 <div>
-                    <label class="info-label mb-2 text-uppercase" style="font-size: 0.7rem;">Produtores Vinculados Diretamente</label>
+                    <label class="info-label mb-2 text-uppercase" style="font-size: 0.7rem;">Produtores Vinculados</label>
                     <div class="list-group list-group-flush">
                         @forelse($c->producers as $producer)
                             <div class="list-group-item px-0 py-2 d-flex align-items-center border-0 border-bottom">

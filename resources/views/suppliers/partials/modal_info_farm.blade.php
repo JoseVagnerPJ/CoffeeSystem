@@ -39,7 +39,7 @@
 
                 <h6 class="fw-bold small border-bottom pb-2 mb-3 text-uppercase" style="color: var(--coffee-brown); font-size: 0.7rem;">Vínculos Registrados</h6>
                 <div class="mb-3">
-                    <span class="info-label">Produtores</span>
+                    <span class="info-label">Produtores Vinculados</span>
                     @forelse($f->producers as $prod)
                         <div class="d-flex align-items-center mb-1 bg-light p-2 rounded">
                             <i class="bi bi-person-circle text-secondary me-2"></i>
@@ -51,7 +51,7 @@
                 </div>
 
                 <div>
-                    <span class="info-label">Empresas Parceiras</span>
+                    <span class="info-label">Empresas Vinculadas</span>
                     @forelse($f->companies as $comp)
                         <div class="d-flex align-items-center mb-1 bg-light p-2 rounded">
                             <i class="bi bi-buildings text-secondary me-2"></i>

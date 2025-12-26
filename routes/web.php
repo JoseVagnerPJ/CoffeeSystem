@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GreenCoffeeLotController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MachineController;
+use App\Http\Controllers\SampleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,5 +59,8 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/machines/{id}/inactivate', [MachineController::class, 'inactivate'])->name('machines.inactivate');
     Route::post('/machines/{id}/maintenance', [MachineController::class, 'storeMaintenance'])->name('machines.storeMaintenance');
 
-
+    // --- AMOSTRAS ---
+    Route::resource('samples', SampleController::class);
+    Route::get('samples/{id}/info', [App\Http\Controllers\SampleController::class, 'info'])->name('samples.info');
+    Route::resource('samples', App\Http\Controllers\SampleController::class);
 });

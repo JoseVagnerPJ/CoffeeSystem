@@ -37,7 +37,7 @@
                 </div>
 
                 {{-- NOVA SEÇÃO: Empresas Vinculadas Diretamente --}}
-                <h6 class="fw-bold small border-bottom pb-2 mb-3 text-uppercase text-secondary">Vínculos Diretos com Empresas</h6>
+                <h6 class="fw-bold small border-bottom pb-2 mb-3 text-uppercase text-secondary">Empresas Vinculadas</h6>
                 <div class="list-group list-group-flush">
                     @forelse($p->companies as $company)
                         <div class="list-group-item px-0 py-2 d-flex align-items-center border-0">
@@ -46,7 +46,7 @@
                             <span class="ms-auto badge bg-primary bg-opacity-10 text-primary border-0 fw-bold" style="font-size: 0.6rem;">{{ $company->action_type }}</span>
                         </div>
                     @empty
-                        <p class="small text-muted italic">Nenhum vínculo direto com empresas.</p>
+                        <p class="small text-muted italic">Nenhum vínculo com empresas.</p>
                     @endforelse
                 </div>
             </div>

@@ -4,7 +4,7 @@
 
 @section('content')
 <style>
-    /* Estilo para os cards de módulo */
+    /* Estilo para os cards superiores */
     .card-modulo {
         transition: all 0.3s ease;
         border: 2px solid transparent !important;
@@ -16,6 +16,23 @@
         border-color: var(--coffee-gold) !important;
         box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
     }
+
+    /* Estilo para o botão de Equipe (horizontal) */
+    .btn-equipe-horizontal {
+        transition: all 0.3s ease;
+        border: 2px solid transparent !important; /* Começa transparente */
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        background-color: white;
+    }
+
+    .btn-equipe-horizontal:hover {
+        border-color: var(--coffee-gold) !important; /* Dourado apenas no hover */
+        transform: translateX(5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
     .icon-box {
         width: 70px;
         height: 70px;
@@ -37,12 +54,10 @@
 <div class="fade-in px-3">
     <div class="mb-5">
         <h2 class="h4 fw-bold" style="color: var(--coffee-brown);">Central de Cadastros</h2>
-        <p class="text-muted">Gerencie os ativos, parceiros e a estrutura da Unique Cafés.</p>
+        <p class="text-muted">Gerencie os ativos, parceiros e a estrutura técnica da Unique Cafés.</p>
     </div>
 
-    {{-- AQUI ESTÁ O SEGREDO: Abrir a DIV ROW --}}
     <div class="row g-4">
-
         {{-- Módulo: Fornecedores --}}
         <div class="col-md-6 col-lg-3">
             <a href="{{ route('suppliers.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
@@ -56,16 +71,16 @@
             </a>
         </div>
 
-        {{-- Módulo: Equipe --}}
+        {{-- Módulo: Cadastro de Amostras --}}
         <div class="col-md-6 col-lg-3">
-            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            <a href="{{ route('samples.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
-                        <i class="bi bi-people fs-1"></i>
+                        <i class="bi bi-clipboard-pulse fs-1"></i> {{-- Ícone de Pacotinho --}}
                     </div>
                 </div>
-                <h5 class="fw-bold text-dark">Equipe</h5>
-                <p class="small text-muted mb-0">Gestão de colaboradores e permissões de acesso.</p>
+                <h5 class="fw-bold text-dark">Cadastro de Amostras</h5>
+                <p class="small text-muted mb-0">Registro, classificação e controle de amostras de café.</p>
             </a>
         </div>
 
@@ -82,34 +97,34 @@
             </a>
         </div>
 
-        {{-- Módulo: Armazéns --}}
+        {{-- Módulo: Perfil Sensorial --}}
         <div class="col-md-6 col-lg-3">
             <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
-                        <i class="bi bi-buildings fs-1"></i>
+                        <i class="bi bi-activity fs-1"></i>
                     </div>
                 </div>
-                <h5 class="fw-bold text-dark">Armazéns</h5>
-                <p class="small text-muted mb-0">Estrutura física, silos e setores de estocagem.</p>
+                <h5 class="fw-bold text-dark">Perfil Sensorial</h5>
+                <p class="small text-muted mb-0">Notas, aromas e características técnicas dos cafés.</p>
             </a>
         </div>
-
-    </div> {{-- FIM DA ROW --}}
+    </div>
 
     {{-- Seção secundária --}}
     <div class="mt-5">
-        <h5 class="fw-bold mb-4 opacity-50" style="color: var(--coffee-brown);">Configurações Técnicas</h5>
+        <h5 class="fw-bold mb-4 opacity-50" style="color: var(--coffee-brown);">Gestão Administrativa</h5>
         <div class="row g-3">
+            {{-- Módulo: Equipe --}}
             <div class="col-md-4">
-                <div class="bg-white p-3 rounded shadow-sm d-flex align-items-center border-start border-4" style="border-color: var(--coffee-gold) !important;">
-                    <i class="bi bi-tag-fill me-3 fs-4 text-muted"></i>
+                <a href="#" class="btn-equipe-horizontal p-3 rounded shadow-sm">
+                    <i class="bi bi-people-fill me-3 fs-4 text-muted"></i>
                     <div>
-                        <h6 class="mb-0 fw-bold">Variedades</h6>
-                        <small class="text-muted">Bourbon, Catuaí, Arábica...</small>
+                        <h6 class="mb-0 fw-bold text-dark">Equipe</h6>
+                        <small class="text-muted">Gestão de colaboradores e acessos.</small>
                     </div>
-                    <a href="#" class="ms-auto text-dark"><i class="bi bi-arrow-right-short fs-4"></i></a>
-                </div>
+                    <i class="bi bi-arrow-right-short fs-4 ms-auto text-dark"></i>
+                </a>
             </div>
         </div>
     </div>

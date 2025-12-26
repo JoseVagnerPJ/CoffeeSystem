@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
     <title>@yield('title') | Unique Cafés</title>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -26,6 +29,40 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
         .sidebar-heading { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; }
+        /* Remove as bolinhas e ajusta o visual para o padrão Unique Cafés */
+.select2-container--default .select2-selection--single {
+    height: 45px !important; /* Altura confortável */
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #495057 !important;
+    padding-left: 15px !important;
+}
+
+/* Estilo do dropdown (a lista que abre) */
+.select2-dropdown {
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    z-index: 9999 !important;
+}
+
+/* Remove os marcadores de lista (bullets) que aparecem no bug */
+.select2-results__options {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Cor de destaque ao selecionar (Dourado Coffee) */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--coffee-gold, #c0a080) !important;
+    color: white !important;
+}
     </style>
 </head>
 <body>

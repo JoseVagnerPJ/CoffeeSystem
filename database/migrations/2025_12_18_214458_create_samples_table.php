@@ -6,21 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateSamplesTable extends Migration
 {
-    public function up(): void 
-    {
-        Schema::create('samples', function (Blueprint $table) {
-            $table->id();
-            // Vinculação ao Lote de Café
-            $table->foreignId('green_coffee_lot_id')->nullable()->constrained()->onDelete('set null');
-            
-            $table->unsignedBigInteger('producer_id')->nullable();
-            
-            $table->decimal('moisture', 4, 2)->nullable();
-            $table->string('process_type')->nullable();
-            $table->text('fermentation')->nullable();
-            $table->timestamps();
-        });
-    }
+   public function up(): void
+{
+    Schema::create('samples', function (Blueprint $table) {
+        $table->id(); // Lote Interno
+        $table->string('name');
+        
+        // Esta linha cria dois campos: origin_id e origin_type
+        // O origin_type guardará se é "App\Models\Company" ou "App\Models\Producer"
+        $table->morphs('origin'); 
+
+        $table->date('receipt_date');
+        $table->string('supplier_batch');
+        $table->string('variety');
+        $table->string('drying_process');
+        $table->string('fermentation')->nullable();
+        $table->decimal('humidity', 5, 2)->nullable();
+        $table->string('screen')->nullable();
+        $table->integer('altitude')->nullable();
+        $table->string('crop')->nullable();
+        $table->text('observations')->nullable();
+        $table->timestamps();
+    });
+}
 
     public function down()
     {
