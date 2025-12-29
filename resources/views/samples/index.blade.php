@@ -39,13 +39,15 @@
                         <th>Data</th>
                         <th>Variedade</th>
                         <th>Processo</th>
+                        <th>Fermentação</th>
+                        <th>Peneira</th>
                         <th class="text-end pe-4">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($samples as $sample)
                         <tr>
-                            <td class="ps-4 fw-bold text-muted">#{{ str_pad($sample->id, 4, '0', STR_PAD_LEFT) }}</td>
+                            <td class="ps-4 fw-bold text-muted">#{{ $sample->id }}</td>
                             <td>
                                 <span class="fw-bold text-dark">{{ $sample->name }}</span>
                                 <div class="small text-muted">Lote Forn: {{ $sample->supplier_batch }}</div>
@@ -63,9 +65,12 @@
                                     {{ $sample->drying_process }}
                                 </span>
                             </td>
+                            <td>{{ $sample->fermentation ?? '-' }}</td>
+                            <td>{{ $sample->screen ?? '-' }}</td>
+                            
                             <td class="text-end pe-4" style="white-space: nowrap;">
                                 <div class="d-flex justify-content-end gap-2">
-                                    {{-- Botão INFO (Olho) --}}
+                                    {{-- BOTÃO DE VISUALIZAR --}}
                                     <button type="button" 
                                             class="btn btn-sm btn-outline-primary border-0 btn-view-sample" 
                                             data-sample-id="{{ $sample->id }}" 
@@ -73,9 +78,9 @@
                                         <i class="bi bi-eye-fill fs-5"></i>
                                     </button>
 
-                                    {{-- Botão EXCLUIR (Lixeira) --}}
+                                    {{-- BOTÃO DE EXCLUIR --}}
                                     <form action="{{ route('samples.destroy', $sample->id) }}" method="POST" class="d-inline" 
-                                          onsubmit="return confirm('Excluir amostra #{{ str_pad($sample->id, 4, '0', STR_PAD_LEFT) }}?');">
+                                          onsubmit="return confirm('Excluir amostra #{{ $sample->id }}?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Excluir">
@@ -87,7 +92,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">Nenhuma amostra encontrada.</td>
+                            <td colspan="9" class="text-center py-5 text-muted">Nenhuma amostra encontrada.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -96,61 +101,52 @@
     </div>
 </div>
 
-{{-- MODAL PARA VISUALIZAÇÃO (O POPUP "INFO") --}}
+{{-- MODAL PARA VISUALIZAÇÃO (INFO) --}}
 <div class="modal fade" id="modalViewSample" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" id="modalViewSampleContent" style="border-radius: 16px;">
-            {{-- Conteúdo carregado via AJAX --}}
+            {{-- Conteúdo carregado aqui --}}
         </div>
     </div>
 </div>
 
 @include('samples.partials.create')
 
-{{-- Script colocado direto aqui para garantir execução caso o @stack falhe --}}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Seleciona todos os botões com a classe btn-view-sample
-        const buttons = document.querySelectorAll('.btn-view-sample');
-        const modalElement = document.getElementById('modalViewSample');
-        const modalContent = document.getElementById('modalViewSampleContent');
-        
-        // Inicializa o modal do Bootstrap
-        const bsModal = new bootstrap.Modal(modalElement);
+    $(document).ready(function() {
+        console.log("Sistema de visualização pronto.");
 
-        buttons.forEach(button => {
-            button.addEventListener('click', function () {
-                const sampleId = this.getAttribute('data-sample-id');
+        $(document).on('click', '.btn-view-sample', function() {
+            var sampleId = $(this).data('sample-id');
+            var modalElement = document.getElementById('modalViewSample');
+            var modalContent = $('#modalViewSampleContent');
+            
+            console.log("Clicou no botão da amostra: " + sampleId);
+
+            // Abre o modal manualmente caso o Bootstrap falhe no automático
+            if (typeof bootstrap !== 'undefined') {
+                var bsModal = bootstrap.Modal.getOrCreateInstance(modalElement);
                 
-                // Limpa e coloca o loading
-                modalContent.innerHTML = `
+                modalContent.html(`
                     <div class="modal-body text-center py-5">
                         <div class="spinner-border text-primary" role="status"></div>
-                        <p class="mt-3 text-muted">Carregando dados da amostra...</p>
-                    </div>`;
+                        <p class="mt-3 text-muted">Carregando ficha técnica...</p>
+                    </div>
+                `);
                 
                 bsModal.show();
 
-                // Faz a requisição para buscar o info.blade.php
-                fetch(`/samples/${sampleId}/info`)
-                    .then(response => {
-                        if (!response.ok) throw new Error('Erro na requisição');
-                        return response.text();
-                    })
-                    .then(html => {
-                        modalContent.innerHTML = html;
-                    })
-                    .catch(error => {
-                        modalContent.innerHTML = `
-                            <div class="modal-body text-center py-4">
-                                <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
-                                <p class="text-danger fw-bold">Erro ao carregar informações.</p>
-                            </div>`;
-                        console.error(error);
-                    });
-            });
+                // Busca as informações
+                $.get('/samples/' + sampleId + '/info', function(data) {
+                    modalContent.html(data);
+                }).fail(function() {
+                    modalContent.html('<div class="p-4 text-center text-danger">Erro ao buscar dados.</div>');
+                });
+            } else {
+                alert("Erro: O Bootstrap (estilo do site) não foi carregado corretamente.");
+            }
         });
     });
 </script>
-
 @endsection

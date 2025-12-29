@@ -60,7 +60,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/machines/{id}/maintenance', [MachineController::class, 'storeMaintenance'])->name('machines.storeMaintenance');
 
     // --- AMOSTRAS ---
+    // As rotas específicas DEVEM vir antes do resource
+    Route::get('/samples/search-origin', [SampleController::class, 'searchOrigin'])->name('samples.search-origin');
+    Route::get('/samples/{id}/info', [SampleController::class, 'info'])->name('samples.info');
     Route::resource('samples', SampleController::class);
-    Route::get('samples/{id}/info', [App\Http\Controllers\SampleController::class, 'info'])->name('samples.info');
-    Route::resource('samples', App\Http\Controllers\SampleController::class);
 });
