@@ -85,7 +85,7 @@
         <div class="col-md-4">
             <h6 class="fw-bold text-muted text-uppercase mb-3" style="letter-spacing: 1px; font-size: 0.65rem;">Vínculos e Rastreabilidade</h6>
             
-            <div class="mb-4">
+            <div class="mb-3">
                 <small class="fw-bold text-muted small-label d-block mb-2">CLASSIFICAÇÕES (SCA)</small>
                 @if(isset($sample->cuppingResults) && $sample->cuppingResults->count() > 0)
                     @foreach($sample->cuppingResults as $cupping)
@@ -95,24 +95,45 @@
                         </div>
                     @endforeach
                 @else
-                    <div class="text-center py-3 border border-dashed rounded-3">
-                        <i class="bi bi-cup-hot text-muted opacity-50"></i>
-                        <p class="text-muted small mb-0">Nenhum cupping</p>
+                    <div class="text-center py-2 border border-dashed rounded-3">
+                        <p class="text-muted small mb-0" style="font-size: 0.7rem;">Nenhum cupping</p>
                     </div>
                 @endif
             </div>
 
-            <div class="mb-4">
+            {{-- NOVA SEÇÃO: PERFIS SENSORIAIS VINCULADOS --}}
+            <div class="mb-3">
+                <small class="fw-bold text-muted small-label d-block mb-2 text-uppercase">Perfis Sensoriais / Blends</small>
+                @if($sample->sensoryProfileComponents->count() > 0)
+                    @foreach($sample->sensoryProfileComponents as $component)
+                        <div class="d-flex align-items-center p-2 rounded-3 border bg-white mb-1 shadow-sm border-start border-4" style="border-left-color: {{ $component->profile->color_hex }} !important;">
+                            <div class="flex-grow-1">
+                                <span class="fw-bold text-dark d-block" style="font-size: 0.75rem; line-height: 1;">{{ $component->profile->name }}</span>
+                                <small class="text-muted" style="font-size: 0.6rem;">Uso: {{ number_format($component->percentage, 0) }}% do perfil</small>
+                            </div>
+                            <span class="badge {{ $component->profile->is_blend ? 'bg-primary' : 'bg-secondary' }}" style="font-size: 0.5rem;">
+                                {{ $component->profile->is_blend ? 'BLEND' : 'VARIETAL' }}
+                            </span>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="text-center py-2 border border-dashed rounded-3">
+                        <p class="text-muted small mb-0" style="font-size: 0.7rem;">Nenhum perfil vinculado</p>
+                    </div>
+                @endif
+            </div>
+
+            <div class="mb-3">
                 <small class="fw-bold text-muted small-label d-block mb-2">PERFIS DE TORRA (ARTISAN)</small>
                 <div class="text-center py-2 border border-dashed rounded-3">
-                    <p class="text-muted small mb-0">Aguardando vínculo</p>
+                    <p class="text-muted small mb-0" style="font-size: 0.7rem;">Aguardando vínculo</p>
                 </div>
             </div>
 
             <div>
                 <small class="fw-bold text-muted small-label d-block mb-2">LOTES GERADOS</small>
                 <div class="text-center py-2 border border-dashed rounded-3">
-                    <p class="text-muted small mb-0">Nenhum lote gerado</p>
+                    <p class="text-muted small mb-0" style="font-size: 0.7rem;">Nenhum lote gerado</p>
                 </div>
             </div>
         </div>

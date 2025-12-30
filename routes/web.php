@@ -6,7 +6,7 @@ use App\Http\Controllers\GreenCoffeeLotController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\SampleController;
-
+use App\Http\Controllers\SensoryProfileController; 
 /*
 |--------------------------------------------------------------------------
 | Rotas de Autenticação (Breeze)
@@ -39,18 +39,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/suppliers/producer', [SupplierController::class, 'storeProducer'])->name('suppliers.storeProducer');
     Route::post('/suppliers/farm', [SupplierController::class, 'storeFarm'])->name('suppliers.storeFarm');
     Route::post('/suppliers/company', [SupplierController::class, 'storeCompany'])->name('suppliers.storeCompany');
-    Route::patch('/suppliers/inactivate/{type}/{id}', [App\Http\Controllers\SupplierController::class, 'inactivate'])->name('suppliers.inactivate');
+    Route::patch('/suppliers/inactivate/{type}/{id}', [SupplierController::class, 'inactivate'])->name('suppliers.inactivate');
 
-    // --- CONFIGURAÇÕES ---
+    // --- CONFIGURAÇÕES / LABORATÓRIO / TORREFAÇÃO ---
     Route::get('/configuracoes', [DashboardController::class, 'configuracoes'])->name('configuracoes');
-
-    // --- LABORATÓRIO ---
     Route::get('/laboratorio', [DashboardController::class, 'laboratorio'])->name('laboratorio');
-
-    // --- TORREFAÇÃO ---
     Route::get('/torrefacao', [DashboardController::class, 'torrefacao'])->name('torrefacao');
-
-    // --- CADASTROS ---
     Route::get('/cadastros', [DashboardController::class, 'cadastros'])->name('cadastros');
     
     // --- MÁQUINAS ---
@@ -59,9 +53,15 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/machines/{id}/inactivate', [MachineController::class, 'inactivate'])->name('machines.inactivate');
     Route::post('/machines/{id}/maintenance', [MachineController::class, 'storeMaintenance'])->name('machines.storeMaintenance');
 
+    // --- PERFIS SENSORIAIS ---
+    // Regra: Rotas específicas (GET) sempre ANTES do Resource
+    Route::get('/sensory-profiles/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('sensory-profiles.search-samples');
+    Route::resource('sensory-profiles', SensoryProfileController::class);
+    
     // --- AMOSTRAS ---
-    // As rotas específicas DEVEM vir antes do resource
+    // Regra: Rotas específicas (GET) sempre ANTES do Resource
     Route::get('/samples/search-origin', [SampleController::class, 'searchOrigin'])->name('samples.search-origin');
     Route::get('/samples/{id}/info', [SampleController::class, 'info'])->name('samples.info');
     Route::resource('samples', SampleController::class);
+
 });

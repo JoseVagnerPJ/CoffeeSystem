@@ -25,44 +25,19 @@
         .nav-link { color: #cfd8dc; padding: 12px 20px; transition: 0.3s; border-left: 4px solid transparent; text-decoration: none; display: block; }
         .nav-link:hover, .nav-link.active { color: var(--coffee-gold); background-color: rgba(255,255,255,0.05); border-left: 4px solid var(--coffee-gold); }
         .main-content { margin-top: 80px; padding-bottom: 40px; }
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        .sidebar-heading { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; }
-        /* Remove as bolinhas e ajusta o visual para o padrão Unique Cafés */
-.select2-container--default .select2-selection--single {
-    height: 45px !important; /* Altura confortável */
-    border: 1px solid #dee2e6 !important;
-    border-radius: 8px !important;
-    display: flex !important;
-    align-items: center !important;
-}
-
-.select2-container--default .select2-selection--single .select2-selection__rendered {
-    color: #495057 !important;
-    padding-left: 15px !important;
-}
-
-/* Estilo do dropdown (a lista que abre) */
-.select2-dropdown {
-    border: 1px solid #dee2e6 !important;
-    border-radius: 8px !important;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
-    z-index: 9999 !important;
-}
-
-/* Remove os marcadores de lista (bullets) que aparecem no bug */
-.select2-results__options {
-    list-style: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* Cor de destaque ao selecionar (Dourado Coffee) */
-.select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background-color: var(--coffee-gold, #c0a080) !important;
-    color: white !important;
-}
+        /* Select2 Customizado */
+        .select2-container--default .select2-selection--single {
+            height: 45px !important;
+            border: 1px solid #dee2e6 !important;
+            border-radius: 8px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--coffee-gold) !important;
+            color: white !important;
+        }
     </style>
 </head>
 <body>
@@ -78,10 +53,9 @@
 
     <div class="container-fluid">
         <div class="row">
-            {{-- Menu Lateral só aparece se estiver logado --}}
             @auth
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-                <div class="sidebar-heading">Menu Operacional</div>
+                <div class="sidebar-heading" style="opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
                 <ul class="nav flex-column">
                     <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ url('/') }}"><i class="bi bi-house-door me-2"></i> Início</a></li>
                     <li><a class="nav-link {{ Request::is('estoque*') ? 'active' : '' }}" href="{{ url('/estoque') }}"><i class="bi bi-box-seam me-2"></i> Estoque Verde</a></li>
@@ -89,13 +63,12 @@
                     <li><a class="nav-link {{ Request::is('torrefacao*') ? 'active' : '' }}" href="{{ url('/torrefacao') }}"><i class="bi bi-fire me-2"></i> Torrefação</a></li>
                 </ul>
 
-                <div class="sidebar-heading">Gestão & Cadastros</div>
+                <div class="sidebar-heading" style="opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Gestão & Cadastros</div>
                 <ul class="nav flex-column">
                     <li><a class="nav-link {{ Request::is('cadastros*') ? 'active' : '' }}" href="{{ url('/cadastros') }}"><i class="bi bi-people me-2"></i> Cadastros</a></li>
                     <li><a class="nav-link {{ Request::is('configuracoes*') ? 'active' : '' }}" href="{{ url('/configuracoes') }}"><i class="bi bi-gear me-2"></i> Configurações</a></li>
                 </ul>
 
-                {{-- Botão de Sair --}}
                 <div class="px-3 mt-4">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -112,6 +85,11 @@
             </main>
         </div>
     </div>
+
+    {{-- JS do Bootstrap --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {{-- AQUI É O PULO DO GATO: Direciona os scripts das páginas filhas para cá --}}
+    @stack('scripts')
 </body>
 </html>

@@ -99,7 +99,7 @@
 
         {{-- Módulo: Perfil Sensorial --}}
         <div class="col-md-6 col-lg-3">
-            <a href="#" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            <a href="{{ route('sensory-profiles.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-activity fs-1"></i>
