@@ -10,127 +10,97 @@ use Illuminate\Support\Facades\DB;
 
 class SupplierController extends Controller
 {
-   public function index()
-{
-    // Filtra para trazer apenas os registros que NÃO foram "excluídos"
-    $producers = \App\Models\Producer::where('is_active', true)->get();
-    $farms = \App\Models\Farm::where('is_active', true)->get();
-    $companies = \App\Models\Company::where('is_active', true)->get();
-
-    return view('suppliers.index', compact('producers', 'farms', 'companies'));
-}
-
-    // --- LÓGICA DE CAPTURA (Igual ao Estoque) ---
-    public function capture($type, $id)
+    public function index(Request $request)
     {
-        // Limpa capturas anteriores para não confundir
-        $this->clearCaptureInternal();
+        $search = $request->query('search');
+        $filterType = $request->query('filter_type');
+        $activeTab = $request->query('tab', 'producers');
 
-        if ($type == 'producer') {
-            $item = Producer::findOrFail($id);
-            session(['captured_producer_id' => $id, 'captured_name' => $item->name]);
-        } elseif ($type == 'farm') {
-            $item = Farm::findOrFail($id);
-            session(['captured_farm_id' => $id, 'captured_name' => $item->name]);
+        // Lógica compatível com PHP 7.x usando switch em vez de match
+        if ($filterType) {
+            switch ($filterType) {
+                case 'producer':
+                    $activeTab = 'producers';
+                    break;
+                case 'farm':
+                    $activeTab = 'farms';
+                    break;
+                case 'company':
+                    $activeTab = 'companies';
+                    break;
+            }
         }
 
-        return redirect()->back()->with('success', "{$item->name} capturado!");
+        // --- PRODUTORES ---
+        $producersQuery = Producer::where('is_active', true);
+        if ($search) {
+            $producersQuery->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")->orWhere('cpf', 'LIKE', "%{$search}%");
+            });
+        }
+        $producers = $producersQuery->latest()->get();
+
+        // --- FAZENDAS ---
+        $farmsQuery = Farm::where('is_active', true);
+        if ($search) $farmsQuery->where('name', 'LIKE', "%{$search}%");
+        
+        // Filtros Técnicos de Fazenda
+        if ($request->filled('filter_state')) $farmsQuery->where('state', 'LIKE', "%{$request->filter_state}%");
+        if ($request->filled('filter_intl')) $farmsQuery->where('is_international', true);
+        if ($request->filled('filter_altitude')) $farmsQuery->where('altitude', '>=', $request->filter_altitude);
+        if ($request->filled('filter_variety')) $farmsQuery->where('varieties_tags', 'LIKE', "%{$request->filter_variety}%");
+        
+        $farms = $farmsQuery->latest()->get();
+
+        // --- EMPRESAS ---
+        $companiesQuery = Company::where('is_active', true);
+        if ($search) $companiesQuery->where('name', 'LIKE', "%{$search}%");
+        
+        // Filtros Técnicos de Empresa
+        if ($request->filled('filter_state')) $companiesQuery->where('state', 'LIKE', "%{$request->filter_state}%");
+        if ($request->filled('filter_action')) $companiesQuery->where('action_type', 'LIKE', "%{$request->filter_action}%");
+        
+        $companies = $companiesQuery->latest()->get();
+
+        return view('suppliers.index', compact('producers', 'farms', 'companies', 'activeTab'));
     }
 
-    public function clearCapture()
+    public function inactivate(Request $request, $type, $id)
     {
-        $this->clearCaptureInternal();
+        // Lógica compatível com PHP 7.x usando switch
+        switch ($type) {
+            case 'producer':
+                $model = Producer::class;
+                break;
+            case 'farm':
+                $model = Farm::class;
+                break;
+            case 'company':
+                $model = Company::class;
+                break;
+            default:
+                return redirect()->back()->with('error', 'Tipo inválido.');
+        }
+
+        $item = $model::findOrFail($id);
+        $item->is_active = 0;
+        $item->save();
+        
+        return redirect()->route('suppliers.index', ['tab' => $request->tab])->with('success', 'Removido!');
+    }
+
+    public function storeProducer(Request $request) { Producer::create($request->all()); return redirect()->route('suppliers.index', ['tab' => 'producers']); }
+    public function storeFarm(Request $request) { $data = $request->all(); $data['is_international'] = $request->has('is_international'); Farm::create($data); return redirect()->route('suppliers.index', ['tab' => 'farms']); }
+    public function storeCompany(Request $request) { $data = $request->all(); $data['is_international'] = $request->has('is_international'); Company::create($data); return redirect()->route('suppliers.index', ['tab' => 'companies']); }
+    
+    public function capture($type, $id) {
+        $item = ($type == 'producer') ? Producer::findOrFail($id) : Farm::findOrFail($id);
+        session(["captured_{$type}_id" => $id, 'captured_name' => $item->name]);
         return redirect()->back();
     }
 
-    private function clearCaptureInternal()
-    {
-        session()->forget(['captured_producer_id', 'captured_farm_id', 'captured_name']);
-    }
-
-    // --- LÓGICA DE VÍNCULO ---
-    public function link($targetType, $targetId)
-    {
-        // Vincular produtor a fazenda
-        if (session('captured_producer_id') && $targetType == 'farm') {
-            DB::table('origin_links')->insert([
-                'producer_id' => session('captured_producer_id'),
-                'farm_id' => $targetId,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-            $this->clearCaptureInternal();
-            return redirect()->back()->with('success', 'Produtor vinculado à Fazenda com sucesso!');
-        }
-
-        // Vincular produtor a empresa
-        if (session('captured_producer_id') && $targetType == 'company') {
-        DB::table('origin_links')->insert([
-            'producer_id' => session('captured_producer_id'),
-            'company_id' => $targetId,
-            'created_at' => now(), 'updated_at' => now()
-        ]);
-        $this->clearCaptureInternal();
-        return redirect()->back()->with('success', 'Produtor vinculado à Empresa/Cooperativa!');
-        }
-
-        // Vincular fazenda a empresa
-        if (session('captured_farm_id') && $targetType == 'company') {
-            DB::table('origin_links')->insert([
-                'farm_id' => session('captured_farm_id'),
-                'company_id' => $targetId,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-            $this->clearCaptureInternal();
-            return redirect()->back()->with('success', 'Fazenda vinculada à Empresa com sucesso!');
-        }
-
-        return redirect()->back()->with('error', 'Combinação de vínculo inválida.');
-    }
-    // Método para salvar Produtor
-    public function storeProducer(Request $request) {
-        Producer::create($request->all());
-        return redirect()->back()->with('success', 'Produtor cadastrado!');
-    }
-
-    // Método para salvar Fazenda
-    public function storeFarm(Request $request) {
-        $data = $request->all();
-        $data['is_international'] = $request->has('is_international');
-        Farm::create($data);
-        return redirect()->back()->with('success', 'Fazenda cadastrada!');
-    }
-
-    // Método para salvar Empresa
-    public function storeCompany(Request $request) {
-        $data = $request->all();
-        $data['is_international'] = $request->has('is_international');
-        Company::create($data);
-        return redirect()->back()->with('success', 'Empresa cadastrada!');
-    }
-
-    public function inactivate($type, $id)
-    {
-    // 1. Busca o item
-    if ($type === 'producer') {
-        $item = \App\Models\Producer::findOrFail($id);
-    } elseif ($type === 'farm') {
-        $item = \App\Models\Farm::findOrFail($id);
-    } elseif ($type === 'company') {
-        $item = \App\Models\Company::findOrFail($id);
-    } else {
-        return redirect()->back()->with('error', 'Tipo inválido.');
-    }
-
-    // 2. Força a alteração manualmente (isso ignora o $fillable)
-    $item->is_active = 0; // Usando 0 explicitamente para garantir o boolean false
-    $item->save();
-
-    // 3. TESTE DE DEPURAÇÃO: 
-    // Se você chegar na página preta e 'is_active' estiver 0, o código funcionou.
-    // dd($item->toArray()); 
-
-    return redirect()->back()->with('success', 'Cadastro removido com sucesso.');
+    public function clearCapture() { 
+        session()->forget(['captured_producer_id', 'captured_farm_id', 'captured_name']); 
+        return redirect()->back(); 
     }
 }

@@ -6,7 +6,8 @@ use App\Http\Controllers\GreenCoffeeLotController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\SampleController;
-use App\Http\Controllers\SensoryProfileController; 
+use App\Http\Controllers\SensoryProfileController;
+
 /*
 |--------------------------------------------------------------------------
 | Rotas de Autenticação (Breeze)
@@ -32,6 +33,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/estoque/clear-capture', [GreenCoffeeLotController::class, 'clearCapture'])->name('estoque.clear-capture');
 
     // --- FORNECEDORES ---
+    // Rota de busca para filtros de fornecedores
+    Route::get('/suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');    
     Route::get('/suppliers/capture/{type}/{id}', [SupplierController::class, 'capture'])->name('suppliers.capture');
     Route::get('/suppliers/clear', [SupplierController::class, 'clearCapture'])->name('suppliers.clear');
@@ -54,12 +57,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/machines/{id}/maintenance', [MachineController::class, 'storeMaintenance'])->name('machines.storeMaintenance');
 
     // --- PERFIS SENSORIAIS ---
-    // Regra: Rotas específicas (GET) sempre ANTES do Resource
+    // A rota de busca de amostras é usada tanto na criação quanto no filtro de perfis
     Route::get('/sensory-profiles/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('sensory-profiles.search-samples');
     Route::resource('sensory-profiles', SensoryProfileController::class);
     
     // --- AMOSTRAS ---
-    // Regra: Rotas específicas (GET) sempre ANTES do Resource
+    // A rota 'search-origin' é usada no modal de criação e no modal de FILTRO
     Route::get('/samples/search-origin', [SampleController::class, 'searchOrigin'])->name('samples.search-origin');
     Route::get('/samples/{id}/info', [SampleController::class, 'info'])->name('samples.info');
     Route::resource('samples', SampleController::class);

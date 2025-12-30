@@ -4,24 +4,41 @@
 
 @section('content')
 <div class="px-3">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-            <h2 class="h4 fw-bold" style="color: var(--coffee-brown);">Cadastro de Amostras</h2>
-            <p class="text-muted small mb-0">Controle e rastreabilidade técnica de cafés recebidos.</p>
+    {{-- Header Reorganizado --}}
+    <div class="row align-items-center mb-4 g-3">
+        <div class="col-lg-3">
+            <h2 class="h4 fw-bold mb-0" style="color: var(--coffee-brown);">Cadastro de Amostras</h2>
+            <p class="text-muted small mb-0">Rastreabilidade técnica de cafés.</p>
         </div>
         
-        <div class="d-flex gap-2">
-            <form action="{{ route('samples.index') }}" method="GET" class="d-flex">
-                <div class="input-group shadow-sm" style="min-width: 300px;">
+        {{-- Pesquisa Centralizada e Extendida --}}
+        <div class="col-lg-6">
+            <form action="{{ route('samples.index') }}" method="GET" id="mainSearchForm">
+                {{-- Mantém os filtros ativos na URL se houver --}}
+                @foreach(request()->except('search') as $key => $value)
+                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                @endforeach
+                
+                <div class="input-group shadow-sm mx-auto" style="max-width: 700px;">
                     <span class="input-group-text bg-white border-end-0">
                         <i class="bi bi-search text-muted"></i>
                     </span>
-                    <input type="text" name="search" class="form-control border-start-0 ps-0" 
-                           placeholder="Pesquisar nome, lote ou origem..." value="{{ request('search') }}">
+                    <input type="text" name="search" class="form-control border-start-0 ps-0 py-2" 
+                           placeholder="Nome, lote ou variedade..." value="{{ request('search') }}">
+                    
+                    <button type="button" class="btn btn-outline-dark px-3 d-flex align-items-center gap-2" 
+                            data-bs-toggle="modal" data-bs-target="#modalFilterSample">
+                        <i class="bi bi-sliders"></i>
+                        <span class="d-none d-md-inline">Filtros</span>
+                    </button>
+                    
+                    <button type="submit" class="btn btn-dark px-4 fw-bold">Buscar</button>
                 </div>
             </form>
+        </div>
 
-            <button type="button" class="btn btn-dark shadow-sm d-flex align-items-center" 
+        <div class="col-lg-3 text-lg-end">
+            <button type="button" class="btn btn-success shadow-sm d-inline-flex align-items-center px-4 py-2" 
                     data-bs-toggle="modal" data-bs-target="#modalCreateSample">
                 <i class="bi bi-plus-lg me-2"></i> Nova Amostra
             </button>
@@ -67,33 +84,19 @@
                             </td>
                             <td>{{ $sample->fermentation ?? '-' }}</td>
                             <td>{{ $sample->screen ?? '-' }}</td>
-                            
-                            <td class="text-end pe-4" style="white-space: nowrap;">
+                            <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-2">
-                                    {{-- BOTÃO DE VISUALIZAR --}}
-                                    <button type="button" 
-                                            class="btn btn-sm btn-outline-primary border-0 btn-view-sample" 
-                                            data-sample-id="{{ $sample->id }}" 
-                                            title="Informações Técnicas">
-                                        <i class="bi bi-eye-fill fs-5"></i>
-                                    </button>
-
-                                    {{-- BOTÃO DE EXCLUIR --}}
-                                    <form action="{{ route('samples.destroy', $sample->id) }}" method="POST" class="d-inline" 
-                                          onsubmit="return confirm('Excluir amostra #{{ $sample->id }}?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Excluir">
-                                            <i class="bi bi-trash-fill fs-5"></i>
-                                        </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary border-0 btn-view-sample" 
+                                            data-sample-id="{{ $sample->id }}"><i class="bi bi-eye-fill fs-5"></i></button>
+                                    <form action="{{ route('samples.destroy', $sample->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Excluir?');">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash-fill fs-5"></i></button>
                                     </form>
                                 </div>
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">Nenhuma amostra encontrada.</td>
-                        </tr>
+                        <tr><td colspan="9" class="text-center py-5 text-muted">Nenhuma amostra encontrada.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -101,52 +104,25 @@
     </div>
 </div>
 
-{{-- MODAL PARA VISUALIZAÇÃO (INFO) --}}
+{{-- Modais --}}
 <div class="modal fade" id="modalViewSample" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" id="modalViewSampleContent" style="border-radius: 16px;">
-            {{-- Conteúdo carregado aqui --}}
-        </div>
-    </div>
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-lg" id="modalViewSampleContent" style="border-radius: 16px;"></div></div>
 </div>
 
 @include('samples.partials.create')
+@include('samples.partials.filter') {{-- Inclusão do novo partial --}}
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+@push('scripts')
 <script>
     $(document).ready(function() {
-        console.log("Sistema de visualização pronto.");
-
         $(document).on('click', '.btn-view-sample', function() {
             var sampleId = $(this).data('sample-id');
-            var modalElement = document.getElementById('modalViewSample');
             var modalContent = $('#modalViewSampleContent');
-            
-            console.log("Clicou no botão da amostra: " + sampleId);
-
-            // Abre o modal manualmente caso o Bootstrap falhe no automático
-            if (typeof bootstrap !== 'undefined') {
-                var bsModal = bootstrap.Modal.getOrCreateInstance(modalElement);
-                
-                modalContent.html(`
-                    <div class="modal-body text-center py-5">
-                        <div class="spinner-border text-primary" role="status"></div>
-                        <p class="mt-3 text-muted">Carregando ficha técnica...</p>
-                    </div>
-                `);
-                
-                bsModal.show();
-
-                // Busca as informações
-                $.get('/samples/' + sampleId + '/info', function(data) {
-                    modalContent.html(data);
-                }).fail(function() {
-                    modalContent.html('<div class="p-4 text-center text-danger">Erro ao buscar dados.</div>');
-                });
-            } else {
-                alert("Erro: O Bootstrap (estilo do site) não foi carregado corretamente.");
-            }
+            modalContent.html('<div class="modal-body text-center py-5"><div class="spinner-border text-primary"></div></div>');
+            new bootstrap.Modal('#modalViewSample').show();
+            $.get('/samples/' + sampleId + '/info', function(data) { modalContent.html(data); });
         });
     });
 </script>
+@endpush
 @endsection

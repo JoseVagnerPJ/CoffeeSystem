@@ -4,13 +4,36 @@
 
 @section('content')
 <div class="px-3">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-            <h2 class="h4 fw-bold" style="color: var(--coffee-brown);">Perfis Sensoriais</h2>
-            <p class="text-muted small mb-0">Gestão de identidades sensoriais e Blends do laboratório.</p>
+    {{-- Header Padronizado --}}
+    <div class="row align-items-center mb-4 g-3">
+        <div class="col-lg-3">
+            <h2 class="h4 fw-bold mb-0" style="color: var(--coffee-brown);">Perfis Sensoriais</h2>
+            <p class="text-muted small mb-0">Gestão de identidades sensoriais e Blends.</p>
         </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-dark shadow-sm d-flex align-items-center" 
+        
+        {{-- Busca Centralizada --}}
+        <div class="col-lg-6">
+            <form action="{{ route('sensory-profiles.index') }}" method="GET">
+                <div class="input-group shadow-sm mx-auto" style="max-width: 700px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control border-start-0 ps-0 py-2" 
+                           placeholder="Pesquisar nome do perfil ou notas..." value="{{ request('search') }}">
+                    
+                    <button type="button" class="btn btn-outline-dark px-3 d-flex align-items-center gap-2" 
+                            data-bs-toggle="modal" data-bs-target="#modalFilterSensory">
+                        <i class="bi bi-sliders"></i>
+                        <span class="d-none d-md-inline">Filtros</span>
+                    </button>
+                    
+                    <button type="submit" class="btn btn-dark px-4 fw-bold">Buscar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-3 text-lg-end">
+            <button type="button" class="btn btn-dark shadow-sm d-inline-flex align-items-center px-4 py-2" 
                     data-bs-toggle="modal" data-bs-target="#modalCreateProfile">
                 <i class="bi bi-plus-lg me-2"></i> Novo Perfil
             </button>
@@ -52,14 +75,18 @@
                                     </button>
                                     <form action="{{ route('sensory-profiles.destroy', $profile->id) }}" method="POST" onsubmit="return confirm('Excluir perfil?');">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash-fill fs-5"></i></button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Excluir">
+                                            <i class="bi bi-trash-fill fs-5"></i>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr style="pointer-events: none; background: transparent !important;">
-                            <td colspan="6" class="text-center py-5 text-muted">Nenhum perfil cadastrado.</td>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                Nenhum perfil encontrado.
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -68,6 +95,7 @@
     </div>
 </div>
 
+{{-- Modais --}}
 <div class="modal fade" id="modalViewProfile" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" id="modalViewProfileContent" style="border-radius: 16px;"></div>
@@ -75,29 +103,18 @@
 </div>
 
 @include('sensory_profiles.partials.create')
+@include('sensory_profiles.partials.filter')
 
 @push('scripts')
 <script>
     $(document).ready(function() {
-        console.log("Sistema de Perfis carregado.");
-
         $(document).on('click', '.btn-view-profile', function() {
             var profileId = $(this).data('id');
             var modalContent = $('#modalViewProfileContent');
-            var modalElement = document.getElementById('modalViewProfile');
-
-            // Feedback visual de carregamento
-            modalContent.html('<div class="p-5 text-center"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Buscando ficha técnica...</p></div>');
-            
-            // Abre o modal
-            var bsModal = new bootstrap.Modal(modalElement);
-            bsModal.show();
-
-            // Busca os dados via AJAX
+            modalContent.html('<div class="p-5 text-center"><div class="spinner-border text-primary"></div></div>');
+            new bootstrap.Modal('#modalViewProfile').show();
             $.get('/sensory-profiles/' + profileId, function(data) {
                 modalContent.html(data);
-            }).fail(function() {
-                modalContent.html('<div class="p-4 text-center text-danger">Erro ao buscar dados do perfil sensorial.</div>');
             });
         });
     });
