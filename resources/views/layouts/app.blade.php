@@ -38,15 +38,49 @@
             background-color: var(--coffee-gold) !important;
             color: white !important;
         }
+
+        /* Estilo da Logo da Empresa - Quadrada com cantos arredondados */
+        .company-logo-nav {
+            height: 42px;
+            width: 42px;
+            object-fit: cover;
+            border-radius: 8px; /* Cantos levemente arredondados */
+            border: 1px solid rgba(255,255,255,0.2);
+            background-color: white;
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-dark fixed-top navbar-top shadow">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url('/') }}"><i class="bi bi-cup-hot-fill me-2"></i>Unique Cafés</a>
+            {{-- Lado Esquerdo: Logo Quadrada e Nome da Empresa --}}
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url('/') }}">
+                @if(Auth::check() && Auth::user()->mainCompany->logo)
+                    <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" alt="Logo" class="me-2 company-logo-nav shadow-sm">
+                @else
+                    <div class="me-2 company-logo-nav d-flex align-items-center justify-content-center bg-white shadow-sm">
+                        <i class="bi bi-cup-hot-fill" style="color: var(--coffee-brown); font-size: 1.2rem;"></i>
+                    </div>
+                @endif
+                <span>{{ Auth::check() ? Auth::user()->mainCompany->name : 'Unique Cafés' }}</span>
+            </a>
+
+            {{-- Lado Direito: Usuário com Foto Circular --}}
             <div class="d-flex align-items-center text-white">
-                <span class="me-3 small">{{ Auth::user()->name ?? 'Visitante' }}</span>
-                <i class="bi bi-person-circle fs-4"></i>
+                <div class="text-end me-3 d-none d-sm-block">
+                    <div class="small fw-bold mb-0" style="line-height: 1;">{{ Auth::user()->name ?? 'Visitante' }}</div>
+                    <small class="text-muted" style="font-size: 0.7rem; color: #cfd8dc !important;">{{ Auth::user()->profile->name ?? '' }}</small>
+                </div>
+                
+                @if(Auth::check() && Auth::user()->photo)
+                    <div class="rounded-circle shadow-sm border border-2 border-white" style="width: 40px; height: 40px; overflow: hidden; background-color: white;">
+                        <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="User" class="w-100 h-100" style="object-fit: cover;">
+                    </div>
+                @else
+                    <div class="rounded-circle bg-white d-flex align-items-center justify-content-center text-dark shadow-sm" style="width: 40px; height: 40px;">
+                        <i class="bi bi-person-fill fs-5"></i>
+                    </div>
+                @endif
             </div>
         </div>
     </nav>
@@ -89,7 +123,6 @@
     {{-- JS do Bootstrap --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    {{-- AQUI É O PULO DO GATO: Direciona os scripts das páginas filhas para cá --}}
     @stack('scripts')
 </body>
 </html>

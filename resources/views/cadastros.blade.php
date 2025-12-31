@@ -117,7 +117,7 @@
         <div class="row g-3">
             {{-- Módulo: Equipe --}}
             <div class="col-md-4">
-                <a href="#" class="btn-equipe-horizontal p-3 rounded shadow-sm">
+                <a href="{{ route('team.index') }}" class="btn-equipe-horizontal p-3 rounded shadow-sm">
                     <i class="bi bi-people-fill me-3 fs-4 text-muted"></i>
                     <div>
                         <h6 class="mb-0 fw-bold text-dark">Equipe</h6>

@@ -15,7 +15,6 @@
             </div>
 
             <div class="modal-body p-4 text-start">
-                {{-- Dados da Empresa --}}
                 <div class="row g-3 mb-4">
                     <div class="col-6">
                         <span class="info-label">CNPJ / Identificação</span>
@@ -29,7 +28,6 @@
 
                 <hr class="opacity-10">
 
-                {{-- Fazendas Vinculadas --}}
                 <div class="mb-4">
                     <label class="info-label mb-2 text-uppercase" style="font-size: 0.7rem;">Fazendas Vinculadas</label>
                     <div class="list-group list-group-flush">
@@ -45,8 +43,7 @@
                     </div>
                 </div>
 
-                {{-- NOVA SEÇÃO: Produtores Vinculados Diretamente --}}
-                <div>
+                <div class="mb-4">
                     <label class="info-label mb-2 text-uppercase" style="font-size: 0.7rem;">Produtores Vinculados</label>
                     <div class="list-group list-group-flush">
                         @forelse($c->producers as $producer)
@@ -59,6 +56,21 @@
                             <p class="small text-muted italic">Nenhum produtor vinculado diretamente.</p>
                         @endforelse
                     </div>
+                </div>
+
+                <h6 class="fw-bold small border-bottom pb-2 mb-3 text-uppercase text-success" style="font-size: 0.7rem;">Amostras Registradas</h6>
+                <div class="list-group list-group-flush">
+                    @forelse($c->samples as $sample)
+                        <div class="list-group-item px-0 py-2 d-flex align-items-center border-0 border-bottom">
+                            <i class="bi bi-box-seam text-success me-2"></i>
+                            <div>
+                                <span class="d-block small fw-bold text-dark">{{ $sample->name }}</span>
+                                <small class="text-muted" style="font-size: 0.65rem;">ID: #{{ $sample->id }} | Lote: {{ $sample->supplier_batch }}</small>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="small text-muted italic">Nenhuma amostra vinculada a esta empresa.</p>
+                    @endforelse
                 </div>
             </div>
 

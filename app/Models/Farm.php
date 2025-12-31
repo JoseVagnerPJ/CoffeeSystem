@@ -7,16 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Farm extends Model
 {
-
-    public function producers()
-{
-    return $this->belongsToMany(Producer::class, 'origin_links');
-}
-
-public function companies()
-{
-    return $this->belongsToMany(Company::class, 'origin_links');
-}
     use HasFactory;
 
     protected $fillable = [
@@ -27,9 +17,31 @@ public function companies()
         'state',
         'country',
         'district',
-        'varieties_tags'
+        'varieties_tags',
+        'is_active'
     ];
 
-    // Dica: Como varieties_tags será uma lista, 
-    // podemos converter automaticamente para array no futuro se precisar.
+    /**
+     * Relacionamento Polimórfico: Uma fazenda possui muitas amostras.
+     */
+    public function samples()
+    {
+        return $this->morphMany(Sample::class, 'origin');
+    }
+
+    /**
+     * Relacionamento: Produtores vinculados a esta fazenda.
+     */
+    public function producers()
+    {
+        return $this->belongsToMany(Producer::class, 'origin_links', 'farm_id', 'producer_id');
+    }
+
+    /**
+     * Relacionamento: Empresas vinculadas a esta fazenda.
+     */
+    public function companies()
+    {
+        return $this->belongsToMany(Company::class, 'origin_links', 'farm_id', 'company_id');
+    }
 }

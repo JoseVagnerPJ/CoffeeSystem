@@ -10,62 +10,98 @@ use App\Models\Farm;
 
 class SampleController extends Controller
 {
+    /**
+     * Lista as amostras cadastradas.
+     * Corrigido para retornar a view de amostras e não a de fornecedores.
+     */
     public function index(Request $request)
     {
-        $query = Sample::with('origin');
+        $search = $request->query('search');
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
+        // Busca as amostras filtrando por nome, variedade ou lote do fornecedor
+        $samples = Sample::with('origin')
+            ->where('is_active', true)
+            ->when($search, function($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('supplier_batch', 'LIKE', "%{$search}%")
-                  ->orWhere('variety', 'LIKE', "%{$search}%");
-            });
-        }
+                  ->orWhere('variety', 'LIKE', "%{$search}%")
+                  ->orWhere('supplier_batch', 'LIKE', "%{$search}%");
+            })
+            ->latest()
+            ->get();
 
-        if ($request->filled('date_start')) $query->whereDate('receipt_date', '>=', $request->date_start);
-        if ($request->filled('date_end')) $query->whereDate('receipt_date', '<=', $request->date_end);
-        if ($request->filled('filter_variety')) $query->where('variety', 'LIKE', "%{$request->filter_variety}%");
-        if ($request->filled('filter_fermentation')) $query->where('fermentation', 'LIKE', "%{$request->filter_fermentation}%");
-        if ($request->filled('filter_sensory')) $query->where('observations', 'LIKE', "%{$request->filter_sensory}%");
-
-        if ($request->filled('filter_origin_id') && $request->filled('filter_origin_type')) {
-            $query->where('origin_id', $request->filter_origin_id)->where('origin_type', $request->filter_origin_type);
-        }
-
-        $samples = $query->latest()->get();
-        $companies = Company::where('is_active', 1)->orderBy('name')->get();
-        $producers = Producer::where('is_active', 1)->orderBy('name')->get();
-        $farms = Farm::where('is_active', 1)->orderBy('name')->get();
-
-        return view('samples.index', compact('samples', 'companies', 'producers', 'farms'));
+        return view('samples.index', compact('samples'));
     }
 
+    /**
+     * Inativa uma amostra (Soft Delete manual).
+     * Ajustado para a tabela 'samples'.
+     */
+    public function inactivate($id)
+    {
+        $sample = Sample::findOrFail($id);
+        $sample->is_active = 0;
+        $sample->save();
+
+        return redirect()->route('samples.index')->with('success', 'Amostra removida com sucesso!');
+    }
+
+    /**
+     * Exibe detalhes de uma amostra específica.
+     */
     public function info($id) {
         $sample = Sample::with(['origin', 'sensoryProfileComponents.profile'])->findOrFail($id);
         return view('samples.partials.info', compact('sample'));
     }
 
+    /**
+     * Salva uma nova amostra.
+     */
     public function store(Request $request) {
-        $request->validate(['origin_id' => 'required', 'origin_type' => 'required', 'name' => 'required']);
+        $request->validate([
+            'origin_id' => 'required', 
+            'origin_type' => 'required', 
+            'name' => 'required',
+            'receipt_date' => 'required|date'
+        ]);
+
         Sample::create($request->all());
+
         return redirect()->route('samples.index')->with('success', 'Amostra cadastrada!');
     }
 
+    /**
+     * Busca a origem (Produtor, Fazenda ou Empresa) para o autocomplete do cadastro de amostras.
+     */
     public function searchOrigin(Request $request) {
         $q = $request->get('q');
         $results = [];
+
+        // Empresas
         $companies = Company::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
-        foreach ($companies as $c) { $results[] = ['id' => $c->id, 'type' => 'App\Models\Company', 'name' => $c->name, 'label' => 'Empresa']; }
+        foreach ($companies as $c) { 
+            $results[] = ['id' => $c->id, 'type' => 'App\Models\Company', 'name' => $c->name, 'label' => 'Empresa']; 
+        }
+
+        // Produtores
         $producers = Producer::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
-        foreach ($producers as $p) { $results[] = ['id' => $p->id, 'type' => 'App\Models\Producer', 'name' => $p->name, 'label' => 'Produtor']; }
+        foreach ($producers as $p) { 
+            $results[] = ['id' => $p->id, 'type' => 'App\Models\Producer', 'name' => $p->name, 'label' => 'Produtor']; 
+        }
+
+        // Fazendas
         $farms = Farm::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
-        foreach ($farms as $f) { $results[] = ['id' => $f->id, 'type' => 'App\Models\Farm', 'name' => $f->name, 'label' => 'Fazenda']; }
+        foreach ($farms as $f) { 
+            $results[] = ['id' => $f->id, 'type' => 'App\Models\Farm', 'name' => $f->name, 'label' => 'Fazenda']; 
+        }
+
         return response()->json($results);
     }
 
+    /**
+     * Exclui permanentemente uma amostra.
+     */
     public function destroy($id) {
         Sample::findOrFail($id)->delete();
-        return redirect()->route('samples.index')->with('success', 'Amostra excluída!');
+        return redirect()->route('samples.index')->with('success', 'Amostra excluída permanentemente!');
     }
 }

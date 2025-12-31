@@ -4,17 +4,82 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\SensoryProfile;
+use App\Models\SensoryProfileComponent;
+use App\Models\Sample;
+use Illuminate\Support\Facades\DB;
 
 class SensoryProfileController extends Controller
 {
     public function index(Request $request)
     {
-        $profiles = SensoryProfile::latest()->get();
+        $query = SensoryProfile::query();
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('notes', 'LIKE', "%{$search}%");
+            });
+        }
+        $profiles = $query->latest()->get();
         return view('sensory_profiles.index', compact('profiles'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+            'sample_id' => 'required|array',
+            'percentage' => 'required|array'
+        ]);
+
+        $total = array_sum($request->percentage);
+        if (abs($total - 100) > 0.01) {
+            return redirect()->back()->withInput()->withErrors(['blend_error' => "A soma deve ser 100%."]);
+        }
+
+        DB::transaction(function () use ($request) {
+            $profile = SensoryProfile::create($request->only([
+                'name', 'roast_intensity', 'color_hex', 'notes', 
+                'sweetness', 'acidity', 'body', 'bitterness'
+            ]) + ['is_blend' => $request->has('is_blend')]);
+
+            foreach ($request->sample_id as $index => $id) {
+                if ($id) {
+                    SensoryProfileComponent::create([
+                        'sensory_profile_id' => $profile->id,
+                        'sample_id' => $id,
+                        'percentage' => $request->percentage[$index]
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('sensory-profiles.index')->with('success', 'Perfil cadastrado!');
+    }
+
+    public function searchSamples(Request $request)
+    {
+        $q = $request->get('q');
+        
+        // CORREÇÃO: Removido 'is_active' pois a coluna não existe no seu banco
+        $samples = Sample::where(function($query) use ($q) {
+                $query->where('name', 'LIKE', "%{$q}%")
+                      ->orWhere('variety', 'LIKE', "%{$q}%")
+                      ->orWhere('supplier_batch', 'LIKE', "%{$q}%");
+            })
+            ->limit(10)
+            ->get(['id', 'name', 'variety', 'supplier_batch']);
+
+        return response()->json($samples);
     }
 
     public function show($id) {
         $profile = SensoryProfile::with('components.sample.origin')->findOrFail($id);
         return view('sensory_profiles.partials.info', compact('profile'));
+    }
+
+    public function destroy($id) {
+        SensoryProfile::findOrFail($id)->delete();
+        return redirect()->route('sensory-profiles.index')->with('success', 'Perfil removido!');
     }
 }

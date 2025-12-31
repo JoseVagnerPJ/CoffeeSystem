@@ -9,17 +9,29 @@ class Producer extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'cpf', 'contact'];
+    protected $fillable = ['name', 'cpf', 'contact', 'is_active'];
 
-    // ADICIONE ESTA FUNÇÃO:
+    /**
+     * Relacionamento Polimórfico: Um produtor possui muitas amostras.
+     */
+    public function samples()
+    {
+        return $this->morphMany(Sample::class, 'origin');
+    }
+
+    /**
+     * Relacionamento: Fazendas vinculadas a este produtor.
+     */
     public function farms()
     {
         return $this->belongsToMany(Farm::class, 'origin_links', 'producer_id', 'farm_id');
     }
 
+    /**
+     * Relacionamento: Empresas vinculadas a este produtor.
+     */
     public function companies() 
     {
         return $this->belongsToMany(Company::class, 'origin_links', 'producer_id', 'company_id');
     }
-
 }

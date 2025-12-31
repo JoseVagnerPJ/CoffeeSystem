@@ -6,16 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateSamplesTable extends Migration
 {
-   public function up(): void
+public function up(): void
 {
     Schema::create('samples', function (Blueprint $table) {
-        $table->id(); // Lote Interno
+        $table->id();
         $table->string('name');
-        
-        // Esta linha cria dois campos: origin_id e origin_type
-        // O origin_type guardará se é "App\Models\Company" ou "App\Models\Producer"
         $table->morphs('origin'); 
-
         $table->date('receipt_date');
         $table->string('supplier_batch');
         $table->string('variety');
@@ -26,6 +22,8 @@ class CreateSamplesTable extends Migration
         $table->integer('altitude')->nullable();
         $table->string('crop')->nullable();
         $table->text('observations')->nullable();
+        $table->boolean('is_active')->default(true); 
+        
         $table->timestamps();
     });
 }

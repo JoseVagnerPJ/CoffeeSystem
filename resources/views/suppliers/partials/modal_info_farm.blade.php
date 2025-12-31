@@ -50,7 +50,7 @@
                     @endforelse
                 </div>
 
-                <div>
+                <div class="mb-4">
                     <span class="info-label">Empresas Vinculadas</span>
                     @forelse($f->companies as $comp)
                         <div class="d-flex align-items-center mb-1 bg-light p-2 rounded">
@@ -59,6 +59,22 @@
                         </div>
                     @empty
                         <span class="text-muted small italic">Nenhuma empresa vinculada.</span>
+                    @endforelse
+                </div>
+
+                <h6 class="fw-bold small border-bottom pb-2 mb-3 text-uppercase text-success" style="font-size: 0.7rem;">Amostras Registradas</h6>
+                <div class="list-group list-group-flush">
+                    @forelse($f->samples as $sample)
+                        <div class="list-group-item px-0 py-2 d-flex align-items-center border-0 border-bottom">
+                            <i class="bi bi-box-seam text-success me-2"></i>
+                            <div>
+                                <span class="d-block small fw-bold text-dark">{{ $sample->name }}</span>
+                                <small class="text-muted" style="font-size: 0.65rem;">Lote: {{ $sample->supplier_batch }} | Var: {{ $sample->variety }}</small>
+                            </div>
+                            <span class="ms-auto badge bg-success bg-opacity-10 text-success border-0 small">#{{ $sample->id }}</span>
+                        </div>
+                    @empty
+                        <p class="small text-muted italic">Nenhuma amostra vinculada a esta fazenda.</p>
                     @endforelse
                 </div>
             </div>

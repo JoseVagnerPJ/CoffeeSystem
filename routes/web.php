@@ -7,6 +7,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SensoryProfileController;
+use App\Http\Controllers\TeamController; // Importado o novo Controller
 
 /*
 |--------------------------------------------------------------------------
@@ -33,7 +34,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/estoque/clear-capture', [GreenCoffeeLotController::class, 'clearCapture'])->name('estoque.clear-capture');
 
     // --- FORNECEDORES ---
-    // Rota de busca para filtros de fornecedores
     Route::get('/suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');    
     Route::get('/suppliers/capture/{type}/{id}', [SupplierController::class, 'capture'])->name('suppliers.capture');
@@ -57,14 +57,21 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/machines/{id}/maintenance', [MachineController::class, 'storeMaintenance'])->name('machines.storeMaintenance');
 
     // --- PERFIS SENSORIAIS ---
-    // A rota de busca de amostras é usada tanto na criação quanto no filtro de perfis
     Route::get('/sensory-profiles/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('sensory-profiles.search-samples');
     Route::resource('sensory-profiles', SensoryProfileController::class);
     
     // --- AMOSTRAS ---
-    // A rota 'search-origin' é usada no modal de criação e no modal de FILTRO
     Route::get('/samples/search-origin', [SampleController::class, 'searchOrigin'])->name('samples.search-origin');
     Route::get('/samples/{id}/info', [SampleController::class, 'info'])->name('samples.info');
     Route::resource('samples', SampleController::class);
+
+    // --- MÓDULO: EQUIPE (GESTÃO DA UNIDADE) ---
+    Route::get('/team', [TeamController::class, 'index'])->name('team.index');
+    Route::patch('/team/company', [TeamController::class, 'updateCompany'])->name('team.updateCompany');
+    Route::post('/team/profile', [TeamController::class, 'storeProfile'])->name('team.storeProfile');
+    Route::post('/team/user', [TeamController::class, 'storeUser'])->name('team.storeUser');
+    Route::patch('/team/user/{id}/inactivate', [TeamController::class, 'inactivateUser'])->name('team.inactivateUser');
+    Route::delete('/team/profile/{id}', [TeamController::class, 'destroyProfile'])->name('team.destroyProfile');
+    Route::patch('/team/user/{id}', [TeamController::class, 'updateUser'])->name('team.updateUser');
 
 });

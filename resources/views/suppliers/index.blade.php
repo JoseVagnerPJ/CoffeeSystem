@@ -2,6 +2,7 @@
 
 @section('content')
 @php
+    // Define qual aba deve iniciar aberta (padrão: producers)
     $activeTab = request('tab', 'producers');
 @endphp
 
@@ -13,16 +14,17 @@
 </style>
 
 <div class="fade-in px-3">
-    {{-- Cabeçalho --}}
+    {{-- Cabeçalho Padronizado --}}
     <div class="row align-items-center mb-4 g-3">
         <div class="col-lg-3">
             <h2 class="h4 fw-bold mb-0" style="color: var(--coffee-brown);">Gestão de Fornecedores</h2>
             <p class="text-muted small mb-0">Rastreabilidade e vínculos de origem.</p>
         </div>
         
+        {{-- Barra de Busca Centralizada --}}
         <div class="col-lg-6">
             <form action="{{ route('suppliers.index') }}" method="GET" id="formSearchSuppliers">
-                {{-- IMPORTANTE: Classe 'input-tab-control' adicionada --}}
+                {{-- IMPORTANTE: Classe 'input-tab-control' permite que o JS sincronize a aba --}}
                 <input type="hidden" name="tab" class="input-tab-control" value="{{ $activeTab }}">
                 
                 <div class="input-group shadow-sm mx-auto" style="max-width: 700px;">
@@ -48,6 +50,7 @@
         </div>
     </div>
 
+    {{-- Alerta de Item Capturado (🖐️) --}}
     @if(session('captured_name'))
     <div class="alert bg-white border-start border-warning border-4 shadow-sm d-flex justify-content-between align-items-center mb-4 py-2" style="border-radius: 8px;">
         <div class="d-flex align-items-center">
@@ -61,6 +64,13 @@
         </div>
         <a href="{{ route('suppliers.clear') }}" class="btn btn-sm btn-light border rounded-pill px-3 fw-bold">Soltar</a>
     </div>
+    @endif
+
+    {{-- Alertas de Sucesso --}}
+    @if(session('success'))
+        <div class="alert alert-success border-0 shadow-sm py-2 mb-4 small animate-fade-in">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+        </div>
     @endif
 
     {{-- Navegação por Abas --}}
@@ -80,7 +90,8 @@
     </ul>
 
     <div class="tab-content" id="pills-tabContent">
-        {{-- PRODUTORES --}}
+        
+        {{-- ABA: PRODUTORES --}}
         <div class="tab-pane fade {{ $activeTab == 'producers' ? 'show active' : '' }}" id="producers" role="tabpanel">
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -118,7 +129,7 @@
             </div>
         </div>
 
-        {{-- FAZENDAS --}}
+        {{-- ABA: FAZENDAS --}}
         <div class="tab-pane fade {{ $activeTab == 'farms' ? 'show active' : '' }}" id="farms" role="tabpanel">
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -137,6 +148,14 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group-custom">
                                         <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoFarm{{ $f->id }}"><i class="bi bi-info-circle-fill"></i></button>
+                                        
+                                        {{-- BOTÃO DE VÍNCULO (PRODUTOR -> FAZENDA) --}}
+                                        @if(session('captured_producer_id'))
+                                            <a href="{{ route('suppliers.link', ['farm', $f->id]) }}" class="btn btn-sm btn-success btn-action shadow-sm text-white" title="Vincular Produtor a esta Fazenda">
+                                                <i class="bi bi-link-45deg"></i>
+                                            </a>
+                                        @endif
+
                                         <a href="{{ route('suppliers.capture', ['farm', $f->id]) }}" class="btn btn-sm btn-white border btn-action shadow-sm {{ session('captured_farm_id') == $f->id ? 'bg-warning border-warning' : '' }}"><i class="bi bi-hand-index-thumb"></i></a>
                                         <form action="{{ route('suppliers.inactivate', ['farm', $f->id]) }}" method="POST">
                                             @csrf @method('PATCH')
@@ -156,7 +175,7 @@
             </div>
         </div>
 
-        {{-- EMPRESAS --}}
+        {{-- ABA: EMPRESAS --}}
         <div class="tab-pane fade {{ $activeTab == 'companies' ? 'show active' : '' }}" id="companies" role="tabpanel">
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -175,6 +194,14 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group-custom">
                                         <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoCompany{{ $c->id }}"><i class="bi bi-info-circle-fill"></i></button>
+                                        
+                                        {{-- BOTÃO DE VÍNCULO (QUALQUER -> EMPRESA) --}}
+                                        @if(session('captured_producer_id') || session('captured_farm_id'))
+                                            <a href="{{ route('suppliers.link', ['company', $c->id]) }}" class="btn btn-sm btn-success btn-action shadow-sm text-white" title="Vincular Item a esta Empresa">
+                                                <i class="bi bi-link-45deg"></i>
+                                            </a>
+                                        @endif
+
                                         <form action="{{ route('suppliers.inactivate', ['company', $c->id]) }}" method="POST">
                                             @csrf @method('PATCH')
                                             <input type="hidden" name="tab" value="companies">
@@ -195,17 +222,20 @@
     </div>
 </div>
 
+{{-- Inclusão dos Partials --}}
 @include('suppliers.partials.modals_create')
 @include('suppliers.partials.filter')
 
 <script>
-    // Sincroniza todos os formulários da página com a aba atual
+    /**
+     * Sincroniza todos os formulários da página com a aba atual
+     */
     function updateTabParam(tabName) {
-        // Atualiza todos os inputs hidden que controlam a aba ativa
+        // Atualiza todos os inputs hidden que controlam a aba ativa (Busca e Filtro)
         const inputs = document.querySelectorAll('.input-tab-control');
         inputs.forEach(el => el.value = tabName);
 
-        // Atualiza a URL visualmente
+        // Atualiza a URL visualmente para o usuário
         const url = new URL(window.location);
         url.searchParams.set('tab', tabName);
         window.history.pushState({}, '', url);

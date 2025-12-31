@@ -14,13 +14,17 @@ class CreateUsersTable extends Migration
     public function up(): void {
     Schema::create('users', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('company_id')->nullable()->constrained();
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
+        $table->foreignId('profile_id')->nullable()->constrained('profiles')->onDelete('set null');
         $table->string('name');
-        $table->string('email')->unique();
+        $table->string('username'); // Login por usuário
         $table->string('password');
-        $table->enum('role', ['admin', 'gestor', 'mestre', 'provador'])->default('provador');
+        $table->string('photo')->nullable();
+        $table->boolean('is_active')->default(true);
+        $table->rememberToken();
         $table->timestamps();
-        });
+        $table->unique(['username', 'main_company_id']);
+    });
     }
 
     /**
