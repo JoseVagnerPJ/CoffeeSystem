@@ -54,7 +54,7 @@
     <nav class="navbar navbar-dark fixed-top navbar-top shadow">
         <div class="container-fluid">
             {{-- Lado Esquerdo: Logo Quadrada e Nome da Empresa --}}
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url('/') }}">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ route('inicio') }}">
                 @if(Auth::check() && Auth::user()->mainCompany->logo)
                     <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" alt="Logo" class="me-2 company-logo-nav shadow-sm">
                 @else
@@ -91,16 +91,16 @@
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="sidebar-heading" style="opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
                 <ul class="nav flex-column">
-                    <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ url('/') }}"><i class="bi bi-house-door me-2"></i> Início</a></li>
-                    <li><a class="nav-link {{ Request::is('estoque*') ? 'active' : '' }}" href="{{ url('/estoque') }}"><i class="bi bi-box-seam me-2"></i> Estoque Verde</a></li>
-                    <li><a class="nav-link {{ Request::is('laboratorio*') ? 'active' : '' }}" href="{{ url('/laboratorio') }}"><i class="bi bi-clipboard-pulse me-2"></i> Laboratório</a></li>
-                    <li><a class="nav-link {{ Request::is('torrefacao*') ? 'active' : '' }}" href="{{ url('/torrefacao') }}"><i class="bi bi-fire me-2"></i> Torrefação</a></li>
+                    <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ route('inicio') }}"><i class="bi bi-house-door me-2"></i> Início</a></li>
+                    <li><a class="nav-link {{ Request::is('green-coffee*') ? 'active' : '' }}" href="{{ route('estoque.index') }}"><i class="bi bi-box-seam me-2"></i> Estoque Verde</a></li>
+                    <li><a class="nav-link {{ Request::is('laboratory*') ? 'active' : '' }}" href="{{ route('laboratorio') }}"><i class="bi bi-clipboard-pulse me-2"></i> Laboratório</a></li>
+                    <li><a class="nav-link {{ Request::is('roasting*') ? 'active' : '' }}" href="{{ route('torrefacao') }}"><i class="bi bi-fire me-2"></i> Torrefação</a></li>
                 </ul>
 
                 <div class="sidebar-heading" style="opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Gestão & Cadastros</div>
                 <ul class="nav flex-column">
-                    <li><a class="nav-link {{ Request::is('cadastros*') ? 'active' : '' }}" href="{{ url('/cadastros') }}"><i class="bi bi-people me-2"></i> Cadastros</a></li>
-                    <li><a class="nav-link {{ Request::is('configuracoes*') ? 'active' : '' }}" href="{{ url('/configuracoes') }}"><i class="bi bi-gear me-2"></i> Configurações</a></li>
+                    <li><a class="nav-link {{ Request::is('registries') ? 'active' : '' }}" href="{{ route('registries.index') }}"><i class="bi bi-people me-2"></i> Cadastros</a></li>
+                    <li><a class="nav-link {{ Request::is('settings*') ? 'active' : '' }}" href="{{ route('settings') }}"><i class="bi bi-gear me-2"></i> Configurações</a></li>
                 </ul>
 
                 <div class="px-3 mt-4">
@@ -123,6 +123,7 @@
     {{-- JS do Bootstrap --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
+    {{-- AQUI É O PULO DO GATO: Direciona os scripts das páginas filhas para cá --}}
     @stack('scripts')
 </body>
 </html>

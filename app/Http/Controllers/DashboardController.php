@@ -4,93 +4,49 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Company;
+use App\Models\User;
+use App\Models\GreenCoffeeLot;
+use App\Models\Machine;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    /**
-     * Retorna as estatísticas globais usadas no menu lateral (app.blade.php)
-     */
     private function getStats()
     {
+        $companyId = Auth::user()->main_company_id;
         return [
-            'empresas' => Company::count(),
-            'usuarios' => DB::table('users')->count(),
-            'lotes'    => DB::table('green_coffee_lots')->count(),
-            'maquinas' => DB::table('machines')->count(),
+            'usuarios' => User::where('main_company_id', $companyId)->count(),
+            'lotes'    => GreenCoffeeLot::where('user_id', Auth::id())->count(), // Ajustar se lote for por empresa
+            'maquinas' => Machine::count(),
         ];
     }
 
-    /**
-     * View: Dashboard (Página Inicial)
-     */
     public function index() 
-{
-    $stats = $this->getStats();
-    return view('inicio', compact('stats'));
-}
-
-    /**
-     * View: Gestão de Estoque Verde
-     */
-    public function estoque() 
     {
         $stats = $this->getStats();
-        return view('estoque', compact('stats'));
+        return view('dashboard.index', compact('stats'));
     }
 
-    /**
-     * View: Laboratório Sensorial
-     */
     public function laboratorio() 
     {
-        $stats = $this->getStats();
-        
-        // Dados simulados para os KPIs do Laboratório
-        $labStats = [
-            'total_mesas' => 42,
-            'total_xicaras' => 156,
-            'maior_nota' => 91.5,
-        ];
-
-        return view('laboratorio', compact('stats', 'labStats'));
+        $labStats = ['total_mesas' => 42, 'total_xicaras' => 156, 'maior_nota' => 91.5];
+        return view('laboratory.index', compact('labStats'));
     }
 
-    /**
-     * View: Controle de Torrefação (Kanban)
-     */
     public function torrefacao() 
     {
-        $stats = $this->getStats();
-        // Se no futuro a tela de torrefação precisar de KPIs próprios,
-        // você pode criá-los aqui como fizemos no laboratório.
-        return view('torrefacao', compact('stats'));
+        return view('roasting.index');
     }
 
-    /**
-     * View: Hub de Cadastros
-     */
     public function cadastros()
     {
-        $stats = $this->getStats();
-        
-        // Dados para o resumo dos cards na tela de cadastros
-        $cadastrosStats = [
-            'variedades'   => 12, // Ex: Bourbon, Catuaí...
-            'fornecedores' => 28, // Soma de empresas e produtores
-            'maquinas'     => 2,  // Probat e CarmoMaq
-            'equipe'       => 5   // Mestres e Provadores
-        ];
-
-        return view('cadastros', compact('stats', 'cadastrosStats'));
+        $cadastrosStats = ['variedades' => 12, 'fornecedores' => 28, 'maquinas' => 2, 'equipe' => 5];
+        return view('registries.index', compact('cadastrosStats'));
     }
 
-    /**
-     * View: Configurações do Sistema
-     */
     public function configuracoes() 
     {
-        $stats = $this->getStats();
-        return view('configuracoes', compact('stats'));
+        return view('settings.index');
     }
 }

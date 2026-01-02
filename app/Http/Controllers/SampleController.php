@@ -29,7 +29,7 @@ class SampleController extends Controller
             ->latest()
             ->get();
 
-        return view('samples.index', compact('samples'));
+        return view('registries.samples.index', compact('samples'));
     }
 
     /**
@@ -42,7 +42,8 @@ class SampleController extends Controller
         $sample->is_active = 0;
         $sample->save();
 
-        return redirect()->route('samples.index')->with('success', 'Amostra removida com sucesso!');
+        // Nome da rota atualizado para refletir o grupo 'registries'
+        return redirect()->route('registries.samples.index')->with('success', 'Amostra removida com sucesso!');
     }
 
     /**
@@ -50,7 +51,7 @@ class SampleController extends Controller
      */
     public function info($id) {
         $sample = Sample::with(['origin', 'sensoryProfileComponents.profile'])->findOrFail($id);
-        return view('samples.partials.info', compact('sample'));
+        return view('registries.samples.partials.info', compact('sample'));
     }
 
     /**
@@ -66,7 +67,8 @@ class SampleController extends Controller
 
         Sample::create($request->all());
 
-        return redirect()->route('samples.index')->with('success', 'Amostra cadastrada!');
+        // Nome da rota atualizado para refletir o grupo 'registries'
+        return redirect()->route('registries.samples.index')->with('success', 'Amostra cadastrada!');
     }
 
     /**
@@ -102,6 +104,8 @@ class SampleController extends Controller
      */
     public function destroy($id) {
         Sample::findOrFail($id)->delete();
-        return redirect()->route('samples.index')->with('success', 'Amostra excluída permanentemente!');
+        
+        // Nome da rota atualizado para refletir o grupo 'registries'
+        return redirect()->route('registries.samples.index')->with('success', 'Amostra excluída permanentemente!');
     }
 }

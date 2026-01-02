@@ -16,7 +16,6 @@ class SupplierController extends Controller
         $filterType = $request->query('filter_type');
         $activeTab = $request->query('tab', 'producers');
 
-        // Lógica compatível com PHP 7.x usando switch
         if ($filterType) {
             switch ($filterType) {
                 case 'producer': $activeTab = 'producers'; break;
@@ -50,7 +49,36 @@ class SupplierController extends Controller
         if ($request->filled('filter_action')) $companiesQuery->where('action_type', $request->filter_action);
         $companies = $companiesQuery->latest()->get();
 
-        return view('suppliers.index', compact('producers', 'farms', 'companies', 'activeTab'));
+        return view('registries.suppliers.index', compact('producers', 'farms', 'companies', 'activeTab'));
+    }
+
+    /**
+     * Busca dinâmica para autocomplete de fornecedores (Lote Verde).
+     */
+    public function search(Request $request)
+    {
+        $q = $request->get('search');
+        $results = [];
+
+        // Busca em Empresas
+        $companies = Company::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
+        foreach ($companies as $c) { 
+            $results[] = ['id' => $c->id, 'type' => 'App\Models\Company', 'name' => $c->name, 'label' => 'Empresa']; 
+        }
+
+        // Busca em Produtores
+        $producers = Producer::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
+        foreach ($producers as $p) { 
+            $results[] = ['id' => $p->id, 'type' => 'App\Models\Producer', 'name' => $p->name, 'label' => 'Produtor']; 
+        }
+
+        // Busca em Fazendas
+        $farms = Farm::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
+        foreach ($farms as $f) { 
+            $results[] = ['id' => $f->id, 'type' => 'App\Models\Farm', 'name' => $f->name, 'label' => 'Fazenda']; 
+        }
+
+        return response()->json($results);
     }
 
     public function inactivate(Request $request, $type, $id)
@@ -65,12 +93,42 @@ class SupplierController extends Controller
         $item = $model::findOrFail($id);
         $item->is_active = 0;
         $item->save();
-        return redirect()->route('suppliers.index', ['tab' => $request->tab])->with('success', 'Removido!');
+        return redirect()->route('registries.suppliers.index', ['tab' => $request->tab ?? 'producers'])->with('success', 'Removido!');
     }
 
-    public function storeProducer(Request $request) { Producer::create($request->all()); return redirect()->route('suppliers.index', ['tab' => 'producers']); }
-    public function storeFarm(Request $request) { $data = $request->all(); $data['is_international'] = $request->has('is_international'); Farm::create($data); return redirect()->route('suppliers.index', ['tab' => 'farms']); }
-    public function storeCompany(Request $request) { $data = $request->all(); $data['is_international'] = $request->has('is_international'); Company::create($data); return redirect()->route('suppliers.index', ['tab' => 'companies']); }
+    public function storeProducer(Request $request) 
+    { 
+        Producer::create($request->all()); 
+        return redirect()->route('registries.suppliers.index', ['tab' => 'producers']); 
+    }
+
+    public function storeFarm(Request $request) 
+    { 
+        $data = $request->all(); 
+        $data['is_international'] = $request->has('is_international'); 
+        
+        if($data['is_international']) {
+            $data['city'] = $request->city_ext;
+            $data['state'] = null;
+        }
+
+        Farm::create($data); 
+        return redirect()->route('registries.suppliers.index', ['tab' => 'farms']); 
+    }
+
+    public function storeCompany(Request $request) 
+    { 
+        $data = $request->all(); 
+        $data['is_international'] = $request->has('is_international'); 
+        
+        if($data['is_international']) {
+            $data['city'] = $request->city_ext;
+            $data['state'] = null;
+        }
+
+        Company::create($data); 
+        return redirect()->route('registries.suppliers.index', ['tab' => 'companies']); 
+    }
     
     public function capture($type, $id) {
         $this->clearCaptureInternal();
@@ -89,12 +147,12 @@ class SupplierController extends Controller
         if (session('captured_producer_id') && $targetType == 'farm') {
             DB::table('origin_links')->insert(['producer_id' => session('captured_producer_id'), 'farm_id' => $targetId, 'created_at' => now(), 'updated_at' => now()]);
             $this->clearCaptureInternal();
-            return redirect()->route('suppliers.index', ['tab' => 'farms'])->with('success', 'Vinculado!');
+            return redirect()->route('registries.suppliers.index', ['tab' => 'farms'])->with('success', 'Vinculado!');
         }
         if ((session('captured_producer_id') || session('captured_farm_id')) && $targetType == 'company') {
             DB::table('origin_links')->insert(['producer_id' => session('captured_producer_id'), 'farm_id' => session('captured_farm_id'), 'company_id' => $targetId, 'created_at' => now(), 'updated_at' => now()]);
             $this->clearCaptureInternal();
-            return redirect()->route('suppliers.index', ['tab' => 'companies'])->with('success', 'Vinculado!');
+            return redirect()->route('registries.suppliers.index', ['tab' => 'companies'])->with('success', 'Vinculado!');
         }
         return redirect()->back()->with('error', 'Ação inválida.');
     }

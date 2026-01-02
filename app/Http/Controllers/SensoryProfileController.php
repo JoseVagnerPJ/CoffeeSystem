@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class SensoryProfileController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
     {
         $query = SensoryProfile::query();
         if ($request->filled('search')) {
@@ -21,9 +21,14 @@ class SensoryProfileController extends Controller
             });
         }
         $profiles = $query->latest()->get();
-        return view('sensory_profiles.index', compact('profiles'));
-    }
 
+        // ADICIONADO: Retorno JSON para o autocomplete do Lote Verde
+        if ($request->wantsJson() || $request->get('format') == 'json') {
+            return response()->json($profiles);
+        }
+
+        return view('registries.sensory-profiles.index', compact('profiles'));
+    }
     public function store(Request $request)
     {
         $request->validate([
@@ -54,7 +59,8 @@ class SensoryProfileController extends Controller
             }
         });
 
-        return redirect()->route('sensory-profiles.index')->with('success', 'Perfil cadastrado!');
+        // Rota de redirecionamento atualizada
+        return redirect()->route('registries.sensory-profiles.index')->with('success', 'Perfil cadastrado!');
     }
 
     public function searchSamples(Request $request)
@@ -75,11 +81,13 @@ class SensoryProfileController extends Controller
 
     public function show($id) {
         $profile = SensoryProfile::with('components.sample.origin')->findOrFail($id);
-        return view('sensory_profiles.partials.info', compact('profile'));
+        // Caminho da view de info atualizado (dentro da subpasta partials)
+        return view('registries.sensory-profiles.partials.info', compact('profile'));
     }
 
     public function destroy($id) {
         SensoryProfile::findOrFail($id)->delete();
-        return redirect()->route('sensory-profiles.index')->with('success', 'Perfil removido!');
+        // Rota de redirecionamento atualizada
+        return redirect()->route('registries.sensory-profiles.index')->with('success', 'Perfil removido!');
     }
 }

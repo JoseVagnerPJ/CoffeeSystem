@@ -13,7 +13,7 @@ public function up(): void
         $table->string('name');
         $table->morphs('origin'); 
         $table->date('receipt_date');
-        $table->string('supplier_batch');
+        $table->string('supplier_batch')->nullable();
         $table->string('variety');
         $table->string('drying_process');
         $table->string('fermentation')->nullable();

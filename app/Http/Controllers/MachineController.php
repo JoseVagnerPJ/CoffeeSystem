@@ -22,7 +22,8 @@ class MachineController extends Controller
         ->orderBy('name')
         ->get();
 
-        return view('machines.index', compact('machines'));
+        // CAMINHO ATUALIZADO PARA A NOVA ESTRUTURA DE PASTAS
+        return view('registries.machines.index', compact('machines'));
     }
 
     /**
@@ -81,7 +82,7 @@ class MachineController extends Controller
         MachineMaintenance::create([
             'machine_id'             => $id,
             'maintenance_date'       => $request->maintenance_date,
-            'provider'              => $request->provider,
+            'provider'               => $request->provider,
             'description'            => $request->description,
             'next_maintenance_date'  => $request->next_maintenance_date,
         ]);

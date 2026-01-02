@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage; // Necessário para gerenciar arquivos
 
 class TeamController extends Controller
 {
-/**
+    /**
      * Exibe todos os usuários (ativos e inativos).
      */
     public function index()
@@ -25,7 +25,8 @@ class TeamController extends Controller
                      ->with('profile')
                      ->get();
 
-        return view('team.index', compact('company', 'profiles', 'users'));
+        // CORREÇÃO: Caminho atualizado para a nova pasta 'registries'
+        return view('registries.team.index', compact('company', 'profiles', 'users'));
     }
 
     /**
@@ -85,77 +86,76 @@ class TeamController extends Controller
         return redirect()->back()->with('success', 'Perfil removido!');
     }
 
-public function storeUser(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        // A validação unique agora ignora quem não é da mesma empresa
-        'username' => 'required|string|unique:users,username', 
-        'password' => 'required|min:3',
-        'profile_id' => 'required|exists:profiles,id',
-        'photo' => 'nullable|image|max:2048'
-    ]);
+    public function storeUser(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            // A validação unique agora ignora quem não é da mesma empresa
+            'username' => 'required|string|unique:users,username', 
+            'password' => 'required|min:3',
+            'profile_id' => 'required|exists:profiles,id',
+            'photo' => 'nullable|image|max:2048'
+        ]);
 
-    $userData = [
-        'main_company_id' => Auth::user()->main_company_id,
-        'profile_id' => $request->profile_id,
-        'name' => $request->name,
-        'username' => $request->username,
-        'password' => Hash::make($request->password),
-        'is_active' => true // GARANTA que isso seja true para ele aparecer na lista
-    ];
+        $userData = [
+            'main_company_id' => Auth::user()->main_company_id,
+            'profile_id' => $request->profile_id,
+            'name' => $request->name,
+            'username' => $request->username,
+            'password' => Hash::make($request->password),
+            'is_active' => true // GARANTA que isso seja true para ele aparecer na lista
+        ];
 
-    if ($request->hasFile('photo')) {
-        $userData['photo'] = $request->file('photo')->store('users-photos', 'public');
+        if ($request->hasFile('photo')) {
+            $userData['photo'] = $request->file('photo')->store('users-photos', 'public');
+        }
+
+        User::create($userData);
+
+        // CORREÇÃO: Rota de redirecionamento atualizada para o novo padrão registries.team
+        return redirect()->route('registries.team.index')->with('success', 'Colaborador cadastrado e ativo!');
     }
-
-    User::create($userData);
-
-    // Use o success para confirmar que o banco salvou
-    return redirect()->route('team.index')->with('success', 'Colaborador cadastrado e ativo!');
-}
 
     /**
      * Atualiza dados do colaborador e gerencia a substituição da foto.
      */
-    
-public function updateUser(Request $request, $id)
-{
-    $user = User::where('main_company_id', auth()->user()->main_company_id)->findOrFail($id);
+    public function updateUser(Request $request, $id)
+    {
+        $user = User::where('main_company_id', auth()->user()->main_company_id)->findOrFail($id);
 
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'profile_id' => 'required|exists:profiles,id', // Adicionado validação do perfil
-        'password' => 'nullable|min:3',
-        'photo' => 'nullable|image|max:2048'
-    ]);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'profile_id' => 'required|exists:profiles,id', // Adicionado validação do perfil
+            'password' => 'nullable|min:3',
+            'photo' => 'nullable|image|max:2048'
+        ]);
 
-    // Atualizamos o nome e o perfil
-    $data = [
-        'name' => $request->name,
-        'profile_id' => $request->profile_id
-    ];
+        // Atualizamos o nome e o perfil
+        $data = [
+            'name' => $request->name,
+            'profile_id' => $request->profile_id
+        ];
 
-    if ($request->filled('password')) {
-        $data['password'] = Hash::make($request->password);
-    }
-
-    if ($request->hasFile('photo')) {
-        if ($user->photo) {
-            Storage::disk('public')->delete($user->photo);
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
         }
-        $data['photo'] = $request->file('photo')->store('users-photos', 'public');
+
+        if ($request->hasFile('photo')) {
+            if ($user->photo) {
+                Storage::disk('public')->delete($user->photo);
+            }
+            $data['photo'] = $request->file('photo')->store('users-photos', 'public');
+        }
+
+        $user->update($data);
+
+        return redirect()->back()->with('success', 'Dados atualizados com sucesso!');
     }
-
-    $user->update($data);
-
-    return redirect()->back()->with('success', 'Dados atualizados com sucesso!');
-}
 
     /**
      * Inativa o colaborador e LIBERA o nome de usuário para novo cadastro.
      */
-public function inactivateUser($id)
+    public function inactivateUser($id)
     {
         $user = User::where('main_company_id', Auth::user()->main_company_id)->findOrFail($id);
         
