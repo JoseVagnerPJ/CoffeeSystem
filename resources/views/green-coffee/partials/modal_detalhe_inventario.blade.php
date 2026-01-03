@@ -113,3 +113,54 @@
     }
 }
 </style>
+
+<script>
+window.viewInventoryDetail = function(id) {
+    $.ajax({
+        url: `/green-coffee/inventory/history/${id}`,
+        method: 'GET',
+        success: function(data) {
+            $('#det-id').text(data.session.id);
+            $('#det-user').text(data.session.user ? data.session.user.name : 'Sistema');
+            
+            // Formatação de data preservada
+            if(data.session.inventory_date) {
+                const partes = data.session.inventory_date.split('-');
+                $('#det-data').text(`${partes[2]}/${partes[1]}/${partes[0]}`);
+            }
+            
+            let html = '';
+            data.adjustments.forEach(adj => {
+                // CORREÇÃO: Cálculo da diferença em tempo real para evitar o erro de mostrar 0.0kg
+                const systemWeight = parseFloat(adj.system_weight) || 0;
+                const physicalWeight = parseFloat(adj.physical_weight) || 0;
+                const difference = physicalWeight - systemWeight;
+
+                // Lógica de cores baseada na diferença calculada
+                const diffCol = difference < 0 ? 'text-danger' : (difference > 0 ? 'text-primary' : 'text-success');
+                const diffSignal = difference > 0 ? '+' : '';
+
+                html += `
+                    <tr>
+                        <td><small class="fw-bold text-uppercase">${adj.reference}</small></td>
+                        <td class="text-center small">${systemWeight.toFixed(1)}kg</td>
+                        <td class="text-center small">${physicalWeight.toFixed(1)}kg</td>
+                        <td class="text-center small fw-bold ${diffCol}">
+                            ${diffSignal}${difference.toFixed(1)}kg
+                        </td>
+                        <td class="small text-muted italic">${adj.reason || '-'}</td>
+                    </tr>`;
+            });
+            
+            $('#det-body').html(html);
+
+            // Abre o modal após carregar os dados
+            var myModal = new bootstrap.Modal(document.getElementById('modalHistoricoDetalhe'));
+            myModal.show();
+        },
+        error: function() {
+            alert('Erro ao carregar detalhes do inventário.');
+        }
+    });
+};
+</script>

@@ -58,7 +58,6 @@
                             <div class="card border-0 shadow-sm rounded-4 overflow-hidden js-table-container {{ $session->status == 'aberto' ? 'opacity-50' : '' }}">
                                 <table class="table align-middle mb-0">
                                     <thead class="table-dark small text-uppercase" style="font-size: 0.65rem;">
-                                        {{-- PRIMEIRA LINHA DO CABEÇALHO --}}
                                         <tr>
                                             <th rowspan="2" class="ps-4 align-middle" style="width: 120px;">Lote</th>
                                             <th rowspan="2" class="text-center align-middle" style="width: 45px;">+</th>
@@ -68,7 +67,6 @@
                                             <th rowspan="2" class="text-center align-middle" style="width: 90px;">Diverg.</th>
                                             <th rowspan="2" class="pe-4 align-middle" style="width: 150px;">Justificativa</th>
                                         </tr>
-                                        {{-- SEGUNDA LINHA (SUB-ESPECIFICAÇÕES) --}}
                                         <tr class="bg-dark text-muted">
                                             <th class="text-center py-1" style="width: 130px; letter-spacing: 1px;">Endereço (Rua/Num)</th>
                                             <th class="text-center py-1" style="letter-spacing: 1px;">Qtd Sacas x Peso Unit. + Sobra (kg)</th>
@@ -105,12 +103,10 @@
                                                         @endphp
                                                         @foreach($lotAdjustments as $adj)
                                                         <div class="d-flex align-items-center gap-2 p-2 border-bottom js-loc-line">
-                                                            {{-- ENDEREÇO --}}
                                                             <div class="input-group input-group-sm" style="width: 130px;">
-                                                                <input type="text" class="form-control text-center fw-bold js-row" placeholder="Rua" value="{{ $adj->new_address_row }}">
+                                                                <input type="text" class="form-control text-center fw-bold js-row" placeholder="Rua" value="{{ $adj->new_address_row }}" maxlength="1">
                                                                 <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº" value="{{ $adj->new_address_pos }}">
                                                             </div>
-                                                            {{-- CÁLCULO --}}
                                                             <div class="input-group input-group-sm flex-grow-1">
                                                                 <input type="number" class="form-control text-center js-bags" placeholder="Sacas" value="{{ $adj->closed_bags }}">
                                                                 <span class="input-group-text bg-light">x</span>
@@ -118,7 +114,6 @@
                                                                 <span class="input-group-text bg-light">+</span>
                                                                 <input type="number" class="form-control text-center js-rem" placeholder="Sobra" value="{{ $adj->remainder_weight }}">
                                                             </div>
-                                                            {{-- TOTAL DA LINHA (Subtotal) --}}
                                                             <div style="width: 85px;">
                                                                 <input type="text" class="form-control form-control-sm text-center fw-bold bg-light border-0 js-line-total" value="{{ number_format($adj->physical_weight, 1, ',', '.') }}" readonly>
                                                             </div>
@@ -175,6 +170,22 @@
 
 <script>
 $(document).ready(function() {
+    // --- LÓGICA DE AUTO-PULAR CAMPOS (AUTO-JUMP) ---
+    $(document).on('input', '.js-row', function() {
+        // Quando digitar a letra da rua (max 1 char), pula para o número
+        if (this.value.length >= 1) {
+            $(this).next('.js-pos').focus();
+        }
+    });
+
+    $(document).on('input', '.js-pos', function() {
+        // Quando digitar o número da posição, pula para o campo de Sacas
+        // Nota: usamos a delegação para encontrar o .js-bags dentro da mesma linha
+        if (this.value.length >= 1) {
+            $(this).closest('.js-loc-line').find('.js-bags').focus();
+        }
+    });
+
     // INICIAR INVENTÁRIO
     $(document).on('click', '.js-btn-start', function() {
         $.post("{{ route('estoque.inventory.start') }}", { _token: "{{ csrf_token() }}" }, function() { 
@@ -206,7 +217,7 @@ $(document).ready(function() {
         const newLine = `
             <div class="d-flex align-items-center gap-2 p-2 border-bottom js-loc-line">
                 <div class="input-group input-group-sm" style="width: 130px;">
-                    <input type="text" class="form-control text-center fw-bold js-row" placeholder="Rua">
+                    <input type="text" class="form-control text-center fw-bold js-row" placeholder="Rua" maxlength="1">
                     <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Num">
                 </div>
                 <div class="input-group input-group-sm flex-grow-1">
@@ -236,6 +247,8 @@ $(document).ready(function() {
 
     function calculateLot(id) {
         const parent = $(`#parent-lote-${id}`);
+        if(!parent.length) return;
+        
         let lotTotal = 0;
         const locations = [];
 
@@ -287,6 +300,9 @@ $(document).ready(function() {
             .removeClass('text-danger text-primary').addClass(total < 0 ? 'text-danger' : (total > 0 ? 'text-primary' : ''));
     }
     
-    $('tbody tr').each(function() { calculateLot($(this).attr('id').replace('parent-lote-', '')); });
+    $('tbody tr').each(function() { 
+        const id = $(this).attr('id');
+        if(id) calculateLot(id.replace('parent-lote-', '')); 
+    });
 });
 </script>
