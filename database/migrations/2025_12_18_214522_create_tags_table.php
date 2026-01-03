@@ -13,10 +13,11 @@ class CreateTagsTable extends Migration
      */
     public function up()
     {
-        Schema::create('tags', function (Blueprint $table) {
+Schema::create('tags', function (Blueprint $table) {
     $table->id();
-    $table->string('name', 50)->unique();
-        });
+    $table->string('name')->unique();
+    $table->timestamps();
+});
     }
 
     /**

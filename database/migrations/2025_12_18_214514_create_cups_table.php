@@ -11,21 +11,26 @@ class CreateCupsTable extends Migration
      *
      * @return void
      */
-    public function up(): void {
+public function up() {
     Schema::create('cups', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('cupping_session_id')->constrained()->onDelete('cascade');
-        $table->foreignId('sample_id')->constrained()->onDelete('restrict');
-        $table->integer('cup_number');
-        $table->enum('roast_level', ['clara', 'media-clara', 'media', 'media-escura', 'escura']);
+        $table->foreignId('cupping_item_id')->constrained()->onDelete('cascade');
+        $table->foreignId('user_id')->constrained(); // O provador
         
-        // Atributos SCA
-        $attributes = ['fragrance', 'flavor', 'aftertaste', 'acidity', 'body', 'balance', 'sweetness', 'clean_cup', 'uniformity', 'overall', 'total_score'];
-        foreach ($attributes as $attr) {
-            $table->decimal($attr, 5, 2)->default(0);
-        }
+        // Atributos (0 a 10)
+        $table->decimal('acidity', 4, 2)->default(0);
+        $table->decimal('body', 4, 2)->default(0);
+        $table->decimal('sweetness', 4, 2)->default(0);
+        $table->decimal('aftertaste', 4, 2)->default(0);
+        
+        // Soma: 60 (Base) + Atributos
+        $table->decimal('final_score', 5, 2)->default(60.00);
 
-        $table->text('sensory_observations')->nullable();
+        // Inutilização
+        $table->boolean('is_invalid')->default(false);
+        $table->text('invalid_reason')->nullable();
+        
+        $table->text('observations')->nullable(); // Comentários livres
         $table->timestamps();
     });
 }

@@ -18,19 +18,19 @@
                 <div class="col-sm-4">
                     <div class="card p-3 shadow-sm border-0 bg-white" style="border-left: 4px solid var(--coffee-gold) !important;">
                         <small class="text-uppercase fw-bold opacity-50" style="font-size: 0.65rem;">Mesas Realizadas</small>
-                        <div class="h3 fw-bold mb-0">42</div>
+                        <div class="h3 fw-bold mb-0">{{ $totalSessions ?? 0 }}</div>
                     </div>
                 </div>
                 <div class="col-sm-4">
                     <div class="card p-3 shadow-sm border-0 bg-white">
                         <small class="text-uppercase fw-bold opacity-50" style="font-size: 0.65rem;">Xícaras Pontuadas</small>
-                        <div class="h3 fw-bold mb-0">156</div>
+                        <div class="h3 fw-bold mb-0">{{ $totalCups ?? 0 }}</div>
                     </div>
                 </div>
                 <div class="col-sm-4">
                     <div class="card p-3 shadow-sm border-0 text-white" style="background: var(--coffee-brown);">
                         <small class="text-uppercase fw-bold opacity-75" style="color: var(--coffee-gold); font-size: 0.65rem;">Maior Pontuação</small>
-                        <div class="h3 fw-bold mb-0" style="color: var(--coffee-gold);">91.5 <small class="fs-6">SCA</small></div>
+                        <div class="h3 fw-bold mb-0" style="color: var(--coffee-gold);">{{ number_format($maxScore ?? 0, 1) }} <small class="fs-6">SCA</small></div>
                     </div>
                 </div>
                 <div class="col-sm-3">
@@ -74,67 +74,76 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @foreach($sessions as $session)
                     <tr class="shadow-sm" style="background: #fdfdfd;">
                         <td>
-                            <button class="btn btn-sm text-dark" data-bs-toggle="collapse" data-bs-target="#collapseMesa1">
+                            <button class="btn btn-sm text-dark" data-bs-toggle="collapse" data-bs-target="#collapseMesa{{ $session->id }}">
                                 <i class="bi bi-chevron-down"></i>
                             </button>
                         </td>
-                        <td class="fw-bold">Cafés pro Clube de Janeiro</td>
-                        <td><span class="badge bg-light text-dark border">2 Xícaras</span></td>
-                        <td class="small">18/12/2025 - 14:30</td>
-                        <td><span class="badge bg-success-subtle text-success border border-success-subtle">Ativo</span></td>
+                        <td class="fw-bold">{{ $session->title }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ $session->items->count() }} Xícaras</span></td>
+                        <td class="small">{{ date('d/m/Y - H:i', strtotime($session->created_at)) }}</td>
+                        <td>
+                            <span class="badge bg-{{ $session->status == 'aberto' ? 'primary' : 'success' }}-subtle text-{{ $session->status == 'aberto' ? 'primary' : 'success' }} border border-{{ $session->status == 'aberto' ? 'primary' : 'success' }}-subtle">
+                                {{ ucfirst($session->status) }}
+                            </span>
+                        </td>
                         <td class="text-center text-nowrap">
-                            <i class="bi bi-info-circle text-primary me-2" style="cursor:pointer"></i>
+                            <a href="{{ route('cupping.show', $session->id) }}"><i class="bi bi-info-circle text-primary me-2" style="cursor:pointer"></i></a>
                             <i class="bi bi-trash3 text-danger" style="cursor:pointer"></i>
                         </td>
                     </tr>
                     <tr>
                         <td colspan="6" class="p-0 border-0">
-                            <div id="collapseMesa1" class="collapse show px-4 py-3" style="background: #fafafa; border-top: 1px solid #eee;">
-                                <h6 class="fw-bold small text-muted text-uppercase mb-3">Detalhamento das Xícaras:</h6>
+                            <div id="collapseMesa{{ $session->id }}" class="collapse px-4 py-3" style="background: #fafafa; border-top: 1px solid #eee;">
+                                <h6 class="fw-bold small text-muted text-uppercase mb-3">Detalhamento das Xícaras (Média da Mesa):</h6>
                                 <table class="table table-sm table-borderless align-middle mb-0">
                                     <thead class="small opacity-75 border-bottom">
                                         <tr>
                                             <th class="text-center" style="width: 40px;">Nº</th>
                                             <th>Variedade</th>
-                                            <th>Torra</th>
-                                            <th class="text-center">Nota SCA</th>
+                                            <th>Origem</th>
+                                            <th class="text-center">Média SCA</th>
                                             <th class="text-center">Acidez</th>
                                             <th class="text-center">Doçura</th>
                                             <th class="text-center">Corpo</th>
-                                            <th>Sensorial / Tags</th>
-                                            <th class="text-center">Anexos</th>
+                                            <th>Principais Tags</th>
+                                            <th class="text-center">Obs</th>
                                         </tr>
                                     </thead>
                                     <tbody class="small">
+                                        @foreach($session->items as $item)
                                         <tr class="border-bottom">
-                                            <td class="text-center fw-bold text-muted">1</td>
-                                            <td><strong>Bourbon Amarelo</strong></td>
-                                            <td><span class="badge bg-warning-subtle text-dark" style="font-size: 0.65rem;">Média-Clara</span></td>
-                                            <td class="text-center fw-bold text-dark">87.50</td>
-                                            <td class="text-center">8.5</td>
-                                            <td class="text-center">9.0</td>
-                                            <td class="text-center">8.0</td>
-                                            <td><span class="text-warning fw-bold">#mel #laranja #floral</span></td>
-                                            <td class="text-center"><i class="bi bi-file-earmark-text text-primary"></i></td>
+                                            <td class="text-center fw-bold text-muted">{{ $item->position }}</td>
+                                            <td><strong>{{ $item->sample->variety }}</strong></td>
+                                            <td><span class="badge bg-light text-dark" style="font-size: 0.65rem;">{{ $item->sample->name }}</span></td>
+                                            <td class="text-center fw-bold text-dark">
+                                                {{ number_format($item->evaluations->avg('final_score'), 2) }}
+                                            </td>
+                                            <td class="text-center">{{ number_format($item->evaluations->avg('acidity'), 1) }}</td>
+                                            <td class="text-center">{{ number_format($item->evaluations->avg('sweetness'), 1) }}</td>
+                                            <td class="text-center">{{ number_format($item->evaluations->avg('body'), 1) }}</td>
+                                            <td>
+                                                <span class="text-warning fw-bold">
+                                                    @foreach($item->evaluations->flatMap->tags->unique('id')->take(3) as $tag)
+                                                        #{{ $tag->name }} 
+                                                    @endforeach
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                @if($item->evaluations->where('observations', '!=', null)->count() > 0)
+                                                    <i class="bi bi-file-earmark-text text-primary" title="Possui observações"></i>
+                                                @endif
+                                            </td>
                                         </tr>
-                                        <tr>
-                                            <td class="text-center fw-bold text-muted">2</td>
-                                            <td><strong>Catuaí Vermelho</strong></td>
-                                            <td><span class="badge bg-dark-subtle text-dark" style="font-size: 0.65rem;">Média</span></td>
-                                            <td class="text-center fw-bold text-dark">84.25</td>
-                                            <td class="text-center">7.5</td>
-                                            <td class="text-center">8.0</td>
-                                            <td class="text-center">7.5</td>
-                                            <td><span class="text-warning fw-bold">#chocolate #corpo-denso</span></td>
-                                            <td class="text-center"><i class="bi bi-file-earmark-text text-primary"></i></td>
-                                        </tr>
+                                        @endforeach
                                     </tbody>
                                 </table>
                             </div>
                         </td>
                     </tr>
+                    @endforeach
                 </tbody>
             </table>
         </div>

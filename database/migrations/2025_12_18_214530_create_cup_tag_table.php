@@ -13,11 +13,10 @@ class CreateCupTagTable extends Migration
      */
     public function up()
     {
-        Schema::create('cup_tag', function (Blueprint $table) {
+Schema::create('cup_tag', function (Blueprint $table) {
     $table->foreignId('cup_id')->constrained()->onDelete('cascade');
     $table->foreignId('tag_id')->constrained()->onDelete('cascade');
-    $table->primary(['cup_id', 'tag_id']);
-    });
+});
     }
 
     /**

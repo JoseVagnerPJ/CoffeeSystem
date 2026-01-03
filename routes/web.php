@@ -8,6 +8,7 @@ use App\Http\Controllers\MachineController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SensoryProfileController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\CuppingWebController;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,8 +52,10 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // --- MÓDULO: LABORATÓRIO ---
-    Route::get('/laboratory', [DashboardController::class, 'laboratorio'])->name('laboratorio');
-
+    // Alterado o .name para 'laboratorio' para coincidir com o seu layouts/app.blade.php
+    Route::get('/laboratory', [CuppingWebController::class, 'index'])->name('laboratorio');
+    Route::get('/laboratorio/mesas/{id}', [CuppingWebController::class, 'show'])->name('cupping.show');
+    
     // --- MÓDULO: TORREFAÇÃO ---
     Route::get('/roasting', [DashboardController::class, 'torrefacao'])->name('torrefacao');
 
@@ -72,6 +75,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/capture/{type}/{id}', [SupplierController::class, 'capture'])->name('capture');
             Route::get('/clear', [SupplierController::class, 'clearCapture'])->name('clear');
             Route::get('/link/{type}/{id}', [SupplierController::class, 'link'])->name('link');
+            // Cadastro de novos produtores, fazendas e empresas
             Route::post('/producer', [SupplierController::class, 'storeProducer'])->name('storeProducer');
             Route::post('/farm', [SupplierController::class, 'storeFarm'])->name('storeFarm');
             Route::post('/company', [SupplierController::class, 'storeCompany'])->name('storeCompany');

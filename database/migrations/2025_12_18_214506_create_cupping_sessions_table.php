@@ -11,14 +11,16 @@ class CreateCuppingSessionsTable extends Migration
      *
      * @return void
      */
-    public function up(): void {
+public function up() {
     Schema::create('cupping_sessions', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('user_id')->constrained()->onDelete('restrict');
-        $table->string('title');
-        $table->dateTime('date_time');
+        $table->string('title'); // Título da Mesa
+        $table->date('session_date');
+        $table->foreignId('created_by')->constrained('users'); // Usuário que abriu a mesa
+        $table->enum('status', ['aberto', 'finalizado'])->default('aberto');
         $table->timestamps();
     });
+
 }
 
     /**
