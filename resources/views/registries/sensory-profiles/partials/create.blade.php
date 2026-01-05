@@ -102,12 +102,12 @@
     
     .range-labels span {
         font-weight: bold;
-        color: #6c757d;
+        color: #3D1A06;
         font-size: 14px;
         transition: color 0.2s;
     }
 
-    .range-labels span.active { color: #3d2b1f; }
+    .range-labels span.active { color: #9B8742; }
 </style>
 
 <div class="modal fade" id="modalCreateProfile" tabindex="-1" aria-hidden="true">
