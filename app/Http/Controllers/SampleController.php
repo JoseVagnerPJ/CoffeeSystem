@@ -33,6 +33,28 @@ class SampleController extends Controller
     }
 
     /**
+     * NOVO: Busca amostras para o Autocomplete do App Mobile.
+     * Retorna JSON com dados técnicos para o snapshot da mesa de prova.
+     */
+public function search(Request $request)
+{
+    $q = $request->get('q');
+    
+    if (strlen($q) < 2) return response()->json([]);
+
+    $samples = Sample::where(function($query) use ($q) {
+                $query->where('name', 'LIKE', "%{$q}%")
+                      ->orWhere('variety', 'LIKE', "%{$q}%")
+                      ->orWhere('supplier_batch', 'LIKE', "%{$q}%");
+            })
+            ->limit(10)
+            // Retornamos todos os campos para o snapshot do Flutter
+            ->get(['id', 'name', 'variety', 'supplier_batch', 'drying_process', 'fermentation', 'humidity', 'screen', 'altitude', 'crop']);
+
+    return response()->json($samples);
+}
+
+    /**
      * Inativa uma amostra (Soft Delete manual).
      * Ajustado para a tabela 'samples'.
      */

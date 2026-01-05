@@ -15,22 +15,22 @@ public function up() {
     Schema::create('cups', function (Blueprint $table) {
         $table->id();
         $table->foreignId('cupping_item_id')->constrained()->onDelete('cascade');
-        $table->foreignId('user_id')->constrained(); // O provador
-        
-        // Atributos (0 a 10)
+        $table->foreignId('user_id')->constrained(); // Provador individual
+
+        // Os 4 Pilares (0 a 10 cada = 40 pontos)
         $table->decimal('acidity', 4, 2)->default(0);
         $table->decimal('body', 4, 2)->default(0);
         $table->decimal('sweetness', 4, 2)->default(0);
         $table->decimal('aftertaste', 4, 2)->default(0);
         
-        // Soma: 60 (Base) + Atributos
+        // Cálculo: 60 (Base) + Soma dos 4 pilares
         $table->decimal('final_score', 5, 2)->default(60.00);
 
-        // Inutilização
+        // Lógica de Inutilização (Tag de Defeito)
         $table->boolean('is_invalid')->default(false);
-        $table->text('invalid_reason')->nullable();
-        
-        $table->text('observations')->nullable(); // Comentários livres
+        $table->string('invalid_reason')->nullable(); // Motivo descrito
+
+        $table->text('observations')->nullable(); // Texto livre
         $table->timestamps();
     });
 }

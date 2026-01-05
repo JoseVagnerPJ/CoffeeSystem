@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Cup extends Model
 {
@@ -19,8 +21,39 @@ class Cup extends Model
         'observations'
     ];
 
-public function tags()
-{
-    return $this->belongsToMany(Tag::class);
-}
+    /**
+     * Lógica de cálculo automático da nota final: 60 + 4 pilares.
+     * $FinalScore = 60 + Acidez + Corpo + Doçura + Retrogosto$
+     */
+    protected static function booted()
+    {
+        static::saving(function ($cup) {
+            if (!$cup->is_invalid) {
+                // Soma os valores decimais à base 60
+                $cup->final_score = 60 + 
+                    (float)$cup->acidity + 
+                    (float)$cup->body + 
+                    (float)$cup->sweetness + 
+                    (float)$cup->aftertaste;
+            } else {
+                // Se for inválida, você pode definir uma regra (ex: manter 0 ou 60)
+                $cup->final_score = 0;
+            }
+        });
+    }
+
+    public function item(): BelongsTo
+    {
+        return $this->belongsTo(CuppingItem::class, 'cupping_item_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class);
+    }
 }

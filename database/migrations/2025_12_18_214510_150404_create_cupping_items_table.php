@@ -4,40 +4,37 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// Usar "return new class" elimina o erro de classe duplicada
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('cupping_items', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('cupping_session_id')->constrained()->onDelete('cascade');
             
-            // Relacionamentos
-            $table->foreignId('cupping_session_id')
-                  ->constrained()
-                  ->onDelete('cascade');
-                  
-            $table->foreignId('sample_id')
-                  ->constrained(); // Vincula o Lote/Amostra
+            // Vínculo opcional: se nulo, a xícara é "avulsa"
+            $table->foreignId('sample_id')->nullable()->constrained(); 
+            $table->boolean('is_avulso')->default(false);
+            $table->integer('position'); // #1, #2... na mesa
 
-            // Atributos da Mesa
-            $table->integer('position'); // #1, #2, #3... na mesa de prova
-            $table->string('blind_code')->nullable(); // Para o modo de prova cega
+            // Dados Técnicos (Para xícaras avulsas ou cópia da amostra)
+            $table->string('variety')->nullable();
+            $table->string('roast_type')->nullable(); // Adicionado para controle de torra
+            $table->string('drying_process')->nullable();
+            $table->string('fermentation')->nullable();
+            $table->decimal('humidity', 5, 2)->nullable();
+            $table->string('screen')->nullable();
+            $table->integer('altitude')->nullable();
+            $table->string('crop')->nullable();
             
+            // Origem/Fornecedor Polimórfico
+            $table->nullableMorphs('origin'); 
+
+            $table->text('notes')->nullable(); // Observações pré-prova (Ex: defeitos visuais)
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('cupping_items');

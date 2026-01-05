@@ -9,6 +9,7 @@ use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SensoryProfileController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\CuppingWebController;
+use App\Http\Controllers\Api\CuppingController; // Importante para as rotas mobile
 
 /*
 |--------------------------------------------------------------------------
@@ -40,22 +41,31 @@ Route::middleware(['auth'])->group(function () {
 
         // GRUPO DE INVENTÁRIO (AUDITORIA MENSAL)
         Route::prefix('inventory')->name('inventory.')->group(function () {
-            // Rota para Iniciar o Inventário
             Route::post('/start', [GreenCoffeeLotController::class, 'startInventory'])->name('start');
-            
             Route::post('/store', [GreenCoffeeLotController::class, 'storeInventoryAdjustment'])->name('store');
             Route::post('/finish', [GreenCoffeeLotController::class, 'finishInventory'])->name('finish');
-            
-            // Esta rota atende ao AJAX: /green-coffee/inventory/history/{id}
             Route::get('/history/{id}', [GreenCoffeeLotController::class, 'getInventoryDetail'])->name('detail');
         });
     });
 
     // --- MÓDULO: LABORATÓRIO ---
-    // Alterado o .name para 'laboratorio' para coincidir com o seu layouts/app.blade.php
     Route::get('/laboratory', [CuppingWebController::class, 'index'])->name('laboratorio');
     Route::get('/laboratorio/mesas/{id}', [CuppingWebController::class, 'show'])->name('cupping.show');
-    
+
+    // --- ROTAS DA API MOBILE ---
+    // Alterado de 'auth' para 'auth:sanctum' para aceitar o Token do App
+    Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
+        
+        // Busca de Amostras para o Autocomplete
+        Route::get('/samples/search', [SampleController::class, 'search'])->name('api.samples.search');
+        
+        // Operações de Cupping
+        Route::prefix('cupping')->group(function () {
+            Route::get('/sessions', [CuppingController::class, 'index']);
+            Route::post('/sessions', [CuppingController::class, 'startSession']);
+            Route::post('/evaluations', [CuppingController::class, 'finishEvaluations']);
+        });
+    });
     // --- MÓDULO: TORREFAÇÃO ---
     Route::get('/roasting', [DashboardController::class, 'torrefacao'])->name('torrefacao');
 
@@ -64,8 +74,6 @@ Route::middleware(['auth'])->group(function () {
 
     // --- GRUPO MESTRE: CADASTROS (REGISTRIES) ---
     Route::prefix('registries')->name('registries.')->group(function () {
-        
-        // Hub de Cadastros
         Route::get('/', [DashboardController::class, 'cadastros'])->name('index');
 
         // Fornecedores
@@ -75,7 +83,6 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/capture/{type}/{id}', [SupplierController::class, 'capture'])->name('capture');
             Route::get('/clear', [SupplierController::class, 'clearCapture'])->name('clear');
             Route::get('/link/{type}/{id}', [SupplierController::class, 'link'])->name('link');
-            // Cadastro de novos produtores, fazendas e empresas
             Route::post('/producer', [SupplierController::class, 'storeProducer'])->name('storeProducer');
             Route::post('/farm', [SupplierController::class, 'storeFarm'])->name('storeFarm');
             Route::post('/company', [SupplierController::class, 'storeCompany'])->name('storeCompany');
