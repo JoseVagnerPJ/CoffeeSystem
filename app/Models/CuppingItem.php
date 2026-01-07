@@ -9,24 +9,23 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class CuppingItem extends Model
 {
-    protected $fillable = [
-        'cupping_session_id', 
-        'sample_id', 
-        'is_avulso',
-        'position',
-        'variety',
-        'roast_type',
-        'drying_process',
-        'fermentation',
-        'humidity',
-        'screen',
-        'altitude',
-        'crop',
-        'origin_id',
-        'origin_type',
-        'notes'
-    ];
-
+protected $fillable = [
+    'cupping_session_id', 
+    'sample_id', 
+    'position',
+    'is_avulso',
+    'nickname',
+    'variety',
+    'drying_process',
+    'fermentation',
+    'humidity',
+    'screen',
+    'altitude',
+    'crop',
+    'origin_id',    // Adicione se não houver
+    'origin_type',  // Adicione se não houver
+    'notes'
+];
     public function session(): BelongsTo
     {
         return $this->belongsTo(CuppingSession::class, 'cupping_session_id');

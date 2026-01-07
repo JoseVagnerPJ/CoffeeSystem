@@ -11,26 +11,26 @@ return new class extends Migration
         Schema::create('cupping_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('cupping_session_id')->constrained()->onDelete('cascade');
+            $table->foreignId('sample_id')->nullable()->constrained()->onDelete('set null');
             
-            // Vínculo opcional: se nulo, a xícara é "avulsa"
-            $table->foreignId('sample_id')->nullable()->constrained(); 
+            $table->integer('position'); 
             $table->boolean('is_avulso')->default(false);
-            $table->integer('position'); // #1, #2... na mesa
+            $table->string('nickname')->nullable(); 
 
-            // Dados Técnicos (Para xícaras avulsas ou cópia da amostra)
+            // Snapshot dos dados técnicos
             $table->string('variety')->nullable();
-            $table->string('roast_type')->nullable(); // Adicionado para controle de torra
             $table->string('drying_process')->nullable();
             $table->string('fermentation')->nullable();
-            $table->decimal('humidity', 5, 2)->nullable();
+            $table->string('humidity')->nullable();
             $table->string('screen')->nullable();
-            $table->integer('altitude')->nullable();
+            $table->string('altitude')->nullable();
             $table->string('crop')->nullable();
-            
-            // Origem/Fornecedor Polimórfico
-            $table->nullableMorphs('origin'); 
 
-            $table->text('notes')->nullable(); // Observações pré-prova (Ex: defeitos visuais)
+            // COLUNAS FALTANTES QUE CAUSARAM O ERRO 500
+            $table->unsignedBigInteger('origin_id')->nullable();
+            $table->string('origin_type')->nullable();
+            
+            $table->text('notes')->nullable(); 
             $table->timestamps();
         });
     }

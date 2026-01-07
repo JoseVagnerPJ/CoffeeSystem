@@ -11,14 +11,11 @@ Route::post('/login', [AuthController::class, 'login']);
 // routes/api.php
 
 Route::middleware('auth:sanctum')->group(function () {
-    
-    // Rota que você já testou e deu []
     Route::get('/cupping/sessions', [CuppingController::class, 'index']);
-    
-    // ESTA É A LINHA QUE ESTÁ FALTANDO:
+    Route::get('/cupping/sessions/{id}', [CuppingController::class, 'show']); // NOVA ROTA
     Route::post('/cupping/sessions', [CuppingController::class, 'startSession']);
-
-    // Rota para finalizar
     Route::post('/cupping/sessions/finish', [CuppingController::class, 'finishEvaluations']);
+    Route::get('/tags', [TagController::class, 'index']);
+    Route::post('/cupping/sessions/{id}/join', [CuppingController::class, 'joinSession']);
 });
 

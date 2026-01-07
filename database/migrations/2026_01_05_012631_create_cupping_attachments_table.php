@@ -4,25 +4,26 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CuppingAttachments extends Migration
+// Usar "return new class" elimina o conflito de nomes
+return new class extends Migration
 {
     /**
      * Run the migrations.
      *
      * @return void
      */
-public function up()
-{
-    Schema::create('cupping_attachments', function (Blueprint $table) {
-        $table->id();
-        // Pode ser anexo da MESA ou de um ITEM específico
-        $table->morphs('attachable'); 
-        $table->string('file_name');
-        $table->string('file_path');
-        $table->string('file_type'); // pdf, algt (artisan), jpg
-        $table->timestamps();
-    });
-}
+    public function up()
+    {
+        Schema::create('cupping_attachments', function (Blueprint $table) {
+            $table->id();
+            // Vincula o anexo ao item da mesa de prova
+            $table->foreignId('cupping_item_id')->constrained()->onDelete('cascade');
+            $table->string('file_path');
+            $table->string('file_name');
+            $table->string('file_type')->nullable();
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.
@@ -33,4 +34,4 @@ public function up()
     {
         Schema::dropIfExists('cupping_attachments');
     }
-}
+};

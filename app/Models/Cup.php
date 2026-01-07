@@ -23,7 +23,7 @@ class Cup extends Model
 
     /**
      * Lógica de cálculo automático da nota final: 60 + 4 pilares.
-     * $FinalScore = 60 + Acidez + Corpo + Doçura + Retrogosto$
+     * $$FinalScore = 60 + Acidez + Corpo + Doçura + Retrogosto$$
      */
     protected static function booted()
     {
@@ -36,7 +36,7 @@ class Cup extends Model
                     (float)$cup->sweetness + 
                     (float)$cup->aftertaste;
             } else {
-                // Se for inválida, você pode definir uma regra (ex: manter 0 ou 60)
+                // Se for inválida, a nota é zerada para não afetar médias
                 $cup->final_score = 0;
             }
         });
@@ -52,8 +52,9 @@ class Cup extends Model
         return $this->belongsTo(User::class);
     }
 
+    // Relacionamento Many-to-Many com a tabela cup_tag
     public function tags(): BelongsToMany
     {
-        return $this->belongsToMany(Tag::class);
+        return $this->belongsToMany(Tag::class, 'cup_tag');
     }
 }

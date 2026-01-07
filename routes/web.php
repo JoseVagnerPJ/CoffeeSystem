@@ -8,8 +8,8 @@ use App\Http\Controllers\MachineController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SensoryProfileController;
 use App\Http\Controllers\TeamController;
-use App\Http\Controllers\CuppingWebController;
-use App\Http\Controllers\Api\CuppingController; // Importante para as rotas mobile
+use App\Http\Controllers\Api\CuppingController;
+use App\Http\Controllers\LaboratoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,12 +20,13 @@ require __DIR__.'/auth.php';
 
 /*
 |--------------------------------------------------------------------------
-| Rotas Protegidas (Exigem Login)
+| Rotas Protegidas do Navegador (Web)
 |--------------------------------------------------------------------------
 */
+// Removido o prefixo 'api' daqui para que o Dashboard funcione em "/"
 Route::middleware(['auth'])->group(function () {
-
-    // Dashboard Principal
+    
+    // Dashboard Principal - Agora acessível em "/"
     Route::get('/', [DashboardController::class, 'index'])->name('inicio');
 
     // --- MÓDULO: ESTOQUE VERDE ---
@@ -49,23 +50,11 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // --- MÓDULO: LABORATÓRIO ---
-    Route::get('/laboratory', [CuppingWebController::class, 'index'])->name('laboratorio');
-    Route::get('/laboratorio/mesas/{id}', [CuppingWebController::class, 'show'])->name('cupping.show');
-
-    // --- ROTAS DA API MOBILE ---
-    // Alterado de 'auth' para 'auth:sanctum' para aceitar o Token do App
-    Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
-        
-        // Busca de Amostras para o Autocomplete
-        Route::get('/samples/search', [SampleController::class, 'search'])->name('api.samples.search');
-        
-        // Operações de Cupping
-        Route::prefix('cupping')->group(function () {
-            Route::get('/sessions', [CuppingController::class, 'index']);
-            Route::post('/sessions', [CuppingController::class, 'startSession']);
-            Route::post('/evaluations', [CuppingController::class, 'finishEvaluations']);
+        Route::prefix('laboratory')->group(function () {
+            Route::get('/', [LaboratoryController::class, 'index'])->name('laboratorio');
+            Route::delete('/{id}', [LaboratoryController::class, 'destroy'])->name('laboratory.destroy');
         });
-    });
+
     // --- MÓDULO: TORREFAÇÃO ---
     Route::get('/roasting', [DashboardController::class, 'torrefacao'])->name('torrefacao');
 
@@ -138,5 +127,26 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/profile/{id}', [TeamController::class, 'destroyProfile'])->name('destroyProfile');
             Route::patch('/user/{id}', [TeamController::class, 'updateUser'])->name('updateUser');
         });
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| --- ROTAS DA API MOBILE ---
+|--------------------------------------------------------------------------
+*/
+// IMPORTANTE: Como estas rotas estão no web.php, você DEVE excluir 'api/*' 
+// da verificação CSRF no arquivo bootstrap/app.php ou VerifyCsrfToken.php
+Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
+    
+    // Busca de Amostras para o Autocomplete (Mobile)
+    Route::get('/samples/search', [SampleController::class, 'search'])->name('api.samples.search');
+    
+    // Operações de Cupping (Mobile)
+    Route::prefix('cupping')->group(function () {
+        Route::get('/sessions', [CuppingController::class, 'index']);
+        Route::post('/sessions', [CuppingController::class, 'startSession']);
+        Route::post('/evaluations', [CuppingController::class, 'finishEvaluations']);
+        Route::get('/tags', [CuppingController::class, 'getTags']);
     });
 });

@@ -7,27 +7,37 @@ use App\Models\Cup;
 use App\Models\CuppingSession;
 use App\Models\CuppingItem;
 use App\Models\Sample;
+use App\Models\Tag; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon; // Importação essencial para o fuso horário
 
 class CuppingController extends Controller
 {
-    /**
-     * Lista todas as mesas de cupping abertas.
-     */
     public function index()
     {
         return response()->json(
-            CuppingSession::where('status', 'aberto')
+            CuppingSession::withCount(['evaluations as users_count' => function($query) {
+                    $query->select(DB::raw('count(distinct(user_id))'));
+                }])
                 ->withCount('items') 
-                ->with(['items.sample', 'items.evaluations.user'])
-                ->orderBy('session_date', 'desc')
+                ->with(['items.sample', 'items.evaluations.user', 'items.evaluations.tags'])
+                ->orderBy('id', 'desc') 
                 ->get()
         );
     }
 
+    public function show($id)
+    {
+        $session = CuppingSession::with(['items.sample', 'items.evaluations.user', 'items.evaluations.tags'])
+            ->withCount('items')
+            ->findOrFail($id);
+            
+        return response()->json($session);
+    }
+
     /**
-     * Inicia uma nova mesa. Suporta amostras vinculadas ou avulsas.
+     * Inicia uma nova mesa. Registra o momento exato de início (Fuso SP).
      */
     public function startSession(Request $request)
     {
@@ -37,32 +47,50 @@ class CuppingController extends Controller
             'items' => 'required|array|min:1',
             'items.*.position' => 'required|integer',
             'items.*.is_avulso' => 'required|boolean',
-            // Se não for avulso, o sample_id é obrigatório
             'items.*.sample_id' => 'required_if:items.*.is_avulso,false|nullable|exists:samples,id',
-            // Campos técnicos (opcionais no request, pois podem vir da amostra)
+            'items.*.nickname' => 'nullable|string',
             'items.*.variety' => 'nullable|string',
-            'items.*.altitude' => 'nullable|integer',
+            'items.*.drying_process' => 'nullable|string',
+            'items.*.fermentation' => 'nullable|string',
+            'items.*.humidity' => 'nullable|string',
+            'items.*.screen' => 'nullable|string',
+            'items.*.altitude' => 'nullable|string',
+            'items.*.crop' => 'nullable|string',
+            'items.*.notes' => 'nullable|string',
             'items.*.origin_id' => 'nullable|integer',
             'items.*.origin_type' => 'nullable|string',
         ]);
 
         $session = DB::transaction(function () use ($data, $request) {
+            // Define o horário de agora com fuso horário de São Paulo
+            $agoraSp = Carbon::now('America/Sao_Paulo');
+
             $session = CuppingSession::create([
                 'title' => $data['title'],
-                'session_date' => now(),
+                'session_date' => $agoraSp->toDateString(),
+                'started_at' => $agoraSp, // REGISTRA INÍCIO COM FUSO SP
                 'created_by' => $request->user()->id,
                 'status' => 'aberto',
                 'notes' => $data['notes'] ?? null,
+            ]);
+
+            // O criador entra automaticamente na mesa para o controle de fechamento
+            DB::table('cupping_session_user')->insert([
+                'cupping_session_id' => $session->id,
+                'user_id' => $request->user()->id,
+                'has_finished' => false,
+                'created_at' => $agoraSp,
+                'updated_at' => $agoraSp,
             ]);
 
             foreach ($data['items'] as $itemData) {
                 $attributes = [
                     'position' => $itemData['position'],
                     'is_avulso' => $itemData['is_avulso'],
+                    'nickname' => $itemData['nickname'] ?? null,
                     'notes' => $itemData['notes'] ?? null,
                 ];
 
-                // LÓGICA DE SNAPSHOT: Se houver amostra, puxa os dados dela automaticamente
                 if (!$itemData['is_avulso']) {
                     $sample = Sample::find($itemData['sample_id']);
                     $attributes = array_merge($attributes, [
@@ -78,13 +106,16 @@ class CuppingController extends Controller
                         'origin_type' => $sample->origin_type,
                     ]);
                 } else {
-                    // Se for AVULSO, salva o que veio do formulário
                     $attributes = array_merge($attributes, [
                         'variety' => $itemData['variety'] ?? null,
+                        'drying_process' => $itemData['drying_process'] ?? null,
+                        'fermentation' => $itemData['fermentation'] ?? null,
+                        'humidity' => $itemData['humidity'] ?? null,
+                        'screen' => $itemData['screen'] ?? null,
                         'altitude' => $itemData['altitude'] ?? null,
+                        'crop' => $itemData['crop'] ?? null,
                         'origin_id' => $itemData['origin_id'] ?? null,
                         'origin_type' => $itemData['origin_type'] ?? null,
-                        // Adicione outros campos técnicos manuais aqui se necessário
                     ]);
                 }
 
@@ -98,7 +129,24 @@ class CuppingController extends Controller
     }
 
     /**
-     * Salva a avaliação individual de um provador para uma ou mais xícaras.
+     * Registra entrada do usuário na mesa.
+     */
+    public function joinSession(Request $request, $id)
+    {
+        $session = CuppingSession::findOrFail($id);
+        
+        if ($session->status === 'aberto') {
+            DB::table('cupping_session_user')->updateOrInsert(
+                ['cupping_session_id' => $id, 'user_id' => $request->user()->id],
+                ['has_finished' => false, 'updated_at' => Carbon::now('America/Sao_Paulo')]
+            );
+        }
+        
+        return response()->json(['message' => 'Usuário entrou na mesa.']);
+    }
+
+    /**
+     * Salva a avaliação e verifica se encerra a mesa (Fuso SP).
      */
     public function finishEvaluations(Request $request)
     {
@@ -109,15 +157,14 @@ class CuppingController extends Controller
             'evaluations.*.body' => 'required|numeric|min:0|max:10',
             'evaluations.*.sweetness' => 'required|numeric|min:0|max:10',
             'evaluations.*.aftertaste' => 'required|numeric|min:0|max:10',
-            'evaluations.*.is_invalid' => 'nullable|boolean',
-            'evaluations.*.invalid_reason' => 'nullable|string',
             'evaluations.*.observations' => 'nullable|string',
-            'evaluations.*.tags' => 'nullable|array', // IDs das notas sensoriais
+            'evaluations.*.tags' => 'nullable|string',
         ]);
 
         DB::transaction(function () use ($data, $request) {
+            $agoraSp = Carbon::now('America/Sao_Paulo');
+
             foreach ($data['evaluations'] as $eval) {
-                // O cálculo do final_score (60 + pilares) é feito automaticamente pelo Model Cup no método booted()
                 $cup = Cup::create([
                     'cupping_item_id' => $eval['cupping_item_id'],
                     'user_id' => $request->user()->id,
@@ -125,17 +172,57 @@ class CuppingController extends Controller
                     'body' => $eval['body'],
                     'sweetness' => $eval['sweetness'],
                     'aftertaste' => $eval['aftertaste'],
-                    'is_invalid' => $eval['is_invalid'] ?? false,
-                    'invalid_reason' => $eval['invalid_reason'] ?? null,
                     'observations' => $eval['observations'] ?? null,
                 ]);
 
                 if (!empty($eval['tags'])) {
-                    $cup->tags()->sync($eval['tags']);
+                    $tagNames = explode(',', $eval['tags']);
+                    $tagIds = [];
+                    foreach ($tagNames as $name) {
+                        $trimmedName = trim(mb_strtolower($name));
+                        if ($trimmedName !== '') {
+                            $tag = Tag::firstOrCreate(['name' => $trimmedName]);
+                            $tagIds[] = $tag->id;
+                        }
+                    }
+                    if (!empty($tagIds)) {
+                        $cup->tags()->sync($tagIds);
+                    }
                 }
+            }
+
+            // Descobre a sessão pai
+            $firstItemId = $data['evaluations'][0]['cupping_item_id'];
+            $sessionId = DB::table('cupping_items')->where('id', $firstItemId)->value('cupping_session_id');
+
+            // Marca fim para este usuário
+            DB::table('cupping_session_user')
+                ->where('cupping_session_id', $sessionId)
+                ->where('user_id', $request->user()->id)
+                ->update(['has_finished' => true, 'updated_at' => $agoraSp]);
+
+            // Lógica de fechamento automático
+            $participantes = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->count();
+            $finalizados = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->where('has_finished', true)->count();
+
+            if ($participantes > 0 && $participantes === $finalizados) {
+                CuppingSession::where('id', $sessionId)->update([
+                    'status' => 'finalizado',
+                    'finished_at' => $agoraSp // MARCA FIM COM SEGUNDOS NO FUSO SP
+                ]);
             }
         });
 
         return response()->json(['message' => 'Avaliações salvas com sucesso!'], 201);
+    }
+
+    public function closeSession($id)
+    {
+        $session = CuppingSession::findOrFail($id);
+        $session->update([
+            'status' => 'finalizado',
+            'finished_at' => Carbon::now('America/Sao_Paulo')
+        ]);
+        return response()->json(['message' => 'Mesa finalizada com sucesso!']);
     }
 }

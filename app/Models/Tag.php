@@ -11,6 +11,6 @@ class Tag extends Model
 
     public function cups(): BelongsToMany
     {
-        return $this->belongsToMany(Cup::class);
+        return $this->belongsToMany(Cup::class, 'cup_tag');
     }
 }
