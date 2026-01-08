@@ -88,7 +88,8 @@
                                                 <input type="text" name="locations[0][row]" class="form-control text-center fw-bold js-loc-row" placeholder="Fila" required>
                                             </div>
                                             <div class="col-md-2">
-                                                <input type="number" name="locations[0][pos]" class="form-control text-center fw-bold js-loc-pos" placeholder="Nº" required>
+                                                {{-- Ajustado: Adicionado disabled inicial --}}
+                                                <input type="number" name="locations[0][pos]" class="form-control text-center fw-bold js-loc-pos" placeholder="Nº" required disabled>
                                             </div>
                                             <div class="col-md-3">
                                                 <input type="number" name="locations[0][bags]" class="form-control text-center js-loc-bags" placeholder="Sacas" step="1" required>
@@ -153,14 +154,17 @@ $(document).ready(function() {
         $('#formCreateLote')[0].reset();
         $('#profile-color-indicator .color-preview').css('background-color', '#eee');
         $('.location-row:not(:first)').remove();
+        // Resetar o estado disabled do primeiro campo
+        $('.js-loc-pos').first().prop('disabled', true);
     });
 
     // Adicionar Pilha
     $('#add-location-btn').on('click', function() {
+        // Ajustado: campo de número inicia disabled
         let rowHtml = `
             <div class="row g-1 mb-1 location-row align-items-end">
                 <div class="col-md-2"><input type="text" name="locations[${locIdx}][row]" class="form-control text-center fw-bold js-loc-row" placeholder="Fila" required></div>
-                <div class="col-md-2"><input type="number" name="locations[${locIdx}][pos]" class="form-control text-center fw-bold js-loc-pos" placeholder="Nº" required></div>
+                <div class="col-md-2"><input type="number" name="locations[${locIdx}][pos]" class="form-control text-center fw-bold js-loc-pos" placeholder="Nº" required disabled></div>
                 <div class="col-md-3"><input type="number" name="locations[${locIdx}][bags]" class="form-control text-center js-loc-bags" placeholder="Sacas" step="1" required></div>
                 <div class="col-md-3"><input type="number" name="locations[${locIdx}][remainder]" class="form-control text-center js-loc-remainder" placeholder="Sobra kg" step="0.01"></div>
                 <div class="col-md-2"><button type="button" class="btn btn-sm btn-outline-danger w-100 remove-location"><i class="bi bi-trash"></i></button></div>
@@ -176,6 +180,16 @@ $(document).ready(function() {
 
     $(document).on('input', '.js-loc-row', function() {
         this.value = this.value.toUpperCase().replace(/[^A-F]/g, '');
+        
+        // --- NOVA LÓGICA: BLOQUEIO DO NÚMERO ---
+        const posInput = $(this).closest('.location-row').find('.js-loc-pos');
+        if (this.value.length > 0) {
+            posInput.prop('disabled', false);
+        } else {
+            posInput.prop('disabled', true).val('');
+        }
+        // ---------------------------------------
+
         updateMapSelection();
     });
 
@@ -206,7 +220,9 @@ $(document).ready(function() {
         }
 
         targetRow.find('.js-loc-row').val(row);
-        targetRow.find('.js-loc-pos').val(pos);
+        // Garantir que o campo de número seja habilitado antes de receber o valor do clique no mapa
+        targetRow.find('.js-loc-pos').prop('disabled', false).val(pos);
+        
         updateMapSelection();
     });
 
@@ -239,37 +255,36 @@ $(document).ready(function() {
 
     // --- AUTOCOMPLETES COM MAPEAMENTO DE TIPO CORRIGIDO ---
     function setupSearch(inputId, resId, url, type) {
-    $(`#${inputId}`).on('input', function() {
-        let q = $(this).val();
-        if(q.length < 2) return $(`#${resId}`).addClass('d-none');
-        
-        $.get(url, { search: q, format: 'json' }, function(data) {
-            let html = '';
-            data.forEach(i => {
-                if (type === 'sup') {
-                    // MAPEAMENTO DE NOMES AMIGÁVEIS
-                    let label = 'Produtor';
-                    const tech = (i.type || '').toLowerCase();
-                    if (tech.includes('company')) label = 'Empresa';
-                    else if (tech.includes('farm')) label = 'Fazenda';
+        $(`#${inputId}`).on('input', function() {
+            let q = $(this).val();
+            if(q.length < 2) return $(`#${resId}`).addClass('d-none');
+            
+            $.get(url, { search: q, format: 'json' }, function(data) {
+                let html = '';
+                data.forEach(i => {
+                    if (type === 'sup') {
+                        let label = 'Produtor';
+                        const tech = (i.type || '').toLowerCase();
+                        if (tech.includes('company')) label = 'Empresa';
+                        else if (tech.includes('farm')) label = 'Fazenda';
 
-                    html += `
-                        <button type="button" class="list-group-item list-group-item-action sel-sup" data-id="${i.id}" data-name="${i.name}">
-                            <div class="d-flex flex-column">
-                                <span class="fw-bold"><i class="bi bi-patch-check-fill verified-badge me-1"></i> ${i.name}</span>
-                                <span class="supplier-type-label" style="font-size: 0.65rem; color: #6c757d; font-weight: bold; text-transform: uppercase;">
-                                    ${label}
-                                </span>
-                            </div>
-                        </button>`;
-                } else {
-                    html += `<button type="button" class="list-group-item list-group-item-action sel-prof" data-id="${i.id}" data-name="${i.name}" data-color="${i.color_hex}"><span class="color-preview me-2" style="background-color: ${i.color_hex}"></span> ${i.name}</button>`;
-                }
+                        html += `
+                            <button type="button" class="list-group-item list-group-item-action sel-sup" data-id="${i.id}" data-name="${i.name}" data-type="${i.type}">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold"><i class="bi bi-patch-check-fill verified-badge me-1"></i> ${i.name}</span>
+                                    <span class="supplier-type-label">
+                                        ${label}
+                                    </span>
+                                </div>
+                            </button>`;
+                    } else {
+                        html += `<button type="button" class="list-group-item list-group-item-action sel-prof" data-id="${i.id}" data-name="${i.name}" data-color="${i.color_hex}"><span class="color-preview me-2" style="background-color: ${i.color_hex}"></span> ${i.name}</button>`;
+                    }
+                });
+                $(`#${resId}`).html(html).removeClass('d-none');
             });
-            $(`#${resId}`).html(html).removeClass('d-none');
         });
-    });
-}
+    }
 
     setupSearch('search-supplier', 'supplier-results', "{{ route('registries.suppliers.search') }}", 'sup');
     setupSearch('search-sensory-profile', 'sensory-results', "{{ route('registries.sensory-profiles.index') }}", 'prof');

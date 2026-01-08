@@ -5,8 +5,8 @@
     <div class="card border-0 shadow-lg" style="width: 100%; max-width: 400px; border-radius: 15px;">
         <div class="card-body p-4 text-center">
             <div class="mb-4">
-                <img src="{{ asset('images/logo.png') }}" alt="Ctrl + Coffee Logo" style="width: 80px; margin-bottom: 10px;">
-                <h3 class="fw-bold" style="color: var(--coffee-brown); letter-spacing: -1px;">Ctrl + Coffee</h3>
+                <img src="{{ asset('images/logo.png') }}" alt="DigiGrão Logo" style="width: 80px; margin-bottom: 10px;">
+                <h3 class="fw-bold" style="color: var(--coffee-brown); letter-spacing: -1px;">DigiGrão</h3>
                 <hr class="opacity-10">
             </div>
 

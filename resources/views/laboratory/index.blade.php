@@ -49,9 +49,9 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <a href="#" class="btn btn-main-action w-100 shadow-sm" style="background: #198754;">
+                    <button type="button" class="btn btn-main-action w-100 shadow-sm" style="background: #198754;" data-bs-toggle="modal" data-bs-target="#modalCreateCupping">
                         <i class="bi bi-plus-circle-fill fs-3"></i><span class="small">INICIAR MESA</span>
-                    </a>
+                    </button>
                 </div>
                 <div class="col-md-3">
                     <button class="btn btn-main-action w-100 shadow-sm" style="background: var(--coffee-gold); color: var(--coffee-brown);">
@@ -201,4 +201,6 @@
         });
     });
 </script>
+@include('laboratory.partials.modal_create_cupping')
+@include('laboratory.partials.modal_cup_tech_info')
 @endsection

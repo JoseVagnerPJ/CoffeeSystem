@@ -8,7 +8,7 @@
     {{-- ÍCONE DO NAVEGADOR (FAVICON) --}}
     <link rel="icon" type="image/png" href="{{ asset('flavicon.png') }}">
     
-    <title>@yield('title') | Ctrl Coffee</title>
+    <title>@yield('title') | DigiGrão</title>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -89,12 +89,12 @@
                 </span>
             </div>
 
-            {{-- CENTRO: Branding Ctrl + Coffee (Compacto) --}}
+            {{-- CENTRO: Branding DigiGrão (Compacto) --}}
             <div class="d-flex justify-content-center" style="flex: 1;">
                 <div class="brand-center-pill">
                     <a class="navbar-brand d-flex align-items-center me-0" href="{{ route('inicio') }}">
                         <img src="{{ asset('images/logo.png') }}" alt="Logo" class="system-logo-central">
-                        <span class="fw-bold mb-0" style="letter-spacing: -0.3px;">Ctrl + Coffee</span>
+                        <span class="fw-bold mb-0" style="letter-spacing: -0.3px;">DigiGrão</span>
                     </a>
                 </div>
             </div>

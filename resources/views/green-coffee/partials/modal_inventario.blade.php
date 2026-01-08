@@ -105,7 +105,8 @@
                                                         <div class="d-flex align-items-center gap-2 p-2 border-bottom js-loc-line">
                                                             <div class="input-group input-group-sm" style="width: 130px;">
                                                                 <input type="text" class="form-control text-center fw-bold js-row" placeholder="Rua" value="{{ $adj->new_address_row }}" maxlength="1">
-                                                                <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº" value="{{ $adj->new_address_pos }}">
+                                                                {{-- Regra aplicada: disabled se não houver rua --}}
+                                                                <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº" value="{{ $adj->new_address_pos }}" {{ empty($adj->new_address_row) ? 'disabled' : '' }}>
                                                             </div>
                                                             <div class="input-group input-group-sm flex-grow-1">
                                                                 <input type="number" class="form-control text-center js-bags" placeholder="Sacas" value="{{ $adj->closed_bags }}">
@@ -160,7 +161,6 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="font-size: 0.7rem;"></button>
             </div>
             <div class="modal-body p-2 bg-white text-center">
-                {{-- AJUSTADO: Adicionado pointer-events: none para tornar o mapa não clicável --}}
                 <div class="warehouse-map-mini" style="background: #fdfdfd; border-radius: 8px; pointer-events: none;">
                     @include('green-coffee.partials.warehouse_map')
                 </div>
@@ -179,13 +179,18 @@ $(document).ready(function() {
         // Bloqueia qualquer coisa que não seja A-F
         this.value = this.value.toUpperCase().replace(/[^A-F]/g, '');
         
+        // --- NOVA LÓGICA DE BLOQUEIO ---
+        const posInput = $(this).closest('.js-loc-line').find('.js-pos');
+        if (this.value.length >= 1) {
+            posInput.prop('disabled', false);
+            posInput.focus();
+        } else {
+            posInput.prop('disabled', true).val('');
+        }
+        // -------------------------------
+
         // Revalida o número da posição caso a letra tenha mudado
         $(this).closest('.js-loc-line').find('.js-pos').trigger('input');
-
-        // Se digitou a letra, pula para o número
-        if (this.value.length >= 1) {
-            $(this).next('.js-pos').focus();
-        }
     });
 
     $(document).on('input', '.js-pos', function() {
@@ -236,7 +241,7 @@ $(document).ready(function() {
             <div class="d-flex align-items-center gap-2 p-2 border-bottom js-loc-line">
                 <div class="input-group input-group-sm" style="width: 130px;">
                     <input type="text" class="form-control text-center fw-bold js-row" placeholder="Rua" maxlength="1">
-                    <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº">
+                    <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº" disabled>
                 </div>
                 <div class="input-group input-group-sm flex-grow-1">
                     <input type="number" class="form-control text-center js-bags" placeholder="Sacas">

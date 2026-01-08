@@ -20,13 +20,12 @@ require __DIR__.'/auth.php';
 
 /*
 |--------------------------------------------------------------------------
-| Rotas Protegidas do Navegador (Web)
+| Rotas Protegidas do Navegador (Web) - DigiGrão
 |--------------------------------------------------------------------------
 */
-// Removido o prefixo 'api' daqui para que o Dashboard funcione em "/"
 Route::middleware(['auth'])->group(function () {
     
-    // Dashboard Principal - Agora acessível em "/"
+    // Dashboard Principal
     Route::get('/', [DashboardController::class, 'index'])->name('inicio');
 
     // --- MÓDULO: ESTOQUE VERDE ---
@@ -49,11 +48,12 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    // --- MÓDULO: LABORATÓRIO ---
-        Route::prefix('laboratory')->group(function () {
-            Route::get('/', [LaboratoryController::class, 'index'])->name('laboratorio');
-            Route::delete('/{id}', [LaboratoryController::class, 'destroy'])->name('laboratory.destroy');
-        });
+    // --- MÓDULO: LABORATÓRIO (DigiGrão) ---
+    Route::prefix('laboratory')->group(function () {
+        Route::get('/', [LaboratoryController::class, 'index'])->name('laboratorio');
+        Route::post('/store', [LaboratoryController::class, 'store'])->name('laboratory.store'); // Rota para criar mesas via WEB
+        Route::delete('/{id}', [LaboratoryController::class, 'destroy'])->name('laboratory.destroy');
+    });
 
     // --- MÓDULO: TORREFAÇÃO ---
     Route::get('/roasting', [DashboardController::class, 'torrefacao'])->name('torrefacao');
@@ -68,7 +68,7 @@ Route::middleware(['auth'])->group(function () {
         // Fornecedores
         Route::prefix('suppliers')->name('suppliers.')->group(function () {
             Route::get('/', [SupplierController::class, 'index'])->name('index');
-            Route::get('/search', [SupplierController::class, 'search'])->name('search');
+            Route::get('/search', [SupplierController::class, 'search'])->name('search'); // Autocomplete Web
             Route::get('/capture/{type}/{id}', [SupplierController::class, 'capture'])->name('capture');
             Route::get('/clear', [SupplierController::class, 'clearCapture'])->name('clear');
             Route::get('/link/{type}/{id}', [SupplierController::class, 'link'])->name('link');
@@ -88,9 +88,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Amostras
         Route::prefix('samples')->name('samples.')->group(function () {
-            // ADICIONADO: Rota de busca para Autocomplete na WEB (Estoque Verde)
-            Route::get('/search', [SampleController::class, 'search'])->name('search');
-            
+            Route::get('/search', [SampleController::class, 'search'])->name('search'); // Autocomplete Web para Mesas de Cupping
             Route::get('/search-origin', [SampleController::class, 'searchOrigin'])->name('search-origin');
             Route::get('/{id}/info', [SampleController::class, 'info'])->name('info');
             
@@ -107,6 +105,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Perfis Sensoriais
         Route::prefix('sensory-profiles')->name('sensory-profiles.')->group(function () {
+            Route::get('/', [SensoryProfileController::class, 'index'])->name('index'); // Usado para busca/listagem
             Route::get('/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('search-samples');
             
             Route::resource('/', SensoryProfileController::class)->only([
@@ -138,8 +137,6 @@ Route::middleware(['auth'])->group(function () {
 | --- ROTAS DA API MOBILE ---
 |--------------------------------------------------------------------------
 */
-// IMPORTANTE: Como estas rotas estão no web.php, você DEVE excluir 'api/*' 
-// da verificação CSRF no arquivo bootstrap/app.php ou VerifyCsrfToken.php
 Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
     
     // ROTA: Listagem geral de amostras
