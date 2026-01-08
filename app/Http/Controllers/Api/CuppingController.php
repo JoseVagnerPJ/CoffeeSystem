@@ -15,19 +15,16 @@ use Carbon\Carbon; // Importação essencial para o fuso horário
 
 class CuppingController extends Controller
 {
-    public function index()
-    {
-        return response()->json(
-            CuppingSession::withCount(['evaluations as users_count' => function($query) {
-                    $query->select(DB::raw('count(distinct(user_id))'));
-                }])
-                ->withCount('items') 
-                ->with(['items.sample', 'items.evaluations.user', 'items.evaluations.tags'])
-                ->orderBy('id', 'desc') 
-                ->get()
-        );
-    }
-
+public function index()
+{
+    return response()->json(
+        CuppingSession::withCount('users as users_count') // Conta todos na tabela cupping_session_user
+            ->withCount('items') 
+            ->with(['items.sample', 'items.evaluations.user'])
+            ->orderBy('id', 'desc') 
+            ->get()
+    );
+}
     public function show($id)
     {
         $session = CuppingSession::with(['items.sample', 'items.evaluations.user', 'items.evaluations.tags'])

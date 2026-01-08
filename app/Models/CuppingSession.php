@@ -26,6 +26,11 @@ class CuppingSession extends Model
         'session_date' => 'date',
     ];
 
+    protected function serializeDate(\DateTimeInterface $date)
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -34,6 +39,7 @@ class CuppingSession extends Model
     public function items(): HasMany 
     {
         return $this->hasMany(CuppingItem::class);
+        
     }
 
     // Para contar os provadores, precisamos chegar nas avaliações através dos itens
