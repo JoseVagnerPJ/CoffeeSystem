@@ -10,47 +10,56 @@ use Illuminate\Support\Facades\DB;
 
 class SupplierController extends Controller
 {
-    public function index(Request $request)
-    {
-        $search = $request->query('search');
-        $filterType = $request->query('filter_type');
-        $activeTab = $request->query('tab', 'producers');
+public function index(Request $request)
+{
+    $search = $request->query('search');
+    $filterType = $request->query('filter_type');
+    $activeTab = $request->query('tab', 'producers');
 
-        if ($filterType) {
-            switch ($filterType) {
-                case 'producer': $activeTab = 'producers'; break;
-                case 'farm':     $activeTab = 'farms';     break;
-                case 'company':  $activeTab = 'companies'; break;
-            }
+    if ($filterType) {
+        switch ($filterType) {
+            case 'producer': $activeTab = 'producers'; break;
+            case 'farm':     $activeTab = 'farms';     break;
+            case 'company':  $activeTab = 'companies'; break;
         }
-
-        // --- PRODUTORES ---
-        $producersQuery = Producer::where('is_active', true)->with(['farms', 'companies', 'samples']);
-        if ($search) {
-            $producersQuery->where(function($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")->orWhere('cpf', 'LIKE', "%{$search}%");
-            });
-        }
-        $producers = $producersQuery->latest()->get();
-
-        // --- FAZENDAS ---
-        $farmsQuery = Farm::where('is_active', true)->with(['producers', 'companies', 'samples']);
-        if ($search) $farmsQuery->where('name', 'LIKE', "%{$search}%");
-        if ($request->filled('filter_state')) $farmsQuery->where('state', 'LIKE', "%{$request->filter_state}%");
-        if ($request->filled('filter_intl')) $farmsQuery->where('is_international', true);
-        if ($request->filled('filter_altitude')) $farmsQuery->where('altitude', '>=', $request->filter_altitude);
-        if ($request->filled('filter_variety')) $farmsQuery->where('varieties_tags', 'LIKE', "%{$request->filter_variety}%");
-        $farms = $farmsQuery->latest()->get();
-
-        // --- EMPRESAS ---
-        $companiesQuery = Company::where('is_active', true)->with(['farms', 'producers', 'samples']);
-        if ($search) $companiesQuery->where('name', 'LIKE', "%{$search}%");
-        if ($request->filled('filter_state')) $companiesQuery->where('state', 'LIKE', "%{$request->filter_state}%");
-        if ($request->filled('filter_action')) $companiesQuery->where('action_type', $request->filter_action);
-        $companies = $companiesQuery->latest()->get();
-
-        return view('registries.suppliers.index', compact('producers', 'farms', 'companies', 'activeTab'));
     }
+
+    // --- PRODUTORES ---
+    $producersQuery = Producer::where('is_active', true)->with(['farms', 'companies', 'samples']);
+    if ($search) {
+        $producersQuery->where(function($q) use ($search) {
+            $q->where('name', 'LIKE', "%{$search}%")->orWhere('cpf', 'LIKE', "%{$search}%");
+        });
+    }
+    // REMOVIDO: $producersQuery->where('is_international', true) 
+    // (Pois a tabela de produtores não tem essa coluna e causava o erro)
+    $producers = $producersQuery->latest()->get();
+
+    // --- FAZENDAS ---
+    $farmsQuery = Farm::where('is_active', true)->with(['producers', 'companies', 'samples']);
+    if ($search) $farmsQuery->where('name', 'LIKE', "%{$search}%");
+    if ($request->filled('filter_state')) $farmsQuery->where('state', 'LIKE', "%{$request->filter_state}%");
+    
+    // Filtro internacional para fazendas (OK, esta tabela tem a coluna)
+    if ($request->filled('filter_intl')) $farmsQuery->where('is_international', true);
+    
+    if ($request->filled('filter_altitude')) $farmsQuery->where('altitude', '>=', $request->filter_altitude);
+    if ($request->filled('filter_variety')) $farmsQuery->where('varieties_tags', 'LIKE', "%{$request->filter_variety}%");
+    $farms = $farmsQuery->latest()->get();
+
+    // --- EMPRESAS ---
+    $companiesQuery = Company::where('is_active', true)->with(['farms', 'producers', 'samples']);
+    if ($search) $companiesQuery->where('name', 'LIKE', "%{$search}%");
+    if ($request->filled('filter_state')) $companiesQuery->where('state', 'LIKE', "%{$request->filter_state}%");
+    if ($request->filled('filter_action')) $companiesQuery->where('action_type', $request->filter_action);
+    
+    // Filtro internacional para empresas (OK, conforme a migration que você enviou)
+    if ($request->filled('filter_intl')) $companiesQuery->where('is_international', true);
+    
+    $companies = $companiesQuery->latest()->get();
+
+    return view('registries.suppliers.index', compact('producers', 'farms', 'companies', 'activeTab'));
+}
 
     /**
      * Busca dinâmica para autocomplete de fornecedores (Lote Verde).

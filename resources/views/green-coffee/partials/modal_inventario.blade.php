@@ -64,8 +64,8 @@
                                             <th colspan="3" class="text-center border-bottom border-secondary py-2">Localização / Contagem Real</th>
                                             <th rowspan="2" class="text-center align-middle" style="width: 100px;">Apurado</th>
                                             <th rowspan="2" class="text-center align-middle" style="width: 100px;">Sistema</th>
-                                            <th rowspan="2" class="text-center align-middle" style="width: 90px;">Diverg.</th>
-                                            <th rowspan="2" class="pe-4 align-middle" style="width: 150px;">Justificativa</th>
+                                            <th rowspan="2" class="text-center align-middle" style="width: 90px;">Diverg..</th>
+                                            <th rowspan="2" class="pe-4 align-middle" style="width: 150px;">Observações</th>
                                         </tr>
                                         <tr class="bg-dark text-muted">
                                             <th class="text-center py-1" style="width: 130px; letter-spacing: 1px;">Endereço (Rua/Num)</th>
@@ -160,7 +160,8 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="font-size: 0.7rem;"></button>
             </div>
             <div class="modal-body p-2 bg-white text-center">
-                <div class="warehouse-map-mini" style="background: #fdfdfd; border-radius: 8px;">
+                {{-- AJUSTADO: Adicionado pointer-events: none para tornar o mapa não clicável --}}
+                <div class="warehouse-map-mini" style="background: #fdfdfd; border-radius: 8px; pointer-events: none;">
                     @include('green-coffee.partials.warehouse_map')
                 </div>
             </div>
@@ -170,17 +171,34 @@
 
 <script>
 $(document).ready(function() {
-    // --- LÓGICA DE AUTO-PULAR CAMPOS (AUTO-JUMP) ---
+    // MAPEAMENTO DE LIMITES CONFORME O SVG
+    const validSpots = { 'A': 5, 'B': 2, 'C': 3, 'D': 4, 'E': 3, 'F': 7 };
+
+    // --- LÓGICA DE VALIDAÇÃO DE ENDEREÇO E AUTO-JUMP ---
     $(document).on('input', '.js-row', function() {
-        // Quando digitar a letra da rua (max 1 char), pula para o número
+        // Bloqueia qualquer coisa que não seja A-F
+        this.value = this.value.toUpperCase().replace(/[^A-F]/g, '');
+        
+        // Revalida o número da posição caso a letra tenha mudado
+        $(this).closest('.js-loc-line').find('.js-pos').trigger('input');
+
+        // Se digitou a letra, pula para o número
         if (this.value.length >= 1) {
             $(this).next('.js-pos').focus();
         }
     });
 
     $(document).on('input', '.js-pos', function() {
-        // Quando digitar o número da posição, pula para o campo de Sacas
-        // Nota: usamos a delegação para encontrar o .js-bags dentro da mesma linha
+        const row = $(this).prev('.js-row').val();
+        const maxVal = validSpots[row] || 99;
+        
+        let val = parseInt(this.value);
+        if (row && validSpots[row]) {
+            if (val > maxVal) this.value = maxVal; // Trava no máximo da fila
+            if (val < 1) this.value = '';        // Não permite 0 ou negativo
+        }
+
+        // Se digitou o número, pula para Sacas
         if (this.value.length >= 1) {
             $(this).closest('.js-loc-line').find('.js-bags').focus();
         }
@@ -218,7 +236,7 @@ $(document).ready(function() {
             <div class="d-flex align-items-center gap-2 p-2 border-bottom js-loc-line">
                 <div class="input-group input-group-sm" style="width: 130px;">
                     <input type="text" class="form-control text-center fw-bold js-row" placeholder="Rua" maxlength="1">
-                    <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Num">
+                    <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº">
                 </div>
                 <div class="input-group input-group-sm flex-grow-1">
                     <input type="number" class="form-control text-center js-bags" placeholder="Sacas">
@@ -280,6 +298,7 @@ $(document).ready(function() {
              .removeClass('bg-light bg-danger bg-primary bg-success text-muted')
              .addClass(diff < 0 ? 'bg-danger' : (diff > 0 ? 'bg-primary' : 'bg-success'));
 
+        // Sincronização automática com o servidor
         $.post("{{ route('estoque.inventory.store') }}", {
             _token: "{{ csrf_token() }}",
             lot_id: id,

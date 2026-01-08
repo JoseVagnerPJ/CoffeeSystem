@@ -88,6 +88,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Amostras
         Route::prefix('samples')->name('samples.')->group(function () {
+            // ADICIONADO: Rota de busca para Autocomplete na WEB (Estoque Verde)
+            Route::get('/search', [SampleController::class, 'search'])->name('search');
+            
             Route::get('/search-origin', [SampleController::class, 'searchOrigin'])->name('search-origin');
             Route::get('/{id}/info', [SampleController::class, 'info'])->name('info');
             
@@ -139,10 +142,13 @@ Route::middleware(['auth'])->group(function () {
 // da verificação CSRF no arquivo bootstrap/app.php ou VerifyCsrfToken.php
 Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
     
+    // ROTA: Listagem geral de amostras
+    Route::get('/samples', [SampleController::class, 'index']); 
+
     // Busca de Amostras para o Autocomplete (Mobile)
     Route::get('/samples/search', [SampleController::class, 'search'])->name('api.samples.search');
     
-    // Operações de Cupping (Mobile)
+    // Operações de Cupping
     Route::prefix('cupping')->group(function () {
         Route::get('/sessions', [CuppingController::class, 'index']);
         Route::post('/sessions', [CuppingController::class, 'startSession']);

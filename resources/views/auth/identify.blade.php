@@ -5,7 +5,13 @@
     <div class="card border-0 shadow-lg" style="width: 100%; max-width: 400px; border-radius: 15px;">
         <div class="card-body p-4 text-center">
             <div class="mb-4">
-                <h4 class="fw-bold" style="color: var(--coffee-brown);">Identificação</h4>
+                <img src="{{ asset('images/logo.png') }}" alt="Ctrl + Coffee Logo" style="width: 80px; margin-bottom: 10px;">
+                <h3 class="fw-bold" style="color: var(--coffee-brown); letter-spacing: -1px;">Ctrl + Coffee</h3>
+                <hr class="opacity-10">
+            </div>
+
+            <div class="mb-4">
+                <h5 class="fw-bold" style="color: var(--coffee-text);">Identificação</h5>
                 <p class="text-muted small">Informe o CNPJ da empresa para acessar o terminal</p>
             </div>
 
@@ -15,12 +21,13 @@
                     <label class="form-label small fw-bold">CNPJ</label>
                     <input type="text" name="cnpj" id="cnpj_input" 
                            class="form-control bg-light border-0 text-center fw-bold" 
+                           style="height: 50px; font-size: 1.1rem;"
                            placeholder="00.000.000/0000-00" 
                            maxlength="18" required autofocus>
                     @error('cnpj') <div class="text-danger small fw-bold mt-1">{{ $message }}</div> @enderror
                 </div>
 
-                <button type="submit" class="btn btn-dark w-100 fw-bold py-2 shadow" style="background-color: var(--coffee-brown);">
+                <button type="submit" class="btn btn-dark w-100 fw-bold py-3 shadow" style="background-color: var(--coffee-brown); border-radius: 10px;">
                     CONTINUAR
                 </button>
             </form>

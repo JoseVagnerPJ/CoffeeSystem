@@ -10,6 +10,7 @@ use App\Models\Sample;
 use App\Models\Tag; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log; // Adicionado para rastreamento de erros
 use Carbon\Carbon; // Importação essencial para o fuso horário
 
 class CuppingController extends Controller
@@ -150,70 +151,80 @@ class CuppingController extends Controller
      */
     public function finishEvaluations(Request $request)
     {
-        $data = $request->validate([
-            'evaluations' => 'required|array',
-            'evaluations.*.cupping_item_id' => 'required|exists:cupping_items,id',
-            'evaluations.*.acidity' => 'required|numeric|min:0|max:10',
-            'evaluations.*.body' => 'required|numeric|min:0|max:10',
-            'evaluations.*.sweetness' => 'required|numeric|min:0|max:10',
-            'evaluations.*.aftertaste' => 'required|numeric|min:0|max:10',
-            'evaluations.*.observations' => 'nullable|string',
-            'evaluations.*.tags' => 'nullable|string',
-        ]);
+        return response()->json(['debug' => 'Cheguei no Controller!', 'dados' => $request->all()], 200);
+        try {
+            $data = $request->validate([
+                'evaluations' => 'required|array',
+                'evaluations.*.cupping_item_id' => 'required|exists:cupping_items,id',
+                'evaluations.*.acidity' => 'required|numeric|min:0|max:10',
+                'evaluations.*.body' => 'required|numeric|min:0|max:10',
+                'evaluations.*.sweetness' => 'required|numeric|min:0|max:10',
+                'evaluations.*.aftertaste' => 'required|numeric|min:0|max:10',
+                'evaluations.*.observations' => 'nullable|string',
+                'evaluations.*.tags' => 'nullable|string',
+            ]);
 
-        DB::transaction(function () use ($data, $request) {
-            $agoraSp = Carbon::now('America/Sao_Paulo');
+            DB::transaction(function () use ($data, $request) {
+                $agoraSp = Carbon::now('America/Sao_Paulo');
 
-            foreach ($data['evaluations'] as $eval) {
-                $cup = Cup::create([
-                    'cupping_item_id' => $eval['cupping_item_id'],
-                    'user_id' => $request->user()->id,
-                    'acidity' => $eval['acidity'],
-                    'body' => $eval['body'],
-                    'sweetness' => $eval['sweetness'],
-                    'aftertaste' => $eval['aftertaste'],
-                    'observations' => $eval['observations'] ?? null,
-                ]);
+                foreach ($data['evaluations'] as $eval) {
+                    $cup = Cup::create([
+                        'cupping_item_id' => $eval['cupping_item_id'],
+                        'user_id' => $request->user()->id,
+                        'acidity' => $eval['acidity'],
+                        'body' => $eval['body'],
+                        'sweetness' => $eval['sweetness'],
+                        'aftertaste' => $eval['aftertaste'],
+                        'observations' => $eval['observations'] ?? null,
+                    ]);
 
-                if (!empty($eval['tags'])) {
-                    $tagNames = explode(',', $eval['tags']);
-                    $tagIds = [];
-                    foreach ($tagNames as $name) {
-                        $trimmedName = trim(mb_strtolower($name));
-                        if ($trimmedName !== '') {
-                            $tag = Tag::firstOrCreate(['name' => $trimmedName]);
-                            $tagIds[] = $tag->id;
+                    if (!empty($eval['tags'])) {
+                        $tagNames = explode(',', $eval['tags']);
+                        $tagIds = [];
+                        foreach ($tagNames as $name) {
+                            $trimmedName = trim(mb_strtolower($name));
+                            if ($trimmedName !== '') {
+                                $tag = Tag::firstOrCreate(['name' => $trimmedName]);
+                                $tagIds[] = $tag->id;
+                            }
+                        }
+                        if (!empty($tagIds)) {
+                            $cup->tags()->sync($tagIds);
                         }
                     }
-                    if (!empty($tagIds)) {
-                        $cup->tags()->sync($tagIds);
-                    }
                 }
-            }
 
-            // Descobre a sessão pai
-            $firstItemId = $data['evaluations'][0]['cupping_item_id'];
-            $sessionId = DB::table('cupping_items')->where('id', $firstItemId)->value('cupping_session_id');
+                // Descobre a sessão pai
+                $firstItemId = $data['evaluations'][0]['cupping_item_id'];
+                $sessionId = DB::table('cupping_items')->where('id', $firstItemId)->value('cupping_session_id');
 
-            // Marca fim para este usuário
-            DB::table('cupping_session_user')
-                ->where('cupping_session_id', $sessionId)
-                ->where('user_id', $request->user()->id)
-                ->update(['has_finished' => true, 'updated_at' => $agoraSp]);
+                // Marca fim para este usuário
+                DB::table('cupping_session_user')
+                    ->where('cupping_session_id', $sessionId)
+                    ->where('user_id', $request->user()->id)
+                    ->update(['has_finished' => true, 'updated_at' => $agoraSp]);
 
-            // Lógica de fechamento automático
-            $participantes = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->count();
-            $finalizados = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->where('has_finished', true)->count();
+                // Lógica de fechamento automático
+                $participantes = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->count();
+                $finalizados = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->where('has_finished', true)->count();
 
-            if ($participantes > 0 && $participantes === $finalizados) {
-                CuppingSession::where('id', $sessionId)->update([
-                    'status' => 'finalizado',
-                    'finished_at' => $agoraSp // MARCA FIM COM SEGUNDOS NO FUSO SP
-                ]);
-            }
-        });
+                if ($participantes > 0 && $participantes === $finalizados) {
+                    CuppingSession::where('id', $sessionId)->update([
+                        'status' => 'finalizado',
+                        'finished_at' => $agoraSp // MARCA FIM COM SEGUNDOS NO FUSO SP
+                    ]);
+                }
+            });
 
-        return response()->json(['message' => 'Avaliações salvas com sucesso!'], 201);
+            return response()->json(['message' => 'Avaliações salvas com sucesso!'], 201);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Erro de validação ao finalizar prova:', $e->errors());
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error('Erro geral ao finalizar prova: ' . $e->getMessage());
+            return response()->json(['message' => 'Erro interno ao processar avaliações.'], 500);
+        }
     }
 
     public function closeSession($id)

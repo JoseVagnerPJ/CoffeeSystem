@@ -8,9 +8,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             
-            {{-- Rota atualizada para registries.suppliers.index --}}
             <form action="{{ route('registries.suppliers.index') }}" method="GET" id="filterForm">
-                {{-- O campo 'tab' é atualizado dinamicamente via JS para manter a aba correta --}}
                 <input type="hidden" name="tab" id="modal_active_tab" value="{{ $activeTab ?? 'producers' }}">
                 <input type="hidden" name="search" value="{{ request('search') }}">
 
@@ -27,17 +25,19 @@
                             </select>
                         </div>
 
-                        {{-- Filtros Comuns (Estado e Internacional) --}}
+                        {{-- Internacional --}}
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">Estado (UF):</label>
-                            <input type="text" name="filter_state" class="form-control shadow-sm" placeholder="Ex: MG" value="{{ request('filter_state') }}" maxlength="2">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">Internacional:</label>
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" name="filter_intl" value="1" {{ request('filter_intl') ? 'checked' : '' }}>
-                                <label class="form-check-label small text-muted">Sim</label>
+                            <label class="form-label small fw-bold text-muted">Origem:</label>
+                            <div class="form-check form-switch mt-1">
+                                <input class="form-check-input" type="checkbox" name="filter_intl" id="filter_intl_modal" value="1" {{ request('filter_intl') ? 'checked' : '' }}>
+                                <label class="form-check-label small text-muted" for="filter_intl_modal">Fornecedor Internacional</label>
                             </div>
+                        </div>
+
+                        {{-- Estado (UF) - Escondido dinamicamente se for internacional --}}
+                        <div class="col-md-6" id="container_filter_state">
+                            <label class="form-label small fw-bold text-muted">Estado (UF):</label>
+                            <input type="text" name="filter_state" id="input_filter_state" class="form-control shadow-sm" placeholder="Ex: MG" value="{{ request('filter_state') }}" maxlength="2" style="text-transform: uppercase;">
                         </div>
 
                         {{-- CAMPOS ESPECÍFICOS: FAZENDA --}}
@@ -75,8 +75,7 @@
                 </div>
 
                 <div class="modal-footer border-0 p-4 pt-0 text-end">
-                    {{-- Rota de limpeza atualizada --}}
-                    <a href="{{ route('registries.suppliers.index', ['tab' => $activeTab ?? 'producers']) }}" class="btn btn-light px-4 rounded-pill">Limpar</a>
+                    <a href="{{ route('registries.suppliers.index', ['tab' => $activeTab ?? 'producers']) }}" class="btn btn-light px-4 rounded-pill text-muted">Limpar</a>
                     <button type="submit" class="btn btn-dark px-4 rounded-pill fw-bold">Aplicar Filtros</button>
                 </div>
             </form>
@@ -85,20 +84,30 @@
 </div>
 
 <script>
-    /**
-     * Atualiza a interface do modal e o comportamento da aba ativa
-     */
     function updateModalFilters() {
         const type = document.getElementById('select_filter_type_modal').value;
         const farmGroup = document.getElementById('group_farm_filters_modal');
         const companyGroup = document.getElementById('group_company_filters_modal');
         const tabInput = document.getElementById('modal_active_tab');
+        
+        // Lógica Internacional vs Estado
+        const isIntl = document.getElementById('filter_intl_modal').checked;
+        const stateContainer = document.getElementById('container_filter_state');
+        const stateInput = document.getElementById('input_filter_state');
 
-        // 1. Alterna visibilidade dos campos técnicos baseada na categoria
+        // 1. Alterna visibilidade dos campos técnicos
         if(farmGroup) farmGroup.classList.toggle('d-none', type !== 'farm');
         if(companyGroup) companyGroup.classList.toggle('d-none', type !== 'company');
 
-        // 2. Mapeia a seleção para a aba plural correta para garantir o redirecionamento
+        // 2. Alterna campo de Estado (Se internacional, some o estado)
+        if (isIntl) {
+            stateContainer.classList.add('d-none');
+            stateInput.value = ''; // Limpa o estado se marcar internacional
+        } else {
+            stateContainer.classList.remove('d-none');
+        }
+
+        // 3. Mapeia a seleção para a aba plural correta
         const mapping = {
             'producer': 'producers',
             'farm': 'farms',
@@ -110,10 +119,12 @@
         }
     }
 
-    // Eventos de ativação do script
+    // Eventos
     const filterTypeSelect = document.getElementById('select_filter_type_modal');
-    if(filterTypeSelect) {
-        filterTypeSelect.addEventListener('change', updateModalFilters);
-    }
+    const filterIntlCheck = document.getElementById('filter_intl_modal');
+
+    if(filterTypeSelect) filterTypeSelect.addEventListener('change', updateModalFilters);
+    if(filterIntlCheck) filterIntlCheck.addEventListener('change', updateModalFilters);
+
     document.addEventListener('DOMContentLoaded', updateModalFilters);
 </script>

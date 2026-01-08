@@ -25,6 +25,7 @@
         justify-content: center;
         overflow: hidden;
         margin-left: auto;
+        pointer-events: none;
     }
 
     .stat-card-kpi { height: 105px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; padding: 1rem !important; }

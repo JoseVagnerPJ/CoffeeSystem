@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <title>@yield('title') | Unique Cafés</title>
+    {{-- ÍCONE DO NAVEGADOR (FAVICON) --}}
+    <link rel="icon" type="image/png" href="{{ asset('flavicon.png') }}">
+    
+    <title>@yield('title') | Ctrl Coffee</title>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -18,70 +21,102 @@
             --coffee-brown: #3e2723; --coffee-gold: #c0a16b;
             --coffee-cream: #f4f1ea; --coffee-text: #5d4037;
             --coffee-white: #ffffff;
+            --coffee-gold-light: #e8e0d5; 
         }
         body { background-color: var(--coffee-cream); color: var(--coffee-text); font-family: 'Segoe UI', sans-serif; }
-        .navbar-top { background-color: var(--coffee-brown); border-bottom: 3px solid var(--coffee-gold); min-height: 60px; }
-        .sidebar { position: fixed; top: 60px; bottom: 0; left: 0; z-index: 1000; background-color: var(--coffee-brown); padding: 0; }
-        .nav-link { color: #cfd8dc; padding: 12px 20px; transition: 0.3s; border-left: 4px solid transparent; text-decoration: none; display: block; }
-        .nav-link:hover, .nav-link.active { color: var(--coffee-gold); background-color: rgba(255,255,255,0.05); border-left: 4px solid var(--coffee-gold); }
-        .main-content { margin-top: 80px; padding-bottom: 40px; }
         
+        /* Ajuste de Altura: 55px para uma barra mais elegante */
+        .navbar-top { background-color: var(--coffee-brown); border-bottom: 2px solid var(--coffee-gold); min-height: 55px; }
+        .sidebar { position: fixed; top: 55px; bottom: 0; left: 0; z-index: 1000; background-color: var(--coffee-brown); padding: 0; }
+        
+        .nav-link { color: #cfd8dc; padding: 10px 20px; transition: 0.3s; border-left: 4px solid transparent; text-decoration: none; display: block; font-size: 0.9rem; }
+        .nav-link:hover, .nav-link.active { color: var(--coffee-gold); background-color: rgba(255,255,255,0.05); border-left: 4px solid var(--coffee-gold); }
+        
+        /* Margem do conteúdo ajustada para a nova altura */
+        .main-content { margin-top: 75px; padding-bottom: 40px; }
+        
+        /* Logo da Unidade Reduzida */
+        .unit-logo-nav {
+            height: 30px;
+            width: 30px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background-color: white;
+            margin-right: 8px;
+        }
+
+        /* Logo do Sistema e Cápsula Central Reduzidas */
+        .system-logo-central { height: 22px; width: auto; margin-right: 8px; }
+
+        .brand-center-pill {
+            background-color: var(--coffee-gold-light);
+            padding: 2px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--coffee-gold);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .brand-center-pill .navbar-brand { 
+            color: var(--coffee-brown) !important; 
+            font-size: 0.95rem; /* Nome menor para ser mais discreto */
+        }
+
+        /* Avatar do Usuário Reduzido */
+        .user-avatar-nav { width: 32px; height: 32px; }
+
         /* Select2 Customizado */
         .select2-container--default .select2-selection--single {
-            height: 45px !important;
+            height: 40px !important;
             border: 1px solid #dee2e6 !important;
             border-radius: 8px !important;
             display: flex !important;
             align-items: center !important;
         }
-        .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            background-color: var(--coffee-gold) !important;
-            color: white !important;
-        }
-
-        /* Estilo da Logo da Empresa - Quadrada com cantos arredondados */
-        .company-logo-nav {
-            height: 42px;
-            width: 42px;
-            object-fit: cover;
-            border-radius: 8px; /* Cantos levemente arredondados */
-            border: 1px solid rgba(255,255,255,0.2);
-            background-color: white;
-        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark fixed-top navbar-top shadow">
-        <div class="container-fluid">
-            {{-- Lado Esquerdo: Logo Quadrada e Nome da Empresa --}}
-            <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ route('inicio') }}">
+    <nav class="navbar navbar-dark fixed-top navbar-top shadow-sm py-0">
+        <div class="container-fluid d-flex align-items-center justify-content-between" style="height: 55px;">
+            
+            {{-- Lado Esquerdo: Logo da Unidade + Nome --}}
+            <div class="d-none d-md-flex align-items-center" style="flex: 1;">
                 @if(Auth::check() && Auth::user()->mainCompany->logo)
-                    <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" alt="Logo" class="me-2 company-logo-nav shadow-sm">
-                @else
-                    <div class="me-2 company-logo-nav d-flex align-items-center justify-content-center bg-white shadow-sm">
-                        <i class="bi bi-cup-hot-fill" style="color: var(--coffee-brown); font-size: 1.2rem;"></i>
-                    </div>
+                    <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" alt="Logo Unidade" class="unit-logo-nav">
                 @endif
-                <span>{{ Auth::check() ? Auth::user()->mainCompany->name : 'Unique Cafés' }}</span>
-            </a>
+                <span class="text-white fw-bold opacity-75 text-truncate" style="font-size: 1.5rem;">
+                    {{ Auth::check() ? Auth::user()->mainCompany->name : 'Unique Cafés' }}
+                </span>
+            </div>
 
-            {{-- Lado Direito: Usuário com Foto Circular --}}
-            <div class="d-flex align-items-center text-white">
-                <div class="text-end me-3 d-none d-sm-block">
-                    <div class="small fw-bold mb-0" style="line-height: 1;">{{ Auth::user()->name ?? 'Visitante' }}</div>
-                    <small class="text-muted" style="font-size: 0.7rem; color: #cfd8dc !important;">{{ Auth::user()->profile->name ?? '' }}</small>
+            {{-- CENTRO: Branding Ctrl + Coffee (Compacto) --}}
+            <div class="d-flex justify-content-center" style="flex: 1;">
+                <div class="brand-center-pill">
+                    <a class="navbar-brand d-flex align-items-center me-0" href="{{ route('inicio') }}">
+                        <img src="{{ asset('images/logo.png') }}" alt="Logo" class="system-logo-central">
+                        <span class="fw-bold mb-0" style="letter-spacing: -0.3px;">Ctrl + Coffee</span>
+                    </a>
+                </div>
+            </div>
+
+            {{-- Lado Direito: Usuário --}}
+            <div class="d-flex justify-content-end align-items-center" style="flex: 1;">
+                <div class="text-end me-2 d-none d-sm-block text-white">
+                    <div class="fw-bold mb-0" style="line-height: 1; font-size: 0.8rem;">{{ Auth::user()->name ?? 'Visitante' }}</div>
+                    <small style="font-size: 0.65rem; color: #cfd8dc !important;">{{ Auth::user()->profile->name ?? '' }}</small>
                 </div>
                 
                 @if(Auth::check() && Auth::user()->photo)
-                    <div class="rounded-circle shadow-sm border border-2 border-white" style="width: 40px; height: 40px; overflow: hidden; background-color: white;">
+                    <div class="rounded-circle shadow-sm border border-2 border-white user-avatar-nav" style="overflow: hidden; background-color: white;">
                         <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="User" class="w-100 h-100" style="object-fit: cover;">
                     </div>
                 @else
-                    <div class="rounded-circle bg-white d-flex align-items-center justify-content-center text-dark shadow-sm" style="width: 40px; height: 40px;">
-                        <i class="bi bi-person-fill fs-5"></i>
+                    <div class="rounded-circle bg-white d-flex align-items-center justify-content-center text-dark shadow-sm user-avatar-nav">
+                        <i class="bi bi-person-fill" style="font-size: 0.9rem;"></i>
                     </div>
                 @endif
             </div>
+
         </div>
     </nav>
 
@@ -89,7 +124,7 @@
         <div class="row">
             @auth
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-                <div class="sidebar-heading" style="opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
+                <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem 1.25rem 0.4rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
                 <ul class="nav flex-column">
                     <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ route('inicio') }}"><i class="bi bi-house-door me-2"></i> Início</a></li>
                     <li><a class="nav-link {{ Request::is('green-coffee*') ? 'active' : '' }}" href="{{ route('estoque.index') }}"><i class="bi bi-box-seam me-2"></i> Estoque Verde</a></li>
@@ -97,16 +132,16 @@
                     <li><a class="nav-link {{ Request::is('roasting*') ? 'active' : '' }}" href="{{ route('torrefacao') }}"><i class="bi bi-fire me-2"></i> Torrefação</a></li>
                 </ul>
 
-                <div class="sidebar-heading" style="opacity: 0.5; padding: 1.5rem 1.25rem 0.5rem; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Gestão & Cadastros</div>
+                <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem 1.25rem 0.4rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Gestão & Cadastros</div>
                 <ul class="nav flex-column">
                     <li><a class="nav-link {{ Request::is('registries') ? 'active' : '' }}" href="{{ route('registries.index') }}"><i class="bi bi-people me-2"></i> Cadastros</a></li>
                     <li><a class="nav-link {{ Request::is('settings*') ? 'active' : '' }}" href="{{ route('settings') }}"><i class="bi bi-gear me-2"></i> Configurações</a></li>
                 </ul>
 
-                <div class="px-3 mt-4">
+                <div class="px-3 mt-3">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="btn btn-outline-danger btn-sm w-100 border-0 text-start ps-3">
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100 border-0 text-start ps-3" style="font-size: 0.8rem;">
                             <i class="bi bi-box-arrow-right me-2"></i> Sair
                         </button>
                     </form>
@@ -120,10 +155,7 @@
         </div>
     </div>
 
-    {{-- JS do Bootstrap --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    {{-- AQUI É O PULO DO GATO: Direciona os scripts das páginas filhas para cá --}}
     @stack('scripts')
 </body>
 </html>

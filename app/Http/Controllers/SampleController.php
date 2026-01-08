@@ -14,23 +14,27 @@ class SampleController extends Controller
      * Lista as amostras cadastradas.
      * Corrigido para retornar a view de amostras e não a de fornecedores.
      */
-    public function index(Request $request)
-    {
-        $search = $request->query('search');
+public function index(Request $request)
+{
+    $search = $request->query('search');
 
-        // Busca as amostras filtrando por nome, variedade ou lote do fornecedor
-        $samples = Sample::with('origin')
-            ->where('is_active', true)
-            ->when($search, function($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('variety', 'LIKE', "%{$search}%")
-                  ->orWhere('supplier_batch', 'LIKE', "%{$search}%");
-            })
-            ->latest()
-            ->get();
+    $samples = Sample::with('origin')
+        ->where('is_active', true)
+        ->when($search, function($q) use ($search) {
+            $q->where('name', 'LIKE', "%{$search}%")
+              ->orWhere('variety', 'LIKE', "%{$search}%")
+              ->orWhere('supplier_batch', 'LIKE', "%{$search}%");
+        })
+        ->latest()
+        ->get();
 
-        return view('registries.samples.index', compact('samples'));
+    // ADICIONE ESTA VERIFICAÇÃO:
+    if ($request->wantsJson() || $request->is('api/*')) {
+        return response()->json($samples);
     }
+
+    return view('registries.samples.index', compact('samples'));
+}
 
     /**
      * NOVO: Busca amostras para o Autocomplete do App Mobile.

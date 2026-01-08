@@ -30,7 +30,7 @@
                                 <th class="text-center">SISTEMA</th>
                                 <th class="text-center">APURADO</th>
                                 <th class="text-center">DIFERENÇA</th>
-                                <th>JUSTIFICATIVA</th>
+                                <th>OBSERVAÇÕES</th>
                             </tr>
                         </thead>
                         <tbody id="det-body">
