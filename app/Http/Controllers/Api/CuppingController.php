@@ -151,7 +151,6 @@ class CuppingController extends Controller
      */
     public function finishEvaluations(Request $request)
     {
-        return response()->json(['debug' => 'Cheguei no Controller!', 'dados' => $request->all()], 200);
         try {
             $data = $request->validate([
                 'evaluations' => 'required|array',
