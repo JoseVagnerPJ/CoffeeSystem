@@ -75,15 +75,17 @@
     .btn-filter-chart.active { background: var(--coffee-brown); color: white !important; }
 
     /* --- TABELAS --- */
-    /* Ajuste para evitar quebra no notebook: overflow-x: auto e width 100% */
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
-    .table-responsive-custom { width: 100%; overflow-x: auto; border-radius: 12px; -webkit-overflow-scrolling: touch; }
+    /* Ajuste: Tabela principal ocupa 100% e evita scroll horizontal na página toda */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; border-radius: 12px; }
+    
+    /* Ajuste: Tabela de xícaras interna com scroll lateral independente se necessário */
+    .table-responsive-custom { width: 100%; overflow-x: auto; border-radius: 12px; -webkit-overflow-scrolling: touch; border: 1px solid #eee; }
     .inner-table { min-width: 950px; table-layout: fixed; border-collapse: separate; border-spacing: 0 5px; width: 100%; } 
     .inner-table th { padding: 12px 10px; background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
     .inner-table td { padding: 15px 10px; vertical-align: middle; }
     
-    /* Garante que a tabela principal também tenha largura mínima para não esmagar em telas médias */
-    #mesasTable { min-width: 900px; width: 100%; }
+    /* Removido min-width excessivo para caber na tela do usuário */
+    #mesasTable { width: 100%; min-width: 800px; }
 
     .rotate-icon { transition: transform 0.3s; }
     .btn[aria-expanded="true"] .rotate-icon { transform: rotate(180deg); }
