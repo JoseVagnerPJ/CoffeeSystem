@@ -48,11 +48,14 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    // --- MÓDULO: LABORATÓRIO (DigiGrão) ---
+    // --- MÓDULO: LABORATÓRIO ---
     Route::prefix('laboratory')->group(function () {
         Route::get('/', [LaboratoryController::class, 'index'])->name('laboratorio');
-        Route::post('/store', [LaboratoryController::class, 'store'])->name('laboratory.store'); // Rota para criar mesas via WEB
+        Route::post('/store', [LaboratoryController::class, 'store'])->name('laboratory.store');
         Route::delete('/{id}', [LaboratoryController::class, 'destroy'])->name('laboratory.destroy');
+        Route::get('/cup-tech-info/{index}', [LaboratoryController::class, 'getTechInfo'])->name('laboratory.tech-info');
+        Route::get('/session-info/{id}', [LaboratoryController::class, 'getSessionInfo'])->name('laboratory.session-info');
+        Route::get('/cupping-info/{id}', [LaboratoryController::class, 'getCuppingInfo'])->name('laboratory.cupping-info');
     });
 
     // --- MÓDULO: TORREFAÇÃO ---
@@ -88,7 +91,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Amostras
         Route::prefix('samples')->name('samples.')->group(function () {
-            Route::get('/search', [SampleController::class, 'search'])->name('search'); // Autocomplete Web para Mesas de Cupping
+            Route::get('/search', [LaboratoryController::class, 'searchSamples'])->name('search'); 
             Route::get('/search-origin', [SampleController::class, 'searchOrigin'])->name('search-origin');
             Route::get('/{id}/info', [SampleController::class, 'info'])->name('info');
             
@@ -105,7 +108,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Perfis Sensoriais
         Route::prefix('sensory-profiles')->name('sensory-profiles.')->group(function () {
-            Route::get('/', [SensoryProfileController::class, 'index'])->name('index'); // Usado para busca/listagem
+            Route::get('/', [SensoryProfileController::class, 'index'])->name('index'); 
             Route::get('/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('search-samples');
             
             Route::resource('/', SensoryProfileController::class)->only([

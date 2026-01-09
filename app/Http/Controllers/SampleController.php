@@ -12,55 +12,70 @@ class SampleController extends Controller
 {
     /**
      * Lista as amostras cadastradas.
-     * Corrigido para retornar a view de amostras e não a de fornecedores.
      */
-public function index(Request $request)
-{
-    $search = $request->query('search');
+    public function index(Request $request)
+    {
+        $search = $request->query('search');
 
-    $samples = Sample::with('origin')
-        ->where('is_active', true)
-        ->when($search, function($q) use ($search) {
-            $q->where('name', 'LIKE', "%{$search}%")
-              ->orWhere('variety', 'LIKE', "%{$search}%")
-              ->orWhere('supplier_batch', 'LIKE', "%{$search}%");
-        })
-        ->latest()
-        ->get();
+        $samples = Sample::with('origin')
+            ->where('is_active', true)
+            ->when($search, function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('variety', 'LIKE', "%{$search}%")
+                  ->orWhere('supplier_batch', 'LIKE', "%{$search}%");
+            })
+            ->latest()
+            ->get();
 
-    // ADICIONE ESTA VERIFICAÇÃO:
-    if ($request->wantsJson() || $request->is('api/*')) {
-        return response()->json($samples);
+        if ($request->wantsJson() || $request->is('api/*')) {
+            return response()->json($samples);
+        }
+
+        return view('registries.samples.index', compact('samples'));
     }
 
-    return view('registries.samples.index', compact('samples'));
-}
-
     /**
-     * NOVO: Busca amostras para o Autocomplete do App Mobile.
-     * Retorna JSON com dados técnicos para o snapshot da mesa de prova.
+     * NOVO: Busca amostras para o Autocomplete.
+     * Ajustado para carregar origem e formatar JSON de forma consistente.
      */
-public function search(Request $request)
-{
-    $q = $request->get('q');
-    
-    if (strlen($q) < 2) return response()->json([]);
+    public function search(Request $request)
+    {
+        $q = $request->get('search') ?? $request->get('q');
+        
+        if (strlen($q) < 2) return response()->json([]);
 
-    $samples = Sample::where(function($query) use ($q) {
+        // Carregamos o relacionamento origin (morphTo) para pegar o nome da Fazenda/Produtor
+        $samples = Sample::with('origin') 
+            ->where(function($query) use ($q) {
                 $query->where('name', 'LIKE', "%{$q}%")
                       ->orWhere('variety', 'LIKE', "%{$q}%")
                       ->orWhere('supplier_batch', 'LIKE', "%{$q}%");
             })
             ->limit(10)
-            // Retornamos todos os campos para o snapshot do Flutter
-            ->get(['id', 'name', 'variety', 'supplier_batch', 'drying_process', 'fermentation', 'humidity', 'screen', 'altitude', 'crop']);
+            ->get();
 
-    return response()->json($samples);
-}
+        $data = $samples->map(function($s) {
+            return [
+                'id' => $s->id,
+                'name' => $s->name,
+                'variety' => $s->variety,
+                'supplier_batch' => $s->supplier_batch,
+                'drying_process' => $s->drying_process,
+                'fermentation' => $s->fermentation,
+                'humidity' => $s->humidity,
+                'screen' => $s->screen,
+                'altitude' => $s->altitude,
+                'crop' => $s->crop,
+                // Garantimos que a chave origin_name esteja disponível para o JavaScript
+                'origin_name' => $s->origin ? $s->origin->name : 'Não informado' 
+            ];
+        });
+
+        return response()->json($data);
+    }
 
     /**
      * Inativa uma amostra (Soft Delete manual).
-     * Ajustado para a tabela 'samples'.
      */
     public function inactivate($id)
     {
@@ -68,7 +83,6 @@ public function search(Request $request)
         $sample->is_active = 0;
         $sample->save();
 
-        // Nome da rota atualizado para refletir o grupo 'registries'
         return redirect()->route('registries.samples.index')->with('success', 'Amostra removida com sucesso!');
     }
 
@@ -93,30 +107,26 @@ public function search(Request $request)
 
         Sample::create($request->all());
 
-        // Nome da rota atualizado para refletir o grupo 'registries'
         return redirect()->route('registries.samples.index')->with('success', 'Amostra cadastrada!');
     }
 
     /**
-     * Busca a origem (Produtor, Fazenda ou Empresa) para o autocomplete do cadastro de amostras.
+     * Busca a origem (Produtor, Fazenda ou Empresa) para o autocomplete.
      */
     public function searchOrigin(Request $request) {
         $q = $request->get('q');
         $results = [];
 
-        // Empresas
         $companies = Company::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
         foreach ($companies as $c) { 
             $results[] = ['id' => $c->id, 'type' => 'App\Models\Company', 'name' => $c->name, 'label' => 'Empresa']; 
         }
 
-        // Produtores
         $producers = Producer::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
         foreach ($producers as $p) { 
             $results[] = ['id' => $p->id, 'type' => 'App\Models\Producer', 'name' => $p->name, 'label' => 'Produtor']; 
         }
 
-        // Fazendas
         $farms = Farm::where('is_active', 1)->where('name', 'LIKE', "%{$q}%")->limit(5)->get();
         foreach ($farms as $f) { 
             $results[] = ['id' => $f->id, 'type' => 'App\Models\Farm', 'name' => $f->name, 'label' => 'Fazenda']; 
@@ -130,8 +140,6 @@ public function search(Request $request)
      */
     public function destroy($id) {
         Sample::findOrFail($id)->delete();
-        
-        // Nome da rota atualizado para refletir o grupo 'registries'
         return redirect()->route('registries.samples.index')->with('success', 'Amostra excluída permanentemente!');
     }
 }
