@@ -76,7 +76,7 @@
 
     /* --- TABELAS --- */
     .table-responsive-custom { width: 100%; overflow-x: auto; border-radius: 12px; }
-    .inner-table { min-width: 1000px; table-layout: fixed; border-collapse: separate; border-spacing: 0 5px; } 
+    .inner-table { min-width: 950px; table-layout: fixed; border-collapse: separate; border-spacing: 0 5px; } 
     .inner-table th { padding: 12px 10px; background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
     .inner-table td { padding: 15px 10px; vertical-align: middle; }
     
@@ -207,7 +207,9 @@
                         <td class="text-muted small">#{{ $session->id }}</td>
                         <td class="fw-bold">{{ $session->title }}</td>
                         <td class="text-center fw-bold text-dark">{{ $session->items_count }}</td>
-                        <td class="text-center">{{ $session->participants_count }}</td>
+                        <td class="text-center fw-bold {{ $session->status == 'aberto' ? 'text-success' : '' }}">
+                            {{ $session->status == 'aberto' ? '-' : $session->participants_count }}
+                        </td>
                         <td class="small">{{ date('d/m/Y H:i', strtotime($session->started_at ?? $session->created_at)) }}</td>
                         <td><span class="badge {{ $session->status == 'finalizado' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} fw-bold" style="font-size: 0.6rem;">{{ strtoupper($session->status) }}</span></td>
                         <td class="text-center no-print">

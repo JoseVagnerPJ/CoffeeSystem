@@ -18,60 +18,81 @@
     
     <style>
         :root {
-            --coffee-brown: #3e2723; --coffee-gold: #c0a16b;
-            --coffee-cream: #f4f1ea; --coffee-text: #5d4037;
+            --coffee-brown: #3e2723; 
+            --coffee-gold: #c0a16b;
+            --coffee-cream: #f4f1ea; 
+            --coffee-text: #5d4037;
             --coffee-white: #ffffff;
             --coffee-gold-light: #e8e0d5; 
         }
         body { background-color: var(--coffee-cream); color: var(--coffee-text); font-family: 'Segoe UI', sans-serif; }
         
-        /* Ajuste de Altura: 55px para uma barra mais elegante */
+        /* --- NAVBAR TOP --- */
         .navbar-top { background-color: var(--coffee-brown); border-bottom: 2px solid var(--coffee-gold); min-height: 55px; }
         .sidebar { position: fixed; top: 55px; bottom: 0; left: 0; z-index: 1000; background-color: var(--coffee-brown); padding: 0; }
         
         .nav-link { color: #cfd8dc; padding: 10px 20px; transition: 0.3s; border-left: 4px solid transparent; text-decoration: none; display: block; font-size: 0.9rem; }
         .nav-link:hover, .nav-link.active { color: var(--coffee-gold); background-color: rgba(255,255,255,0.05); border-left: 4px solid var(--coffee-gold); }
         
-        /* Margem do conteúdo ajustada para a nova altura */
         .main-content { margin-top: 75px; padding-bottom: 40px; }
         
-        /* Logo da Unidade Reduzida */
-        .unit-logo-nav {
-            height: 30px;
-            width: 30px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background-color: white;
-            margin-right: 8px;
-        }
-
-        /* Logo do Sistema e Cápsula Central Reduzidas */
-        .system-logo-central { height: 22px; width: auto; margin-right: 8px; }
-
+        /* --- BRANDING / LOGO AJUSTADA CONFORME SOLICITADO --- */
         .brand-center-pill {
-            background-color: var(--coffee-gold-light);
-            padding: 2px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--coffee-gold);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background-color: transparent; /* Fundo removido de tudo */
+            padding: 3px 15px 3px 5px;
+            border-radius: 25px;
+            border: none; /* Borda removida */
+            display: flex;
+            align-items: center;
+            box-shadow: none; /* Sombra removida */
         }
 
-        .brand-center-pill .navbar-brand { 
-            color: var(--coffee-brown) !important; 
-            font-size: 0.95rem; /* Nome menor para ser mais discreto */
+        /* O fundo claro agora fica APENAS no círculo da logo */
+        .logo-bg-circle {
+            background-color: var(--coffee-gold-light); /* Cor bege aplicada aqui */
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 12px;
         }
 
-        /* Avatar do Usuário Reduzido */
-        .user-avatar-nav { width: 32px; height: 32px; }
+        .system-logo-central { height: 30px; width: auto; }
 
-        /* Select2 Customizado */
+        .brand-text-style { 
+            color: var(--coffee-gold-light) !important; /* Texto agora tem a cor do fundo antigo */
+            font-weight: 500;
+            font-size: 1.8rem; /* Aumentado levemente para destaque */
+            letter-spacing: -0.5px;
+            text-decoration: none;
+        }
+
+        /* --- RESPONSIVIDADE GLOBAL PARA TABELAS (NOTEBOOKS) --- */
+        .table-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 12px;
+        }
+
+        /* Força qualquer tabela dentro de um container responsivo a ter largura mínima */
+        .table-responsive table {
+            min-width: 950px !important;
+        }
+
+        /* --- OUTROS ELEMENTOS --- */
+        .unit-logo-nav {
+            height: 40px; width: 40px; object-fit: cover;
+            border-radius: 6px; border: 1px solid rgba(255,255,255,0.2);
+            background-color: white; margin-right: 10px;
+        }
+
+        .user-avatar-nav { width: 40px; height: 40px; }
+
         .select2-container--default .select2-selection--single {
-            height: 40px !important;
-            border: 1px solid #dee2e6 !important;
-            border-radius: 8px !important;
-            display: flex !important;
-            align-items: center !important;
+            height: 40px !important; border: 1px solid #dee2e6 !important;
+            border-radius: 8px !important; display: flex !important; align-items: center !important;
         }
     </style>
 </head>
@@ -79,22 +100,24 @@
     <nav class="navbar navbar-dark fixed-top navbar-top shadow-sm py-0">
         <div class="container-fluid d-flex align-items-center justify-content-between" style="height: 55px;">
             
-            {{-- Lado Esquerdo: Logo da Unidade + Nome --}}
+            {{-- Lado Esquerdo: Unidade --}}
             <div class="d-none d-md-flex align-items-center" style="flex: 1;">
-                @if(Auth::check() && Auth::user()->mainCompany->logo)
+                @if(Auth::check() && Auth::user()->mainCompany && Auth::user()->mainCompany->logo)
                     <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" alt="Logo Unidade" class="unit-logo-nav">
                 @endif
-                <span class="text-white fw-bold opacity-75 text-truncate" style="font-size: 1.5rem;">
-                    {{ Auth::check() ? Auth::user()->mainCompany->name : 'Unique Cafés' }}
+                <span class="text-white fw-bold opacity-75 text-truncate" style="font-size: 1.6rem;">
+                    {{ Auth::check() && Auth::user()->mainCompany ? Auth::user()->mainCompany->name : 'Unique Cafés' }}
                 </span>
             </div>
 
-            {{-- CENTRO: Branding DigiGrão (Compacto) --}}
+            {{-- CENTRO: Branding DigiGrão (Refatorado conforme solicitado) --}}
             <div class="d-flex justify-content-center" style="flex: 1;">
                 <div class="brand-center-pill">
-                    <a class="navbar-brand d-flex align-items-center me-0" href="{{ route('inicio') }}">
-                        <img src="{{ asset('images/logo.png') }}" alt="Logo" class="system-logo-central">
-                        <span class="fw-bold mb-0" style="letter-spacing: -0.3px;">DigiGrão</span>
+                    <a class="d-flex align-items-center text-decoration-none" href="{{ route('inicio') }}">
+                        <div class="logo-bg-circle">
+                            <img src="{{ asset('images/logo.png') }}" alt="Logo" class="system-logo-central">
+                        </div>
+                        <span class="brand-text-style">DigiGrão</span>
                     </a>
                 </div>
             </div>

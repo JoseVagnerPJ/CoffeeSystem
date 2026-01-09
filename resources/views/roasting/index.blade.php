@@ -14,6 +14,20 @@
     .chart-container { position: relative; height: 180px; width: 100%; }
     .mestre-label { font-size: 0.75rem; font-weight: 600; color: var(--coffee-text); opacity: 0.8; }
     .badge-machine { background: #212121; color: white; font-weight: 600; }
+
+    /* --- LÓGICA DE RESPONSIVIDADE PARA KANBAN (NÃO ESPREMER) --- */
+    .kanban-wrapper {
+        display: flex;
+        overflow-x: auto; /* Ativa rolagem horizontal se necessário */
+        padding-bottom: 20px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .kanban-column-custom {
+        min-width: 350px; /* Largura mínima para os cards não esmagarem no notebook */
+        flex: 1;
+        margin-right: 15px;
+    }
 </style>
 
 <div class="fade-in">
@@ -66,9 +80,12 @@
         </div>
     </div>
 
-    <div class="row g-3">
-        <div class="col-md-4">
-            <div class="p-3 rounded-3 shadow-inner" style="background: #EBE7E0; min-height: 600px;">
+    {{-- WRAPPER DE RESPONSIVIDADE INICIADO AQUI --}}
+    <div class="kanban-wrapper">
+        
+        {{-- COLUNA 1 --}}
+        <div class="kanban-column-custom">
+            <div class="p-3 rounded-3 shadow-inner h-100" style="background: #EBE7E0; min-height: 600px;">
                 <h6 class="fw-bold mb-3 text-uppercase opacity-50 small">Fila: A Torrar</h6>
                 
                 <div class="card card-roast border-0 shadow-sm mb-3 border-yellow">
@@ -101,8 +118,9 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="p-3 rounded-3" style="background: rgba(192, 161, 107, 0.15); min-height: 600px; border: 1px solid var(--coffee-gold);">
+        {{-- COLUNA 2 --}}
+        <div class="kanban-column-custom">
+            <div class="p-3 rounded-3 h-100" style="background: rgba(192, 161, 107, 0.15); min-height: 600px; border: 1px solid var(--coffee-gold);">
                 <h6 class="fw-bold mb-3 text-uppercase text-dark small">No Torrador (Ativo)</h6>
                 
                 <div class="card card-roast border-0 shadow mb-3 border-brown">
@@ -135,8 +153,9 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="p-3 rounded-3 shadow-inner" style="background: #EBE7E0; min-height: 600px;">
+        {{-- COLUNA 3 --}}
+        <div class="kanban-column-custom">
+            <div class="p-3 rounded-3 shadow-inner h-100" style="background: #EBE7E0; min-height: 600px;">
                 <h6 class="fw-bold mb-3 text-uppercase text-success small">Finalizado (Hoje)</h6>
                 
                 <div class="card card-roast border-0 shadow-sm mb-3 border-purple">
@@ -169,7 +188,8 @@
                 </div>
             </div>
         </div>
-    </div>
+
+    </div> {{-- FIM DO KANBAN WRAPPER --}}
 </div>
 
 <style>

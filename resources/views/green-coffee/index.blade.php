@@ -169,7 +169,7 @@
         </div>
     </div>
 
-    {{-- TABELA DE LOTES GERAL --}}
+    {{-- TABELA DE LOTES GERAL (REGRAS GLOBAIS DO APP.BLADE APLICADAS) --}}
     <div id="printable-table" class="card shadow-sm border-0 p-4 mt-2" style="border-radius: 15px;">
         <h5 class="fw-bold mb-4" style="color: var(--coffee-brown); font-size: 1rem;">Lotes Armazenados - Cafés Especiais</h5>
         <div class="table-responsive">
@@ -278,7 +278,7 @@
 
 @include('green-coffee.partials.modal_create_lote')
 @foreach($lotes as $lote)
-    @include('green-coffee.partials.modal_anexos_lote', ['lote' => $lote])    
+    @include('green-coffee.partials.modal_anexos_lote', ['lote' => $lote])     
     @include('green-coffee.partials.modal_info_lote', ['lote' => $lote])
 @endforeach
 
