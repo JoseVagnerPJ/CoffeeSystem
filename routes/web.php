@@ -28,7 +28,7 @@ require __DIR__.'/auth.php';
 
 /*
 |--------------------------------------------------------------------------
-| Rotas Protegidas do Navegador (Web) - DigiGrão
+| Rotas Protegidas do Navegador (Web) - Q-Grader
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {

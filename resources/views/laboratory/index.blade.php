@@ -514,7 +514,7 @@
 <div id="print-report" class="d-none d-print-block p-4">
     <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-3">
         <div>
-            <h2 class="fw-bold mb-0">Relatório de Qualidade DigiGrão</h2>
+            <h2 class="fw-bold mb-0">Relatório de Qualidade Q-Grader</h2>
             <p class="mb-0 text-muted small">Extraído em: {{ now()->format('d/m/Y H:i') }}</p>
         </div>
         <div class="text-end">

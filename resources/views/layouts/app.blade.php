@@ -8,7 +8,7 @@
     {{-- ÍCONE DO NAVEGADOR (FAVICON) --}}
     <link rel="icon" type="image/png" href="{{ asset('flavicon.png') }}">
     
-    <title>@yield('title') | DigiGrão</title>
+    <title>@yield('title') | Q-Grader</title>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -49,8 +49,8 @@
 
         .logo-bg-circle {
             background-color: var(--coffee-gold-light); 
-            width: 34px;
-            height: 34px;
+            width: 41px;
+            height: 47px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -58,7 +58,7 @@
             margin-right: 12px;
         }
 
-        .system-logo-central { height: 22px; width: auto; }
+        .system-logo-central { height: 41px; width: auto; }
 
         .brand-text-style { 
             color: var(--coffee-gold-light) !important; 
@@ -96,12 +96,12 @@
 
         /* --- OUTROS ELEMENTOS --- */
         .unit-logo-nav {
-            height: 40px; width: 40px; object-fit: cover;
+            height: 47px; width: 47px; object-fit: cover;
             border-radius: 6px; border: 1px solid rgba(255,255,255,0.2);
             background-color: white; margin-right: 10px;
         }
 
-        .user-avatar-nav { width: 40px; height: 40px; }
+        .user-avatar-nav { width: 47px; height: 47px; }
 
         .select2-container--default .select2-selection--single {
             height: 40px !important; border: 1px solid #dee2e6 !important;
@@ -128,7 +128,7 @@
                         <div class="logo-bg-circle">
                             <img src="{{ asset('images/logo.png') }}" alt="Logo" class="system-logo-central">
                         </div>
-                        <span class="brand-text-style">DigiGrão</span>
+                        <span class="brand-text-style">Q-Grader</span>
                     </a>
                 </div>
             </div>

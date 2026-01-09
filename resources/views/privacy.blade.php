@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidade - DigiGrão</title>
+    <title>Política de Privacidade - Q-Grader</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -39,14 +39,14 @@
         <div class="card-header bg-dark text-white p-4 p-md-5 border-0 text-center">
             <img src="{{ asset('images/logo.png') }}" alt="Logo" style="width: 60px; margin-bottom: 15px;">
             <h1 class="h2 fw-bold mb-2">Política de Privacidade</h1>
-            <p class="mb-0 opacity-75">Plataforma DigiGrão | Última atualização: {{ date('d/m/Y') }}</p>
+            <p class="mb-0 opacity-75">Plataforma Q-Grader | Última atualização: {{ date('d/m/Y') }}</p>
         </div>
         
         <div class="card-body p-4 p-md-5" style="background-color: white; line-height: 1.8; color: #333;">
             
             <section class="mb-5">
                 <h2 class="section-title">1. Introdução</h2>
-                <p>A <strong>DigiGrão</strong> é uma plataforma voltada para a gestão técnica de cafés, desenvolvida por <strong>José Vagner Pereira Junior</strong>. Esta política tem como objetivo informar como tratamos os dados operacionais e de identificação necessários para o funcionamento do sistema.</p>
+                <p>A <strong>Q-Grader</strong> é uma plataforma voltada para a gestão técnica de cafés, desenvolvida por <strong>José Vagner Pereira Junior</strong>. Esta política tem como objetivo informar como tratamos os dados operacionais e de identificação necessários para o funcionamento do sistema.</p>
             </section>
 
             <section class="mb-5">
@@ -73,7 +73,7 @@
 
             <section class="mb-5">
                 <h2 class="section-title">4. Compartilhamento e Terceiros</h2>
-                <p>Os dados inseridos na plataforma são de propriedade da unidade de trabalho vinculada. A DigiGrão <strong>não compartilha, não vende e não aluga</strong> informações operacionais ou nomes de usuários para terceiros. O sistema é independente e não utiliza integrações de login social (como Google ou Facebook).</p>
+                <p>Os dados inseridos na plataforma são de propriedade da unidade de trabalho vinculada. A Q-Grader <strong>não compartilha, não vende e não aluga</strong> informações operacionais ou nomes de usuários para terceiros. O sistema é independente e não utiliza integrações de login social (como Google ou Facebook).</p>
             </section>
 
             <section class="mb-5">

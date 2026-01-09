@@ -6,7 +6,7 @@
         <div class="card-body p-4">
             <div class="text-center mb-4">
                 <img src="{{ asset('images/logo.png') }}" alt="Logo" style="width: 60px; margin-bottom: 10px;">
-                <h5 class="fw-bold mb-0" style="color: var(--coffee-brown);">DigiGrão</h5>
+                <h5 class="fw-bold mb-0" style="color: var(--coffee-brown);">Q-Grader</h5>
                 <hr class="opacity-10">
                 
                 <h4 class="fw-bold mt-3" style="color: var(--coffee-gold);">{{ session('login_company_name') }}</h4>
