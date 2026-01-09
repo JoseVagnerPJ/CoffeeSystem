@@ -27,10 +27,17 @@
                     @error('cnpj') <div class="text-danger small fw-bold mt-1">{{ $message }}</div> @enderror
                 </div>
 
-                <button type="submit" class="btn btn-dark w-100 fw-bold py-3 shadow" style="background-color: var(--coffee-brown); border-radius: 10px;">
+                <button type="submit" class="btn btn-dark w-100 fw-bold py-3 shadow mb-3" style="background-color: var(--coffee-brown); border-radius: 10px;">
                     CONTINUAR
                 </button>
             </form>
+
+            {{-- BOTÃO DISCRETO PARA POLÍTICA DE PRIVACIDADE --}}
+            <div class="mt-2 text-center">
+    <a href="{{ route('privacy') }}" target="_blank" class="text-muted small text-decoration-none opacity-50" style="font-size: 0.7rem;">
+        <i class="bi bi-shield-lock me-1"></i>Política de Privacidade
+    </a>
+</div>
         </div>
     </div>
 </div>

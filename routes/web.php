@@ -11,6 +11,14 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\Api\CuppingController;
 use App\Http\Controllers\LaboratoryController;
 
+
+// Rota pública para a Política de Privacidade
+Route::get('/politica-de-privacidade', function () {
+    return view('privacy');
+})->name('privacy');
+
+
+
 /*
 |--------------------------------------------------------------------------
 | Rotas de Autenticação (Breeze)
@@ -156,8 +164,6 @@ Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
         Route::get('/tags', [CuppingController::class, 'getTags']);
     });
 
-    // Rota pública para a Política de Privacidade
-Route::get('/politica-de-privacidade', function () {
-    return view('privacy');
-})->name('privacy');
+
 });
+    

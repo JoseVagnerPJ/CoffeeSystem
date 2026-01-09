@@ -74,18 +74,45 @@
     .btn-filter-chart { font-size: 0.6rem; font-weight: 800; padding: 3px 8px; border-radius: 5px; border: 1px solid #dee2e6; background: white; color: #666; text-decoration: none; }
     .btn-filter-chart.active { background: var(--coffee-brown); color: white !important; }
 
-    /* --- TABELAS --- */
-    /* Ajuste: Tabela principal ocupa 100% e evita scroll horizontal na página toda */
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; border-radius: 12px; }
+    /* --- TABELAS (AJUSTE PARA NÃO CORTAR E MANTER FIXO) --- */
+    .table-responsive { width: 100%; border-radius: 12px; overflow: hidden; }
     
-    /* Ajuste: Tabela de xícaras interna com scroll lateral independente se necessário */
-    .table-responsive-custom { width: 100%; overflow-x: auto; border-radius: 12px; -webkit-overflow-scrolling: touch; border: 1px solid #eee; }
-    .inner-table { min-width: 950px; table-layout: fixed; border-collapse: separate; border-spacing: 0 5px; width: 100%; } 
-    .inner-table th { padding: 12px 10px; background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
-    .inner-table td { padding: 15px 10px; vertical-align: middle; }
-    
-    /* Removido min-width excessivo para caber na tela do usuário */
-    #mesasTable { width: 100%; min-width: 800px; }
+    /* Garante que a tabela principal ocupe apenas o espaço da tela sem scroll na página */
+    #mesasTable { 
+        width: 100% !important; 
+        min-width: auto !important; 
+        table-layout: auto; 
+    }
+
+    /* Recipiente das xícaras: limita a largura ao tamanho da linha pai */
+    .table-responsive-custom { 
+        width: 100%; 
+        border-radius: 12px; 
+        background: #fff;
+    }
+
+    /* Tabela interna: ajustada para caber no espaço disponível sem ultrapassar o final da mesa */
+    .inner-table { 
+        width: 100% !important; 
+        min-width: auto !important; 
+        table-layout: auto !important; 
+        border-collapse: separate; 
+        border-spacing: 0 5px; 
+    } 
+
+    .inner-table th { 
+        padding: 10px 5px; 
+        background: #f8f9fa; 
+        border-bottom: 2px solid #dee2e6; 
+        font-size: 0.7rem; 
+        white-space: nowrap; 
+    }
+
+    .inner-table td { 
+        padding: 10px 5px; 
+        vertical-align: middle; 
+        font-size: 0.85rem; 
+    }
 
     .rotate-icon { transition: transform 0.3s; }
     .btn[aria-expanded="true"] .rotate-icon { transform: rotate(180deg); }
@@ -223,7 +250,6 @@
                             <div class="d-flex gap-1 justify-content-center">
                                 <button type="button" class="btn-action text-info" onclick="openSessionInfo({{ $session->id }})"><i class="bi bi-info-circle-fill"></i></button>
                                 
-                                {{-- Lógica de Exclusão com Confirmação --}}
                                 <form action="{{ route('laboratory.destroy', $session->id) }}" method="POST">
                                     @csrf 
                                     @method('DELETE')
@@ -238,20 +264,20 @@
                         </td>
                     </tr>
                     <tr id="mesa-{{ $session->id }}" class="collapse bg-light">
-                        <td colspan="8" class="p-2 p-md-4">
+                        <td colspan="8" class="p-2 p-md-3">
                             <div class="table-responsive-custom op-block border-0 shadow-sm p-0 bg-white">
                                 <table class="table table-hover mb-0 inner-table">
                                     <thead class="bg-dark text-white small">
                                         <tr>
-                                            <th class="ps-4" style="width: 70px;">Pos..</th>
-                                            <th style="width: 220px;">Apelido da Xícara</th>
+                                            <th class="ps-4" style="width: 50px;">Pos..</th>
+                                            <th style="width: 180px;">Apelido da Xícara</th>
                                             <th style="width: 180px;">Amostra Vinculada</th>
-                                            <th class="text-center" style="width: 100px;">Doçura</th>
-                                            <th class="text-center" style="width: 100px;">Acidez</th>
-                                            <th class="text-center" style="width: 100px;">Corpo</th>
-                                            <th class="text-center" style="width: 100px;">Retro.</th>
-                                            <th class="text-center" style="width: 150px;">SCA (MÉDIA)</th>
-                                            <th class="text-center" style="width: 80px;">Info</th>
+                                            <th class="text-center">Doçura</th>
+                                            <th class="text-center">Acidez</th>
+                                            <th class="text-center">Corpo</th>
+                                            <th class="text-center">Retro.</th>
+                                            <th class="text-center" style="width: 120px;">SCA (MÉDIA)</th>
+                                            <th class="text-center" style="width: 60px;">Info</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -432,7 +458,6 @@
                 const toggle = document.getElementById('modal-avulso-toggle');
                 const isAvulso = mainRow.querySelector('.js-is-avulso').value === "1";
                 const hasSample = mainRow.querySelector('.js-sample-id').value !== "";
-                const hasSampleCheck = hasSample || mainRow.querySelector('.js-sample-search').value !== "";
                 toggle.checked = isAvulso;
                 if(hasSample) { toggle.disabled = true; toggleModalFields(false); } else { toggle.disabled = false; toggleModalFields(isAvulso); }
             });
