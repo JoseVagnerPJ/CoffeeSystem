@@ -105,15 +105,17 @@
                                                         <div class="d-flex align-items-center gap-2 p-2 border-bottom js-loc-line">
                                                             <div class="input-group input-group-sm" style="width: 130px;">
                                                                 <input type="text" class="form-control text-center fw-bold js-row" placeholder="Rua" value="{{ $adj->new_address_row }}" maxlength="1">
-                                                                {{-- Regra aplicada: disabled se não houver rua --}}
                                                                 <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº" value="{{ $adj->new_address_pos }}" {{ empty($adj->new_address_row) ? 'disabled' : '' }}>
                                                             </div>
                                                             <div class="input-group input-group-sm flex-grow-1">
-                                                                <input type="number" class="form-control text-center js-bags" placeholder="Sacas" value="{{ $adj->closed_bags }}">
+                                                                {{-- Adicionado min="0" --}}
+                                                                <input type="number" class="form-control text-center js-bags" placeholder="Sacas" value="{{ $adj->closed_bags }}" min="0">
                                                                 <span class="input-group-text bg-light">x</span>
-                                                                <input type="number" class="form-control text-center js-bw" value="{{ $adj->bag_weight }}">
+                                                                {{-- Adicionado min="1" para peso de saca --}}
+                                                                <input type="number" class="form-control text-center js-bw" value="{{ $adj->bag_weight }}" min="1">
                                                                 <span class="input-group-text bg-light">+</span>
-                                                                <input type="number" class="form-control text-center js-rem" placeholder="Sobra" value="{{ $adj->remainder_weight }}">
+                                                                {{-- Adicionado min="0" --}}
+                                                                <input type="number" class="form-control text-center js-rem" placeholder="Sobra" value="{{ $adj->remainder_weight }}" min="0">
                                                             </div>
                                                             <div style="width: 85px;">
                                                                 <input type="text" class="form-control form-control-sm text-center fw-bold bg-light border-0 js-line-total" value="{{ number_format($adj->physical_weight, 1, ',', '.') }}" readonly>
@@ -171,15 +173,17 @@
 
 <script>
 $(document).ready(function() {
-    // MAPEAMENTO DE LIMITES CONFORME O SVG
     const validSpots = { 'A': 5, 'B': 2, 'C': 3, 'D': 4, 'E': 3, 'F': 7 };
 
-    // --- LÓGICA DE VALIDAÇÃO DE ENDEREÇO E AUTO-JUMP ---
+    // --- LÓGICA PARA IMPEDIR ESTOQUE NEGATIVO ---
+    $(document).on('input', 'input[type="number"]', function() {
+        if (parseFloat($(this).val()) < 0) {
+            $(this).val(0);
+        }
+    });
+
     $(document).on('input', '.js-row', function() {
-        // Bloqueia qualquer coisa que não seja A-F
         this.value = this.value.toUpperCase().replace(/[^A-F]/g, '');
-        
-        // --- NOVA LÓGICA DE BLOQUEIO ---
         const posInput = $(this).closest('.js-loc-line').find('.js-pos');
         if (this.value.length >= 1) {
             posInput.prop('disabled', false);
@@ -187,29 +191,22 @@ $(document).ready(function() {
         } else {
             posInput.prop('disabled', true).val('');
         }
-        // -------------------------------
-
-        // Revalida o número da posição caso a letra tenha mudado
         $(this).closest('.js-loc-line').find('.js-pos').trigger('input');
     });
 
     $(document).on('input', '.js-pos', function() {
         const row = $(this).prev('.js-row').val();
         const maxVal = validSpots[row] || 99;
-        
         let val = parseInt(this.value);
         if (row && validSpots[row]) {
-            if (val > maxVal) this.value = maxVal; // Trava no máximo da fila
-            if (val < 1) this.value = '';        // Não permite 0 ou negativo
+            if (val > maxVal) this.value = maxVal;
+            if (val < 1) this.value = '';
         }
-
-        // Se digitou o número, pula para Sacas
         if (this.value.length >= 1) {
             $(this).closest('.js-loc-line').find('.js-bags').focus();
         }
     });
 
-    // INICIAR INVENTÁRIO
     $(document).on('click', '.js-btn-start', function() {
         $.post("{{ route('estoque.inventory.start') }}", { _token: "{{ csrf_token() }}" }, function() { 
             localStorage.setItem('reopenInventoryModal', 'true');
@@ -217,7 +214,6 @@ $(document).ready(function() {
         });
     });
 
-    // FINALIZAR INVENTÁRIO
     $(document).on('click', '.js-btn-finish', function() {
         if(!confirm('Deseja finalizar o inventário?')) return;
         $.post("{{ route('estoque.inventory.finish') }}", { _token: "{{ csrf_token() }}" }, function(res) {
@@ -244,11 +240,11 @@ $(document).ready(function() {
                     <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº" disabled>
                 </div>
                 <div class="input-group input-group-sm flex-grow-1">
-                    <input type="number" class="form-control text-center js-bags" placeholder="Sacas">
+                    <input type="number" class="form-control text-center js-bags" placeholder="Sacas" min="0">
                     <span class="input-group-text bg-light">x</span>
-                    <input type="number" class="form-control text-center js-bw" value="60">
+                    <input type="number" class="form-control text-center js-bw" value="60" min="1">
                     <span class="input-group-text bg-light">+</span>
-                    <input type="number" class="form-control text-center js-rem" placeholder="Sobra">
+                    <input type="number" class="form-control text-center js-rem" placeholder="Sobra" min="0">
                 </div>
                 <div style="width: 85px;"><input type="text" class="form-control form-control-sm text-center fw-bold bg-light border-0 js-line-total" value="0,0" readonly></div>
                 <button type="button" class="btn btn-sm btn-link text-danger p-0 js-remove-line"><i class="bi bi-x-circle-fill"></i></button>
@@ -303,7 +299,6 @@ $(document).ready(function() {
              .removeClass('bg-light bg-danger bg-primary bg-success text-muted')
              .addClass(diff < 0 ? 'bg-danger' : (diff > 0 ? 'bg-primary' : 'bg-success'));
 
-        // Sincronização automática com o servidor
         $.post("{{ route('estoque.inventory.store') }}", {
             _token: "{{ csrf_token() }}",
             lot_id: id,
