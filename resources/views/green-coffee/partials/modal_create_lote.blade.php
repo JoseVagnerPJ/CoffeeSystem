@@ -88,14 +88,14 @@
                                                 <input type="text" name="locations[0][row]" class="form-control text-center fw-bold js-loc-row" placeholder="Fila" required>
                                             </div>
                                             <div class="col-md-2">
-                                                {{-- Ajustado: Adicionado disabled inicial --}}
-                                                <input type="number" name="locations[0][pos]" class="form-control text-center fw-bold js-loc-pos" placeholder="Nº" required disabled>
+                                                <input type="number" name="locations[0][pos]" class="form-control text-center fw-bold js-loc-pos" placeholder="Nº" min="1" required disabled>
                                             </div>
                                             <div class="col-md-3">
-                                                <input type="number" name="locations[0][bags]" class="form-control text-center js-loc-bags" placeholder="Sacas" step="1" required>
+                                                <input type="number" name="locations[0][bags]" class="form-control text-center js-loc-bags" placeholder="Sacas" step="1" min="0" required>
                                             </div>
                                             <div class="col-md-3">
-                                                <input type="number" name="locations[0][remainder]" class="form-control text-center js-loc-remainder" placeholder="Sobra kg" step="0.01">
+                                                {{-- Sobra: Mudado para TEXT e decimal inputmode para aceitar vírgula sem bugar --}}
+                                                <input type="text" name="locations[0][remainder]" class="form-control text-center js-loc-remainder" placeholder="Sobra kg" inputmode="decimal">
                                             </div>
                                             <div class="col-md-2"></div>
                                         </div>
@@ -109,7 +109,7 @@
                                 </div>
                                 <div class="col-md-4 mt-2">
                                     <label class="form-label small fw-bold text-success">KG/SACA</label>
-                                    <input type="number" id="js_peso_unit_modal" name="unit_weight" class="form-control fw-bold border-success shadow-none" step="0.01" value="60.00">
+                                    <input type="text" id="js_peso_unit_modal" name="unit_weight" class="form-control fw-bold border-success shadow-none js-loc-remainder" value="60.00" inputmode="decimal">
                                 </div>
                                 <div class="col-md-4 mt-2">
                                     <label class="form-label small fw-bold text-primary">PESO TOTAL</label>
@@ -154,19 +154,42 @@ $(document).ready(function() {
         $('#formCreateLote')[0].reset();
         $('#profile-color-indicator .color-preview').css('background-color', '#eee');
         $('.location-row:not(:first)').remove();
-        // Resetar o estado disabled do primeiro campo
         $('.js-loc-pos').first().prop('disabled', true);
+    });
+
+    // --- BLOQUEIO DE NEGATIVOS E FORMATAÇÃO DE DECIMAIS SEM PULAR O CURSOR ---
+    $(document).on('input', '.js-loc-remainder', function() {
+        let cursorPosition = this.selectionStart;
+        let originalValue = this.value;
+
+        // Troca vírgula por ponto e remove o que não for número ou ponto
+        let cleanedValue = originalValue.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+        
+        // Impede múltiplos pontos decimais
+        let parts = cleanedValue.split('.');
+        if (parts.length > 2) cleanedValue = parts[0] + '.' + parts.slice(1).join('');
+
+        // Se o valor mudou, atualiza e restaura o cursor
+        if (originalValue !== cleanedValue) {
+            this.value = cleanedValue;
+            this.setSelectionRange(cursorPosition, cursorPosition);
+        }
+        updateMapSelection();
+    });
+
+    $(document).on('input', '.js-loc-bags', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        updateMapSelection();
     });
 
     // Adicionar Pilha
     $('#add-location-btn').on('click', function() {
-        // Ajustado: campo de número inicia disabled
         let rowHtml = `
             <div class="row g-1 mb-1 location-row align-items-end">
                 <div class="col-md-2"><input type="text" name="locations[${locIdx}][row]" class="form-control text-center fw-bold js-loc-row" placeholder="Fila" required></div>
-                <div class="col-md-2"><input type="number" name="locations[${locIdx}][pos]" class="form-control text-center fw-bold js-loc-pos" placeholder="Nº" required disabled></div>
-                <div class="col-md-3"><input type="number" name="locations[${locIdx}][bags]" class="form-control text-center js-loc-bags" placeholder="Sacas" step="1" required></div>
-                <div class="col-md-3"><input type="number" name="locations[${locIdx}][remainder]" class="form-control text-center js-loc-remainder" placeholder="Sobra kg" step="0.01"></div>
+                <div class="col-md-2"><input type="number" name="locations[${locIdx}][pos]" class="form-control text-center fw-bold js-loc-pos" placeholder="Nº" min="1" required disabled></div>
+                <div class="col-md-3"><input type="number" name="locations[${locIdx}][bags]" class="form-control text-center js-loc-bags" placeholder="Sacas" step="1" min="0" required></div>
+                <div class="col-md-3"><input type="text" name="locations[${locIdx}][remainder]" class="form-control text-center js-loc-remainder" placeholder="Sobra kg" inputmode="decimal"></div>
                 <div class="col-md-2"><button type="button" class="btn btn-sm btn-outline-danger w-100 remove-location"><i class="bi bi-trash"></i></button></div>
             </div>`;
         $('#locations-container').append(rowHtml);
@@ -180,16 +203,12 @@ $(document).ready(function() {
 
     $(document).on('input', '.js-loc-row', function() {
         this.value = this.value.toUpperCase().replace(/[^A-F]/g, '');
-        
-        // --- NOVA LÓGICA: BLOQUEIO DO NÚMERO ---
         const posInput = $(this).closest('.location-row').find('.js-loc-pos');
         if (this.value.length > 0) {
             posInput.prop('disabled', false);
         } else {
             posInput.prop('disabled', true).val('');
         }
-        // ---------------------------------------
-
         updateMapSelection();
     });
 
@@ -220,9 +239,7 @@ $(document).ready(function() {
         }
 
         targetRow.find('.js-loc-row').val(row);
-        // Garantir que o campo de número seja habilitado antes de receber o valor do clique no mapa
         targetRow.find('.js-loc-pos').prop('disabled', false).val(pos);
-        
         updateMapSelection();
     });
 
@@ -253,7 +270,6 @@ $(document).ready(function() {
 
     $(document).on('input', '.js-loc-bags, .js-loc-remainder, #js_peso_unit_modal', updateMapSelection);
 
-    // --- AUTOCOMPLETES COM MAPEAMENTO DE TIPO CORRIGIDO ---
     function setupSearch(inputId, resId, url, type) {
         $(`#${inputId}`).on('input', function() {
             let q = $(this).val();
@@ -272,9 +288,7 @@ $(document).ready(function() {
                             <button type="button" class="list-group-item list-group-item-action sel-sup" data-id="${i.id}" data-name="${i.name}" data-type="${i.type}">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold"><i class="bi bi-patch-check-fill verified-badge me-1"></i> ${i.name}</span>
-                                    <span class="supplier-type-label">
-                                        ${label}
-                                    </span>
+                                    <span class="supplier-type-label">${label}</span>
                                 </div>
                             </button>`;
                     } else {

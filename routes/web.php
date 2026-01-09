@@ -157,7 +157,7 @@ Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
     });
 
     // Rota pública para a Política de Privacidade
-    Route::get('/politica-de-privacidade', function () {
-        return view('privacy');
-    })->name('privacy');
+Route::get('/politica-de-privacidade', function () {
+    return view('privacy');
+})->name('privacy');
 });

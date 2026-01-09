@@ -108,14 +108,11 @@
                                                                 <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº" value="{{ $adj->new_address_pos }}" {{ empty($adj->new_address_row) ? 'disabled' : '' }}>
                                                             </div>
                                                             <div class="input-group input-group-sm flex-grow-1">
-                                                                {{-- Adicionado min="0" --}}
-                                                                <input type="number" class="form-control text-center js-bags" placeholder="Sacas" value="{{ $adj->closed_bags }}" min="0">
+                                                                <input type="number" class="form-control text-center js-bags" placeholder="Sacas" value="{{ $adj->closed_bags }}" min="0" step="1">
                                                                 <span class="input-group-text bg-light">x</span>
-                                                                {{-- Adicionado min="1" para peso de saca --}}
-                                                                <input type="number" class="form-control text-center js-bw" value="{{ $adj->bag_weight }}" min="1">
+                                                                <input type="number" class="form-control text-center js-bw" value="{{ $adj->bag_weight }}" min="0" step="1">
                                                                 <span class="input-group-text bg-light">+</span>
-                                                                {{-- Adicionado min="0" --}}
-                                                                <input type="number" class="form-control text-center js-rem" placeholder="Sobra" value="{{ $adj->remainder_weight }}" min="0">
+                                                                <input type="number" class="form-control text-center js-rem" placeholder="Sobra" value="{{ $adj->remainder_weight }}" min="0" step="any">
                                                             </div>
                                                             <div style="width: 85px;">
                                                                 <input type="text" class="form-control form-control-sm text-center fw-bold bg-light border-0 js-line-total" value="{{ number_format($adj->physical_weight, 1, ',', '.') }}" readonly>
@@ -175,12 +172,21 @@
 $(document).ready(function() {
     const validSpots = { 'A': 5, 'B': 2, 'C': 3, 'D': 4, 'E': 3, 'F': 7 };
 
-    // --- LÓGICA PARA IMPEDIR ESTOQUE NEGATIVO ---
+    // --- REGRAS DE VALIDAÇÃO ---
+    
+    // Regra 1: Apenas números positivos em campos numéricos
     $(document).on('input', 'input[type="number"]', function() {
         if (parseFloat($(this).val()) < 0) {
             $(this).val(0);
         }
     });
+
+    // Regra 2: Somente números inteiros (sem pontos/vírgulas) para Sacas e Peso Unitário
+    $(document).on('input', '.js-bags, .js-bw', function() {
+        this.value = this.value.replace(/[^\d]/g, '');
+    });
+
+    // --- LÓGICA DE ENDEREÇAMENTO ---
 
     $(document).on('input', '.js-row', function() {
         this.value = this.value.toUpperCase().replace(/[^A-F]/g, '');
@@ -240,11 +246,11 @@ $(document).ready(function() {
                     <input type="text" class="form-control text-center fw-bold js-pos" placeholder="Nº" disabled>
                 </div>
                 <div class="input-group input-group-sm flex-grow-1">
-                    <input type="number" class="form-control text-center js-bags" placeholder="Sacas" min="0">
+                    <input type="number" class="form-control text-center js-bags" placeholder="Sacas" min="0" step="1">
                     <span class="input-group-text bg-light">x</span>
-                    <input type="number" class="form-control text-center js-bw" value="60" min="1">
+                    <input type="number" class="form-control text-center js-bw" value="60" min="0" step="1">
                     <span class="input-group-text bg-light">+</span>
-                    <input type="number" class="form-control text-center js-rem" placeholder="Sobra" min="0">
+                    <input type="number" class="form-control text-center js-rem" placeholder="Sobra" min="0" step="any">
                 </div>
                 <div style="width: 85px;"><input type="text" class="form-control form-control-sm text-center fw-bold bg-light border-0 js-line-total" value="0,0" readonly></div>
                 <button type="button" class="btn btn-sm btn-link text-danger p-0 js-remove-line"><i class="bi bi-x-circle-fill"></i></button>
@@ -260,8 +266,11 @@ $(document).ready(function() {
     });
 
     $(document).on('input', '.js-bags, .js-bw, .js-rem, .js-row, .js-pos, .js-reason', function() {
-        const lotId = $(this).closest('tr').attr('id').replace('parent-lote-', '');
-        calculateLot(lotId);
+        const tr = $(this).closest('tr');
+        if (tr.attr('id')) {
+            const lotId = tr.attr('id').replace('parent-lote-', '');
+            calculateLot(lotId);
+        }
     });
 
     function calculateLot(id) {

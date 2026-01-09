@@ -75,11 +75,16 @@
     .btn-filter-chart.active { background: var(--coffee-brown); color: white !important; }
 
     /* --- TABELAS --- */
-    .table-responsive-custom { width: 100%; overflow-x: auto; border-radius: 12px; }
-    .inner-table { min-width: 950px; table-layout: fixed; border-collapse: separate; border-spacing: 0 5px; } 
+    /* Ajuste para evitar quebra no notebook: overflow-x: auto e width 100% */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+    .table-responsive-custom { width: 100%; overflow-x: auto; border-radius: 12px; -webkit-overflow-scrolling: touch; }
+    .inner-table { min-width: 950px; table-layout: fixed; border-collapse: separate; border-spacing: 0 5px; width: 100%; } 
     .inner-table th { padding: 12px 10px; background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
     .inner-table td { padding: 15px 10px; vertical-align: middle; }
     
+    /* Garante que a tabela principal também tenha largura mínima para não esmagar em telas médias */
+    #mesasTable { min-width: 900px; width: 100%; }
+
     .rotate-icon { transition: transform 0.3s; }
     .btn[aria-expanded="true"] .rotate-icon { transform: rotate(180deg); }
     .sca-pill { font-weight: 800; color: var(--coffee-brown); border-left: 4px solid var(--coffee-gold); padding: 2px 0 2px 10px; font-size: 1rem; }
@@ -191,7 +196,7 @@
     </div>
 
     {{-- HISTÓRICO --}}
-    <div id="printable-table" class="card shadow-sm border-0 p-4 mt-2" style="border-radius: 15px;">
+    <div id="printable-table" class="card shadow-sm border-0 p-3 p-md-4 mt-2" style="border-radius: 15px;">
         <h5 class="fw-bold mb-4" style="color: var(--coffee-brown); font-size: 1rem;">Histórico de Mesas</h5>
         <div class="table-responsive">
             <table class="table align-middle table-no-hover" id="mesasTable">
@@ -231,12 +236,12 @@
                         </td>
                     </tr>
                     <tr id="mesa-{{ $session->id }}" class="collapse bg-light">
-                        <td colspan="8" class="p-4">
+                        <td colspan="8" class="p-2 p-md-4">
                             <div class="table-responsive-custom op-block border-0 shadow-sm p-0 bg-white">
                                 <table class="table table-hover mb-0 inner-table">
                                     <thead class="bg-dark text-white small">
                                         <tr>
-                                            <th class="ps-4" style="width: 70px;">Pos.</th>
+                                            <th class="ps-4" style="width: 70px;">Pos..</th>
                                             <th style="width: 220px;">Apelido da Xícara</th>
                                             <th style="width: 180px;">Amostra Vinculada</th>
                                             <th class="text-center" style="width: 100px;">Doçura</th>
@@ -425,6 +430,7 @@
                 const toggle = document.getElementById('modal-avulso-toggle');
                 const isAvulso = mainRow.querySelector('.js-is-avulso').value === "1";
                 const hasSample = mainRow.querySelector('.js-sample-id').value !== "";
+                const hasSampleCheck = hasSample || mainRow.querySelector('.js-sample-search').value !== "";
                 toggle.checked = isAvulso;
                 if(hasSample) { toggle.disabled = true; toggleModalFields(false); } else { toggle.disabled = false; toggleModalFields(isAvulso); }
             });
@@ -460,8 +466,9 @@
             if (!row) continue;
             const nick = row.querySelector('.js-nickname').value.trim();
             const sid = row.querySelector('.js-sample-id').value;
+            const sName = row.querySelector('.js-sample-search').value.trim();
             const avulso = row.querySelector('.js-is-avulso').value === "1";
-            if (nick === "" || (!sid && !avulso)) { allValid = false; break; }
+            if (nick === "" || (!sid && !avulso && sName === "")) { allValid = false; break; }
         }
         if(allValid) { btnSubmit.disabled = false; btnSubmit.classList.replace('btn-secondary', 'btn-success'); if(errorMsg) errorMsg.style.display = 'none'; } 
         else { btnSubmit.disabled = true; btnSubmit.classList.replace('btn-success', 'btn-secondary'); if(cupCount > 0 && errorMsg) errorMsg.style.display = 'block'; }
