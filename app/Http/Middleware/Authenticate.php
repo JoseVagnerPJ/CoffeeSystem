@@ -14,8 +14,16 @@ class Authenticate extends Middleware
      */
     protected function redirectTo($request)
     {
-        if (! $request->expectsJson()) {
-            return route('login');
+        // Se a requisição espera JSON (como o App Flutter), não redireciona para login
+        if ($request->expectsJson()) {
+            return null;
         }
+
+        // Se a rota atual for a de política de privacidade, não redirecionamos para o login
+        if ($request->is('politica-de-privacidade')) {
+            return null;
+        }
+
+        return route('login');
     }
 }

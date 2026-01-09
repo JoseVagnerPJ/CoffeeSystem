@@ -29,27 +29,26 @@
         
         /* --- NAVBAR TOP --- */
         .navbar-top { background-color: var(--coffee-brown); border-bottom: 2px solid var(--coffee-gold); min-height: 55px; }
-        .sidebar { position: fixed; top: 55px; bottom: 0; left: 0; z-index: 1000; background-color: var(--coffee-brown); padding: 0; }
+        .sidebar { position: fixed; top: 55px; bottom: 0; left: 0; z-index: 1000; background-color: var(--coffee-brown); padding: 0; display: flex; flex-direction: column; }
         
         .nav-link { color: #cfd8dc; padding: 10px 20px; transition: 0.3s; border-left: 4px solid transparent; text-decoration: none; display: block; font-size: 0.9rem; }
         .nav-link:hover, .nav-link.active { color: var(--coffee-gold); background-color: rgba(255,255,255,0.05); border-left: 4px solid var(--coffee-gold); }
         
         .main-content { margin-top: 75px; padding-bottom: 40px; }
         
-        /* --- BRANDING / LOGO AJUSTADA CONFORME SOLICITADO --- */
+        /* --- BRANDING / LOGO AJUSTADA --- */
         .brand-center-pill {
-            background-color: transparent; /* Fundo removido de tudo */
+            background-color: transparent; 
             padding: 3px 15px 3px 5px;
             border-radius: 25px;
-            border: none; /* Borda removida */
+            border: none; 
             display: flex;
             align-items: center;
-            box-shadow: none; /* Sombra removida */
+            box-shadow: none; 
         }
 
-        /* O fundo claro agora fica APENAS no círculo da logo */
         .logo-bg-circle {
-            background-color: var(--coffee-gold-light); /* Cor bege aplicada aqui */
+            background-color: var(--coffee-gold-light); 
             width: 34px;
             height: 34px;
             display: flex;
@@ -59,26 +58,40 @@
             margin-right: 12px;
         }
 
-        .system-logo-central { height: 30px; width: auto; }
+        .system-logo-central { height: 22px; width: auto; }
 
         .brand-text-style { 
-            color: var(--coffee-gold-light) !important; /* Texto agora tem a cor do fundo antigo */
+            color: var(--coffee-gold-light) !important; 
             font-weight: 500;
-            font-size: 1.8rem; /* Aumentado levemente para destaque */
+            font-size: 1.8rem; 
             letter-spacing: -0.5px;
             text-decoration: none;
         }
 
-        /* --- RESPONSIVIDADE GLOBAL PARA TABELAS (NOTEBOOKS) --- */
+        /* --- RESPONSIVIDADE GLOBAL PARA TABELAS --- */
         .table-responsive {
             overflow-x: auto !important;
             -webkit-overflow-scrolling: touch;
             border-radius: 12px;
         }
-
-        /* Força qualquer tabela dentro de um container responsivo a ter largura mínima */
         .table-responsive table {
             min-width: 950px !important;
+        }
+
+        /* --- BOTÃO DE PRIVACIDADE (PEQUENO) --- */
+        .btn-privacy-link {
+            font-size: 0.65rem;
+            color: var(--coffee-gold-light);
+            text-decoration: none;
+            opacity: 0.5;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-privacy-link:hover {
+            opacity: 1;
+            color: var(--coffee-white);
         }
 
         /* --- OUTROS ELEMENTOS --- */
@@ -100,7 +113,6 @@
     <nav class="navbar navbar-dark fixed-top navbar-top shadow-sm py-0">
         <div class="container-fluid d-flex align-items-center justify-content-between" style="height: 55px;">
             
-            {{-- Lado Esquerdo: Unidade --}}
             <div class="d-none d-md-flex align-items-center" style="flex: 1;">
                 @if(Auth::check() && Auth::user()->mainCompany && Auth::user()->mainCompany->logo)
                     <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" alt="Logo Unidade" class="unit-logo-nav">
@@ -110,7 +122,6 @@
                 </span>
             </div>
 
-            {{-- CENTRO: Branding DigiGrão (Refatorado conforme solicitado) --}}
             <div class="d-flex justify-content-center" style="flex: 1;">
                 <div class="brand-center-pill">
                     <a class="d-flex align-items-center text-decoration-none" href="{{ route('inicio') }}">
@@ -122,7 +133,6 @@
                 </div>
             </div>
 
-            {{-- Lado Direito: Usuário --}}
             <div class="d-flex justify-content-end align-items-center" style="flex: 1;">
                 <div class="text-end me-2 d-none d-sm-block text-white">
                     <div class="fw-bold mb-0" style="line-height: 1; font-size: 0.8rem;">{{ Auth::user()->name ?? 'Visitante' }}</div>
@@ -139,7 +149,6 @@
                     </div>
                 @endif
             </div>
-
         </div>
     </nav>
 
@@ -147,27 +156,35 @@
         <div class="row">
             @auth
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-                <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem 1.25rem 0.4rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
-                <ul class="nav flex-column">
-                    <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ route('inicio') }}"><i class="bi bi-house-door me-2"></i> Início</a></li>
-                    <li><a class="nav-link {{ Request::is('green-coffee*') ? 'active' : '' }}" href="{{ route('estoque.index') }}"><i class="bi bi-box-seam me-2"></i> Estoque Verde</a></li>
-                    <li><a class="nav-link {{ Request::is('laboratory*') ? 'active' : '' }}" href="{{ route('laboratorio') }}"><i class="bi bi-clipboard-pulse me-2"></i> Laboratório</a></li>
-                    <li><a class="nav-link {{ Request::is('roasting*') ? 'active' : '' }}" href="{{ route('torrefacao') }}"><i class="bi bi-fire me-2"></i> Torrefação</a></li>
-                </ul>
+                <div class="flex-grow-1">
+                    <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem 1.25rem 0.4rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
+                    <ul class="nav flex-column">
+                        <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ route('inicio') }}"><i class="bi bi-house-door me-2"></i> Início</a></li>
+                        <li><a class="nav-link {{ Request::is('green-coffee*') ? 'active' : '' }}" href="{{ route('estoque.index') }}"><i class="bi bi-box-seam me-2"></i> Estoque Verde</a></li>
+                        <li><a class="nav-link {{ Request::is('laboratory*') ? 'active' : '' }}" href="{{ route('laboratorio') }}"><i class="bi bi-clipboard-pulse me-2"></i> Laboratório</a></li>
+                        <li><a class="nav-link {{ Request::is('roasting*') ? 'active' : '' }}" href="{{ route('torrefacao') }}"><i class="bi bi-fire me-2"></i> Torrefação</a></li>
+                    </ul>
 
-                <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem 1.25rem 0.4rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Gestão & Cadastros</div>
-                <ul class="nav flex-column">
-                    <li><a class="nav-link {{ Request::is('registries') ? 'active' : '' }}" href="{{ route('registries.index') }}"><i class="bi bi-people me-2"></i> Cadastros</a></li>
-                    <li><a class="nav-link {{ Request::is('settings*') ? 'active' : '' }}" href="{{ route('settings') }}"><i class="bi bi-gear me-2"></i> Configurações</a></li>
-                </ul>
+                    <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem 1.25rem 0.4rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Gestão & Cadastros</div>
+                    <ul class="nav flex-column">
+                        <li><a class="nav-link {{ Request::is('registries') ? 'active' : '' }}" href="{{ route('registries.index') }}"><i class="bi bi-people me-2"></i> Cadastros</a></li>
+                        <li><a class="nav-link {{ Request::is('settings*') ? 'active' : '' }}" href="{{ route('settings') }}"><i class="bi bi-gear me-2"></i> Configurações</a></li>
+                    </ul>
+                </div>
 
-                <div class="px-3 mt-3">
-                    <form method="POST" action="{{ route('logout') }}">
+                {{-- RODAPÉ DA SIDEBAR: SAIR + POLÍTICA --}}
+                <div class="px-3 mt-auto mb-3">
+                    <form method="POST" action="{{ route('logout') }}" class="mb-2">
                         @csrf
                         <button type="submit" class="btn btn-outline-danger btn-sm w-100 border-0 text-start ps-3" style="font-size: 0.8rem;">
                             <i class="bi bi-box-arrow-right me-2"></i> Sair
                         </button>
                     </form>
+                    <div class="text-center">
+                        <a href="{{ route('privacy') }}" class="btn-privacy-link">
+                            <i class="bi bi-shield-lock"></i> Privacidade
+                        </a>
+                    </div>
                 </div>
             </nav>
             @endauth

@@ -155,4 +155,9 @@ Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
         Route::post('/evaluations', [CuppingController::class, 'finishEvaluations']);
         Route::get('/tags', [CuppingController::class, 'getTags']);
     });
+
+    // Rota pública para a Política de Privacidade
+    Route::get('/politica-de-privacidade', function () {
+        return view('privacy');
+    })->name('privacy');
 });
