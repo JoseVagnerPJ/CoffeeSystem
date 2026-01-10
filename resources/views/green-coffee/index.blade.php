@@ -49,7 +49,7 @@
     .pallet-highlight { stroke: #ffc107 !important; stroke-width: 15 !important; filter: drop-shadow(0 0 15px gold); }
 
     /* REGRAS DE IMPRESSÃO - CORRIGIDAS PARA SUPORTAR DOIS TIPOS DE RELATÓRIOS */
-    @media print {
+@media print {
         .no-print, .btn-close, .modal-header .btn { display: none !important; }
         body * { visibility: hidden; }
         
@@ -74,6 +74,7 @@
         .card { border: none !important; box-shadow: none !important; }
         .modal-content { border: none !important; box-shadow: none !important; }
         .modal-backdrop { display: none !important; }
+
     }
 </style>
 

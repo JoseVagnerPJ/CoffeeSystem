@@ -77,7 +77,7 @@
                         {{-- Cabeçalho do Perfil --}}
                         <div class="col-md-5">
                             <label class="form-label fw-bold small text-muted">Nome do Perfil</label>
-                            <input type="text" name="name" class="form-control" required placeholder="Ex: Frutado Especial Verão" style="height: 45px; border-radius: 8px;">
+                            <input type="text" name="name" class="form-control" required placeholder="Ex: Frutado..." style="height: 45px; border-radius: 8px;">
                         </div>
 
                         {{-- SELETOR DE COR --}}

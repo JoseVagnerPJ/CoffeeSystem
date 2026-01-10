@@ -25,7 +25,12 @@
             --coffee-white: #ffffff;
             --coffee-gold-light: #e8e0d5; 
         }
-        body { background-color: var(--coffee-cream); color: var(--coffee-text); font-family: 'Segoe UI', sans-serif; }
+        body { 
+            background-color: var(--coffee-cream); 
+            color: var(--coffee-text); 
+            font-family: 'Segoe UI', sans-serif;
+            overflow-x: hidden; /* REMOVE BARRA DE ROLAGEM HORIZONTAL DO NAVEGADOR */
+        }
         
         /* --- NAVBAR TOP --- */
         .navbar-top { background-color: var(--coffee-brown); border-bottom: 2px solid var(--coffee-gold); min-height: 55px; }
@@ -68,14 +73,14 @@
             text-decoration: none;
         }
 
-        /* --- RESPONSIVIDADE GLOBAL PARA TABELAS --- */
+        /* --- RESPONSIVIDADE GLOBAL PARA TABELAS (AJUSTADO) --- */
         .table-responsive {
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch;
+            overflow-x: hidden !important; /* REMOVE BARRA DE ROLAGEM HORIZONTAL DA TABELA */
             border-radius: 12px;
         }
         .table-responsive table {
-            min-width: 950px !important;
+            width: 100% !important; /* FORÇA A OCUPAR APENAS O ESPAÇO DISPONÍVEL */
+            min-width: auto !important; /* REMOVE O MÍNIMO DE 950PX QUE CAUSAVA O BUG */
         }
 
         /* --- BOTÃO DE PRIVACIDADE (PEQUENO) --- */
@@ -106,6 +111,12 @@
         .select2-container--default .select2-selection--single {
             height: 40px !important; border: 1px solid #dee2e6 !important;
             border-radius: 8px !important; display: flex !important; align-items: center !important;
+        }
+
+        /* AJUSTE PARA IMPRESSÃO SEM BARRAS */
+        @media print {
+            .table-responsive { overflow: visible !important; }
+            body { overflow: visible !important; }
         }
     </style>
 </head>
