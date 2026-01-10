@@ -45,17 +45,18 @@ class GreenCoffeeLotController extends Controller
             }
         }
 
-        $lastSubtractions = RoastingBatch::with('lot')
-            ->orderBy('created_at', 'desc')
-            ->take(3)
-            ->get()
-            ->map(function($batch) {
-                return [
-                    'description' => "Torra: " . ($batch->lot->reference ?? 'Lote Excluído'),
-                    'value' => number_format($batch->input_weight, 1, ',', '.') . "kg",
-                    'type' => 'danger'
-                ];
-            });
+        $lastSubtractions = RoastingBatch::with('demand.lot') // Carrega a árvore: Torra -> Demanda -> Lote
+    ->orderBy('created_at', 'desc')
+    ->take(3)
+    ->get()
+    ->map(function($batch) {
+        return [
+            // Agora acessamos via demand->lot
+            'description' => "Torra: " . ($batch->demand->lot->reference ?? 'Lote N/A'),
+            'value' => number_format($batch->weight_in, 1, ',', '.') . "kg",
+            'type' => 'danger'
+        ];
+    });
 
         $session = InventorySession::whereIn('status', ['aberto', 'iniciado'])
             ->orderBy('created_at', 'desc')

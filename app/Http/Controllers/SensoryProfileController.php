@@ -29,40 +29,42 @@ public function index(Request $request)
 
         return view('registries.sensory-profiles.index', compact('profiles'));
     }
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required',
-            'sample_id' => 'required|array',
-            'percentage' => 'required|array'
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required',
+        'sample_id' => 'required|array',
+        'percentage' => 'required|array'
+    ]);
 
-        $total = array_sum($request->percentage);
-        if (abs($total - 100) > 0.01) {
-            return redirect()->back()->withInput()->withErrors(['blend_error' => "A soma deve ser 100%."]);
-        }
-
-        DB::transaction(function () use ($request) {
-            $profile = SensoryProfile::create($request->only([
-                'name', 'roast_intensity', 'color_hex', 'notes', 
-                'sweetness', 'acidity', 'body', 'bitterness'
-            ]) + ['is_blend' => $request->has('is_blend')]);
-
-            foreach ($request->sample_id as $index => $id) {
-                if ($id) {
-                    SensoryProfileComponent::create([
-                        'sensory_profile_id' => $profile->id,
-                        'sample_id' => $id,
-                        'percentage' => $request->percentage[$index]
-                    ]);
-                }
-            }
-        });
-
-        // Rota de redirecionamento atualizada
-        return redirect()->route('registries.sensory-profiles.index')->with('success', 'Perfil cadastrado!');
+    $total = array_sum($request->percentage);
+    if (abs($total - 100) > 0.01) {
+        return redirect()->back()->withInput()->withErrors(['blend_error' => "A soma deve ser 100%."]);
     }
 
+    DB::transaction(function () use ($request) {
+        // Captura os dados e trata o campo is_blend (Checkbox/Switch)
+        $data = $request->only([
+            'name', 'roast_intensity', 'color_hex', 'notes', 
+            'sweetness', 'acidity', 'body', 'bitterness'
+        ]);
+        $data['is_blend'] = $request->has('is_blend') ? 1 : 0;
+
+        $profile = SensoryProfile::create($data);
+
+        foreach ($request->sample_id as $index => $id) {
+            if ($id) {
+                SensoryProfileComponent::create([
+                    'sensory_profile_id' => $profile->id,
+                    'sample_id' => $id,
+                    'percentage' => $request->percentage[$index]
+                ]);
+            }
+        }
+    });
+
+    return redirect()->route('registries.sensory-profiles.index')->with('success', 'Perfil cadastrado!');
+}
     public function searchSamples(Request $request)
     {
         $q = $request->get('q');

@@ -30,4 +30,13 @@ class Machine extends Model
     {
         return $this->hasMany(MachineMaintenance::class)->orderBy('maintenance_date', 'desc');
     }
+
+    public function getCleaningStatusAttribute()
+{
+    $remaining = $this->cleaning_threshold - $this->current_roasts;
+
+    if ($remaining <= 0) return 'critical'; // Passou do limite
+    if ($remaining <= 5) return 'warning';  // Alerta inicial
+    return 'ok';
+}
 }

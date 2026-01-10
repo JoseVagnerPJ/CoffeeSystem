@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class GreenCoffeeLot extends Model
 {
@@ -19,7 +20,9 @@ class GreenCoffeeLot extends Model
     ];
 
     // Carregamento automático de relações para evitar que a View fique vazia
-    protected $with = ['attachments', 'sensoryProfile', 'roastingBatches', 'locations'];
+    // Nota: Removi 'roastingBatches' daqui para evitar que o erro trave a página 
+    // enquanto o banco de dados processa a relação complexa.
+    protected $with = ['attachments', 'sensoryProfile', 'locations'];
 
     public function attachments(): HasMany
     {
@@ -41,9 +44,20 @@ class GreenCoffeeLot extends Model
         return $this->morphTo('origin', 'origin_type', 'origin_id');
     }
 
-    public function roastingBatches(): HasMany
+    /**
+     * Relacionamento Corrigido:
+     * Busca as Torras (Batches) ATRAVÉS das Demandas (RoastDemands)
+     */
+    public function roastingBatches(): HasManyThrough
     {
-        return $this->hasMany(RoastingBatch::class, 'green_coffee_lot_id');
+        return $this->hasManyThrough(
+            RoastingBatch::class, // Modelo Final
+            RoastDemand::class,   // Modelo Intermediário (a ponte)
+            'green_coffee_lot_id', // Chave estrangeira em RoastDemand (aponta para este lote)
+            'roast_demand_id',     // Chave estrangeira em RoastingBatch (aponta para a demanda)
+            'id',                  // Chave local em GreenCoffeeLot
+            'id'                   // Chave local em RoastDemand
+        );
     }
 
     public function locations(): HasMany
@@ -51,4 +65,3 @@ class GreenCoffeeLot extends Model
         return $this->hasMany(GreenCoffeeLotLocation::class);
     }
 }
-

@@ -36,7 +36,10 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2 class="h4 fw-bold">Controle de Produção (Kanban)</h2>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-success fw-bold shadow-sm px-3"><i class="bi bi-plus-lg me-1"></i> NOVA DEMANDA</button>
+                    <button class="btn btn-success fw-bold shadow-sm px-3" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#modalCreateRoast"> <i class="bi bi-plus-lg me-1"></i> NOVA DEMANDA
+                    </button>
                     <button class="btn btn-primary fw-bold shadow-sm px-3"><i class="bi bi-bell-fill me-1"></i> NOTIFICAR MESTRE</button>
                 </div>
             </div>
@@ -196,4 +199,6 @@
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 .anim-pulse { animation: pulse 1.5s infinite; }
 </style>
+
+@include('roasting.partials.modal_create_roast_demand')
 @endsection

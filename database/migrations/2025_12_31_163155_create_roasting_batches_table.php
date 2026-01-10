@@ -11,21 +11,27 @@ class CreateRoastingBatchesTable extends Migration
      *
      * @return void
      */
-    public function up()
-{
-    Schema::create('roasting_batches', function (Blueprint $table) {
-        $table->id();
-        // Vínculo com o lote de café verde
-        $table->foreignId('green_coffee_lot_id')->constrained()->onDelete('cascade');
-        // Vínculo com a máquina (certifique-se de que a tabela 'machines' existe)
-        $table->foreignId('machine_id')->constrained();
-        
-        $table->decimal('input_weight', 8, 2); // Peso de entrada (café verde)
-        $table->decimal('output_weight', 8, 2)->nullable(); // Peso de saída (café torrado)
-        $table->string('status')->default('completed'); // 'planned', 'roasting', 'completed'
-        
-        $table->timestamps();
-    });
+public function up() {
+Schema::create('roasting_batches', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('roast_demand_id')->constrained()->onDelete('cascade');
+    $table->foreignId('mestre_user_id')->constrained('users'); // Quem executou este ciclo
+    
+    $table->integer('batch_number'); 
+    $table->decimal('weight_in', 8, 2); 
+    $table->decimal('weight_out', 8, 2)->nullable(); 
+    
+    // Para agrupar torras pesadas juntas no mesmo Brute
+    $table->string('brute_group_id')->nullable(); 
+
+    $table->timestamp('started_at')->nullable();
+    $table->timestamp('finished_at')->nullable();
+    
+    $table->string('status')->default('pending'); // pending, roasting, completed, wasted
+    $table->text('notes')->nullable();
+    $table->text('justification')->nullable(); // Obrigatório se 'wasted' ou troca de mestre
+    $table->timestamps();
+});
 }
 
     /**

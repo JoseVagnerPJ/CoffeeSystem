@@ -10,7 +10,7 @@ use App\Http\Controllers\SensoryProfileController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\Api\CuppingController;
 use App\Http\Controllers\LaboratoryController;
-
+use App\Http\Controllers\RoastController;
 
 // Rota pública para a Política de Privacidade
 Route::get('/politica-de-privacidade', function () {
@@ -67,7 +67,25 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // --- MÓDULO: TORREFAÇÃO ---
-    Route::get('/roasting', [DashboardController::class, 'torrefacao'])->name('torrefacao');
+    Route::prefix('roasting')->name('roasting.')->group(function () {
+        // Tela Principal (Kanban)
+        Route::get('/', [RoastController::class, 'index'])->name('index'); 
+        
+        // Ação de Salvar Demanda e Gerar Ciclos
+        Route::post('/store', [RoastController::class, 'store'])->name('store');
+        
+        // Atualização de Status via Kanban
+        Route::patch('/update-status', [RoastController::class, 'updateStatus'])->name('updateStatus');
+
+        // --- ROTAS DE BUSCA DINÂMICA (AJAX) PARA O MODAL ---
+        // Estas rotas resolvem o erro RouteNotFoundException no seu Modal
+        Route::get('/search-lots', [RoastController::class, 'searchLots'])->name('search.lots');
+        Route::get('/search-profiles', [RoastController::class, 'searchProfiles'])->name('search.profiles');
+        Route::get('/search-mestres', [RoastController::class, 'searchMestres'])->name('search.mestres');
+        
+        // Informações extras do Lote (caso queira puxar via ID)
+        Route::get('/lot-info/{id}', [RoastController::class, 'getLotInfo'])->name('lot-info');
+    });
 
     // --- MÓDULO: CONFIGURAÇÕES (Geral) ---
     Route::get('/settings', [DashboardController::class, 'configuracoes'])->name('settings');
@@ -114,21 +132,23 @@ Route::middleware(['auth'])->group(function () {
             ])->parameter('', 'sample');
         });
 
-        // Perfis Sensoriais
-        Route::prefix('sensory-profiles')->name('sensory-profiles.')->group(function () {
-            Route::get('/', [SensoryProfileController::class, 'index'])->name('index'); 
-            Route::get('/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('search-samples');
-            
-            Route::resource('/', SensoryProfileController::class)->only([
-                'index', 'store', 'show', 'update', 'destroy'
-            ])->names([
-                'index'   => 'index',
-                'store'   => 'store',
-                'show'    => 'show',
-                'update'  => 'update',
-                'destroy' => 'destroy',
-            ])->parameter('', 'sensory_profile');
-        });
+// Perfis Sensoriais
+Route::prefix('sensory-profiles')->group(function () {
+        // Definimos os nomes manualmente para ignorar o prefixo automático do grupo
+        Route::get('/', [SensoryProfileController::class, 'index'])->name('sensory-profiles.index'); 
+        Route::get('/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('sensory-profiles.search-samples');
+        
+        Route::resource('/', SensoryProfileController::class)->only([
+            'index', 'store', 'show', 'update', 'destroy'
+        ])->names([
+            'index'   => 'sensory-profiles.index',
+            'store'   => 'sensory-profiles.store',
+            'show'    => 'sensory-profiles.show',
+            'update'  => 'sensory-profiles.update',
+            'destroy' => 'sensory-profiles.destroy',
+        ])->parameter('', 'sensory_profile');
+    });
+
 
         // Equipe e Unidade
         Route::prefix('team')->name('team.')->group(function () {

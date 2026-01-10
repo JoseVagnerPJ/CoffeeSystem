@@ -49,8 +49,8 @@
 
         .logo-bg-circle {
             background-color: var(--coffee-gold-light); 
-            width: 41px;
-            height: 47px;
+            width: 35px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -58,13 +58,13 @@
             margin-right: 12px;
         }
 
-        .system-logo-central { height: 41px; width: auto; }
+        .system-logo-central { height: 35px; width: auto; }
 
         .brand-text-style { 
             color: var(--coffee-gold-light) !important; 
-            font-weight: 500;
+            font-weight: 400;
             font-size: 1.8rem; 
-            letter-spacing: -0.5px;
+            letter-spacing: 0.75px;
             text-decoration: none;
         }
 
@@ -101,7 +101,7 @@
             background-color: white; margin-right: 10px;
         }
 
-        .user-avatar-nav { width: 47px; height: 47px; }
+        .user-avatar-nav { width: 49px; height: 49px; }
 
         .select2-container--default .select2-selection--single {
             height: 40px !important; border: 1px solid #dee2e6 !important;
@@ -135,8 +135,8 @@
 
             <div class="d-flex justify-content-end align-items-center" style="flex: 1;">
                 <div class="text-end me-2 d-none d-sm-block text-white">
-                    <div class="fw-bold mb-0" style="line-height: 1; font-size: 0.8rem;">{{ Auth::user()->name ?? 'Visitante' }}</div>
-                    <small style="font-size: 0.65rem; color: #cfd8dc !important;">{{ Auth::user()->profile->name ?? '' }}</small>
+                    <div class="fw-bold mb-0" style="line-height: 1; font-size: 1rem;">{{ Auth::user()->name ?? 'Visitante' }}</div>
+                    <small style="font-size: 0.80rem; color: #cfd8dc !important;">{{ Auth::user()->profile->name ?? '' }}</small>
                 </div>
                 
                 @if(Auth::check() && Auth::user()->photo)
@@ -162,7 +162,7 @@
                         <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ route('inicio') }}"><i class="bi bi-house-door me-2"></i> Início</a></li>
                         <li><a class="nav-link {{ Request::is('green-coffee*') ? 'active' : '' }}" href="{{ route('estoque.index') }}"><i class="bi bi-box-seam me-2"></i> Estoque Verde</a></li>
                         <li><a class="nav-link {{ Request::is('laboratory*') ? 'active' : '' }}" href="{{ route('laboratorio') }}"><i class="bi bi-clipboard-pulse me-2"></i> Laboratório</a></li>
-                        <li><a class="nav-link {{ Request::is('roasting*') ? 'active' : '' }}" href="{{ route('torrefacao') }}"><i class="bi bi-fire me-2"></i> Torrefação</a></li>
+                        <li><a class="nav-link {{ Request::is('roasting*') ? 'active' : '' }}" href="{{ route('roasting.index') }}"><i class="bi bi-fire me-2"></i> Torrefação</a></li>
                     </ul>
 
                     <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem 1.25rem 0.4rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Gestão & Cadastros</div>

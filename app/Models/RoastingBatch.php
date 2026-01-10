@@ -7,7 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class RoastingBatch extends Model
 {
-    protected $fillable = ['green_coffee_lot_id', 'machine_id', 'input_weight', 'output_weight', 'status'];
+    protected $fillable = [
+    'roast_demand_id', // O ID correto conforme sua migration
+    'mestre_user_id', 
+    'batch_number', 
+    'weight_in', 
+    'weight_out', 
+    'status'
+];
 
 public function greenCoffeeLot()
 {
@@ -17,5 +24,10 @@ public function greenCoffeeLot()
 public function machine()
 {
     return $this->belongsTo(Machine::class);
+}
+
+public function demand()
+{
+    return $this->belongsTo(RoastDemand::class, 'roast_demand_id');
 }
 }
