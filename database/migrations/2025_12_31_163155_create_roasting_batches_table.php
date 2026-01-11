@@ -29,6 +29,7 @@ Schema::create('roasting_batches', function (Blueprint $table) {
     
     $table->string('status')->default('pending'); // pending, roasting, completed, wasted
     $table->text('notes')->nullable();
+    $table->boolean('is_special_tour')->default(false); //mestre definirá se é torra pra rota do café ou não pelo app
     $table->text('justification')->nullable(); // Obrigatório se 'wasted' ou troca de mestre
     $table->timestamps();
 });

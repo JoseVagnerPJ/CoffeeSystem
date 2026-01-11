@@ -22,7 +22,6 @@ public function up() {
         $table->text('notes')->nullable(); // Adicionado
         
         $table->string('status')->default('pending');
-        $table->boolean('is_special_tour')->default(false);
         $table->timestamps();
     });
 

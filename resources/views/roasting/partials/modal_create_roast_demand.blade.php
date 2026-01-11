@@ -91,6 +91,7 @@
                                         <div class="small fw-bold text-uppercase opacity-50">Ciclos Gerados</div>
                                     </div>
                                     <div id="alert-machine" class="alert alert-danger p-2 small d-none">Peso fora do limite da máquina!</div>
+                                    <div id="alert-remainder" class="alert alert-danger p-2 small d-none"><strong>Bloqueado:</strong> A divisão não é exata. Ajuste os pesos para não haver sobra.</div>
                                     <div id="suggest-machine" class="alert alert-info p-2 small d-none"></div>
                                 </div>
                                 <textarea name="notes" class="form-control mt-3" rows="3" placeholder="Observações..."></textarea>
@@ -130,7 +131,7 @@ $(document).ready(function() {
         calc();
     });
 
-    // 2. Busca AJAX Perfil (COM INDICADOR DE COR NA LISTA)
+    // 2. Busca AJAX Perfil
     $('#ajax-profile-search').on('input', function() {
         let q = $(this).val();
         if(q.length < 1) return $('#profile-res').addClass('d-none');
@@ -189,7 +190,6 @@ $(document).ready(function() {
 
         if(total > 0) {
             $('#display-delta').text(`-${total.toFixed(2)}`).removeClass('d-none');
-            if(total > currentLotWeight) $('#btn-submit').prop('disabled', true);
         } else {
             $('#display-delta').addClass('d-none');
         }
@@ -200,26 +200,37 @@ $(document).ready(function() {
             
             let ciclos = Math.floor(total / partial);
             let sobra = fmod(total, partial);
+            
+            // Exibe o número de ciclos (incluindo o ciclo incompleto visualmente se houver sobra)
             $('#res-ciclos').text(sobra > 0.01 ? ciclos + 1 : ciclos);
 
-            // Validação de Máquina
-            if(partial < min || partial > max) {
-                $('#alert-machine').removeClass('d-none');
+            const hasRemainder = sobra > 0.01;
+            const machineLimitError = (partial < min || partial > max);
+            const stockError = (total > currentLotWeight);
+
+            // Controle de alertas
+            if (machineLimitError) $('#alert-machine').removeClass('d-none'); else $('#alert-machine').addClass('d-none');
+            if (hasRemainder) $('#alert-remainder').removeClass('d-none'); else $('#alert-remainder').addClass('d-none');
+
+            // Lógica de bloqueio do botão: 
+            // Bloqueia se: Sobrar café OU fora do limite da máquina OU falta de estoque
+            if(hasRemainder || machineLimitError || stockError) {
                 $('#btn-submit').prop('disabled', true);
             } else {
-                $('#alert-machine').addClass('d-none');
-                $('#btn-submit').prop('disabled', total > currentLotWeight);
+                $('#btn-submit').prop('disabled', false);
             }
 
-            // Sugestão de inteligência para sobra
-            if(sobra > 0.01 && sobra < min) {
-                $('#suggest-machine').html(`⚠️ Sobra de <b>${sobra.toFixed(2)}kg</b> é menor que o mínimo da máquina. Recomenda-se ajustar as parciais.`).removeClass('d-none');
+            // Sugestão informativa (apenas se não estiver bloqueado pelo remainder)
+            if(!hasRemainder && sobra > 0.01 && sobra < min) {
+                $('#suggest-machine').html(`⚠️ Ciclo final de <b>${sobra.toFixed(2)}kg</b> abaixo do mínimo.`).removeClass('d-none');
             } else {
                 $('#suggest-machine').addClass('d-none');
             }
+
         } else {
             $('#calc-summary').removeClass('d-none');
             $('#calc-details').addClass('d-none');
+            $('#btn-submit').prop('disabled', true);
         }
     }
 

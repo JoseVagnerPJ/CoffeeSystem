@@ -2,18 +2,114 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{RoastDemand, RoastingBatch, GreenCoffeeLot, Machine, User, SensoryProfile};
+// IMPORTAÇÕES OBRIGATÓRIAS
+use App\Models\RoastDemand;
+use App\Models\RoastingBatch;
+use App\Models\GreenCoffeeLot;
+use App\Models\Machine;
+use App\Models\User;
+use App\Models\SensoryProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon; // <--- Certifique-se de que esta linha está aqui!
 
 class RoastController extends Controller
 {
+    /**
+     * Tela Principal (Kanban)
+     */
     public function index() {
         $machines = Machine::where('is_active', true)->get();
+        
+        // Demandas que ainda não foram finalizadas para o Kanban
         $demands = RoastDemand::with(['lot', 'machine', 'mestre', 'batches', 'sensoryProfile'])
-                    ->where('status', '!=', 'finished')->orderBy('created_at', 'asc')->get();
+                    ->where('status', '!=', 'finished')
+                    ->orderBy('created_at', 'asc')
+                    ->get();
 
         return view('roasting.index', compact('machines', 'demands'));
+    }
+
+    /**
+     * Retorna estatísticas filtradas por Máquina e Período (D/S/M) via AJAX
+     */
+    public function getStats(Request $request) {
+        $machineId = $request->machine_id;
+        $period = $request->period; // D, S, M
+
+        // Definição da data de início com fallback seguro
+        if ($period == 'D') {
+            $startDate = Carbon::now()->startOfDay();
+        } elseif ($period == 'S') {
+            $startDate = Carbon::now()->startOfWeek();
+        } else {
+            $startDate = Carbon::now()->startOfMonth();
+        }
+
+        // 1. Peso Global (Todas as máquinas) no período selecionado
+        $globalWeight = RoastDemand::where('status', 'finished')
+            ->where('updated_at', '>=', $startDate)
+            ->sum('total_weight_requested');
+
+        // 2. Peso Individual da Máquina no período selecionado
+        $machineWeight = RoastDemand::where('machine_id', $machineId)
+            ->where('status', 'finished')
+            ->where('updated_at', '>=', $startDate)
+            ->sum('total_weight_requested');
+
+        // 3. Construção dos dados do gráfico
+        $chartData = $this->buildChartData($machineId, $period, $startDate);
+
+        return response()->json([
+            'global_weight' => number_format($globalWeight, 1, ',', '.'),
+            'machine_weight' => number_format($machineWeight, 1, ',', '.'),
+            'chart' => $chartData
+        ]);
+    }
+
+    /**
+     * Auxiliar para montar dados do Chart.js
+     */
+    private function buildChartData($machineId, $period, $startDate) {
+        $queryGlobal = RoastDemand::select(
+                DB::raw('DATE(updated_at) as date'),
+                DB::raw('SUM(total_weight_requested) as total')
+            )
+            ->where('status', 'finished')
+            ->where('updated_at', '>=', $startDate)
+            ->groupBy('date')
+            ->get()
+            ->pluck('total', 'date');
+
+        $queryMachine = RoastDemand::select(
+                DB::raw('DATE(updated_at) as date'),
+                DB::raw('SUM(total_weight_requested) as total')
+            )
+            ->where('machine_id', $machineId)
+            ->where('status', 'finished')
+            ->where('updated_at', '>=', $startDate)
+            ->groupBy('date')
+            ->get()
+            ->pluck('total', 'date');
+
+        $labels = [];
+        $globalData = [];
+        $machineData = [];
+
+        $days = ($period == 'D') ? 1 : (($period == 'S') ? 7 : 30);
+        
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $labels[] = Carbon::parse($date)->format('d/m');
+            $globalData[] = $queryGlobal->get($date, 0);
+            $machineData[] = $queryMachine->get($date, 0);
+        }
+
+        return [
+            'labels' => $labels,
+            'global' => $globalData,
+            'machine' => $machineData
+        ];
     }
 
     // --- BUSCAS DINÂMICAS PARA O MODAL ---
@@ -31,12 +127,21 @@ class RoastController extends Controller
         return User::where('name', 'like', "%{$request->q}%")->get(['id', 'name']);
     }
 
+    public function getLotInfo($id) {
+        return GreenCoffeeLot::with('sensoryProfile')->find($id);
+    }
+
+    public function updateStatus(Request $request) {
+        $demand = RoastDemand::findOrFail($request->id);
+        $demand->update(['status' => $request->status]);
+        return response()->json(['success' => true]);
+    }
+
     // --- LÓGICA DE ARMAZENAMENTO INTELIGENTE ---
     public function store(Request $request) {
         return DB::transaction(function () use ($request) {
             $lot = GreenCoffeeLot::lockForUpdate()->find($request->green_coffee_lot_id);
 
-            // 1. Criar Demanda Central
             $demand = RoastDemand::create([
                 'user_id' => auth()->id(),
                 'green_coffee_lot_id' => $request->green_coffee_lot_id,
@@ -51,7 +156,6 @@ class RoastController extends Controller
                 'status' => 'pending'
             ]);
 
-            // 2. Cálculo de Ciclos e Criação Automática das Parciais (Batches)
             $total = $request->total_weight;
             $partial = $request->partial_weight;
             $count = floor($total / $partial);
@@ -75,7 +179,6 @@ class RoastController extends Controller
                 ]);
             }
 
-            // 3. Reserva de Estoque
             $lot->decrement('total_weight', $total);
 
             return redirect()->route('roasting.index')->with('success', 'Demanda e ciclos gerados!');

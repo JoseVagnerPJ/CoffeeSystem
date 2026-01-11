@@ -65,8 +65,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/session-info/{id}', [LaboratoryController::class, 'getSessionInfo'])->name('laboratory.session-info');
         Route::get('/cupping-info/{id}', [LaboratoryController::class, 'getCuppingInfo'])->name('laboratory.cupping-info');
     });
-
-    // --- MÓDULO: TORREFAÇÃO ---
+// --- MÓDULO: TORREFAÇÃO ---
     Route::prefix('roasting')->name('roasting.')->group(function () {
         // Tela Principal (Kanban)
         Route::get('/', [RoastController::class, 'index'])->name('index'); 
@@ -77,8 +76,11 @@ Route::middleware(['auth'])->group(function () {
         // Atualização de Status via Kanban
         Route::patch('/update-status', [RoastController::class, 'updateStatus'])->name('updateStatus');
 
+        // --- NOVA ROTA: ESTATÍSTICAS PARA GRÁFICO E KPIs ---
+        // Essencial para o funcionamento do seletor D/S/M e troca de máquinas
+        Route::get('/stats', [RoastController::class, 'getStats'])->name('stats');
+
         // --- ROTAS DE BUSCA DINÂMICA (AJAX) PARA O MODAL ---
-        // Estas rotas resolvem o erro RouteNotFoundException no seu Modal
         Route::get('/search-lots', [RoastController::class, 'searchLots'])->name('search.lots');
         Route::get('/search-profiles', [RoastController::class, 'searchProfiles'])->name('search.profiles');
         Route::get('/search-mestres', [RoastController::class, 'searchMestres'])->name('search.mestres');

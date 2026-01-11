@@ -3,202 +3,221 @@
 @section('title', 'Gestão de Torrefação')
 
 @section('content')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-    /* Estilização dos Cards com Cores Fortes e Bordas de 12px */
-    .card-roast { border-left: 12px solid transparent !important; transition: 0.3s; background: white; border-radius: 8px; }
+    :root { --p-yellow: #FFD600; --p-brown: #4E342E; --p-purple: #9C27B0; }
     
-    .border-yellow { border-left-color: #FFD600 !important; background: rgba(255, 214, 0, 0.1); }
-    .border-brown { border-left-color: #4E342E !important; background: rgba(78, 52, 46, 0.1); }
-    .border-purple { border-left-color: #9C27B0 !important; background: rgba(156, 39, 176, 0.1); }
+    /* Kanban e Cards */
+    .card-roast { border-left: 10px solid transparent !important; transition: 0.3s; background: white; border-radius: 12px; }
+    .border-pending { border-left-color: var(--p-yellow) !important; }
+    .border-roasting { border-left-color: var(--p-brown) !important; }
+    .border-completed { border-left-color: var(--p-purple) !important; }
 
-    .chart-container { position: relative; height: 180px; width: 100%; }
-    .mestre-label { font-size: 0.75rem; font-weight: 600; color: var(--coffee-text); opacity: 0.8; }
-    .badge-machine { background: #212121; color: white; font-weight: 600; }
+    /* KPIs */
+    .kpi-mini { padding: 0.5rem 0.8rem; border-radius: 10px; background: #fff; border: 1px solid #eee; height: 75px; display: flex; flex-direction: column; justify-content: center; transition: all 0.3s; }
+    .kpi-mini small { font-size: 0.55rem; font-weight: 800; color: #888; text-transform: uppercase; }
+    .kpi-mini .val { font-size: 1.1rem; font-weight: 800; color: var(--coffee-brown); line-height: 1.2; }
 
-    /* --- LÓGICA DE RESPONSIVIDADE PARA KANBAN (NÃO ESPREMER) --- */
-    .kanban-wrapper {
-        display: flex;
-        overflow-x: auto; /* Ativa rolagem horizontal se necessário */
-        padding-bottom: 20px;
-        -webkit-overflow-scrolling: touch;
+    /* Seletor de Máquinas */
+    .machine-nav-container { position: relative; display: flex; align-items: center; background: #f8f9fa; border-radius: 15px; padding: 8px; border: 1px solid #eee; }
+    .machine-track { display: flex; overflow: hidden; gap: 8px; width: 100%; transition: transform 0.4s ease; }
+    .btn-machine-select { 
+        min-width: calc(33.33% - 6px); 
+        background: #fff; border: 2px solid transparent; border-radius: 10px; padding: 10px;
+        text-align: center; transition: 0.3s; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; height: 50px;
     }
+    .btn-machine-select.active { border-color: var(--coffee-gold); background: var(--coffee-brown); color: #fff; }
     
-    .kanban-column-custom {
-        min-width: 350px; /* Largura mínima para os cards não esmagarem no notebook */
-        flex: 1;
-        margin-right: 15px;
-    }
+    .nav-arrow { background: var(--coffee-brown); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+
+    /* Botões de Filtro D/S/M */
+    .filter-group { display: flex; gap: 2px; background: #eee; padding: 2px; border-radius: 8px; }
+    .btn-filter { border: none; background: transparent; font-size: 0.6rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; color: #666; transition: 0.2s; }
+    .btn-filter.active { background: #fff; color: var(--coffee-brown); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+    .chart-card { background: #fff; border-radius: 15px; border: 1px solid #eee; height: 100%; padding: 12px; }
+    .kanban-wrapper { display: flex; overflow-x: auto; gap: 15px; padding-top: 10px; }
+    .kanban-col { min-width: 320px; flex: 1; background: #EBE7E0; border-radius: 15px; padding: 15px; min-height: 500px; }
+
+    .text-danger-clean { color: #dc3545 !important; animation: blinker 1.5s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0.3; } }
 </style>
 
-<div class="fade-in">
-    <div class="row g-3 mb-4">
-        <div class="col-lg-7">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="h4 fw-bold">Controle de Produção (Kanban)</h2>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-success fw-bold shadow-sm px-3" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#modalCreateRoast"> <i class="bi bi-plus-lg me-1"></i> NOVA DEMANDA
-                    </button>
-                    <button class="btn btn-primary fw-bold shadow-sm px-3"><i class="bi bi-bell-fill me-1"></i> NOTIFICAR MESTRE</button>
-                </div>
+<div class="fade-in px-2">
+    <div class="row g-3 mb-2">
+        <div class="col-lg-8">
+            <div class="mb-3">
+                <h2 class="h5 fw-bold mb-0">Monitor de Torrefação</h2>
             </div>
 
-            <div class="row g-3">
-                <div class="col-sm-6">
-                    <div class="card p-3 shadow-sm border-0 bg-white">
-                        <small class="text-uppercase fw-bold opacity-50" style="font-size: 0.65rem;">Torras Realizadas (Mês)</small>
-                        <div class="h3 fw-bold mb-0" style="color: var(--coffee-brown);">
-                            342 <span class="fs-6 fw-normal">torras</span> / 8.550 <span class="fs-6 fw-normal">kg</span>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <div class="kpi-mini shadow-sm">
+                        <small>Total Torrado <span class="label-period">Mês</span></small>
+                        <div class="val" id="kpi-global-weight">0,0 kg</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="kpi-mini shadow-sm">
+                        <small id="kpi-machine-name">Torrado na Máquina</small>
+                        <div class="val" id="kpi-machine-weight">0,0 kg</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="kpi-mini shadow-sm" id="clean-status-card">
+                        <small>Status de Limpeza</small>
+                        <div class="val">
+                            <span id="clean-current">0</span> 
+                            <small class="fs-6 text-muted">/ <span id="clean-threshold">0</span> torras</small>
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-6">
-                    <div class="card p-3 shadow-sm border-0 bg-white border-start border-4 border-warning">
-                        <small class="text-uppercase fw-bold opacity-50" style="font-size: 0.65rem;">Status de Limpeza (Probat)</small>
-                        <div class="h3 fw-bold mb-0 text-warning">34 <small class="fs-6 text-muted">/ 40 torras</small></div>
+            </div>
+
+            <div class="machine-nav-container shadow-sm mt-3">
+                <button class="nav-arrow" onclick="scrollMachines(-1)" id="prevBtn"><i class="bi bi-chevron-left"></i></button>
+                <div class="machine-track" id="machineTrack">
+                    @foreach($machines as $machine)
+                    <div class="btn-machine-select shadow-sm @if($loop->first) active @endif" 
+                         onclick="selectMachine(this, {
+                            id: {{ $machine->id }}, 
+                            name: '{{ $machine->name }}', 
+                            current: {{ $machine->current_roasts }}, 
+                            threshold: {{ $machine->cleaning_threshold }}
+                         })" 
+                         data-machine-id="{{ $machine->id }}">
+                        <div class="fw-bold text-uppercase mb-0" style="font-size: 0.8rem;">{{ $machine->name }}</div>
                     </div>
+                    @endforeach
                 </div>
+                <button class="nav-arrow" onclick="scrollMachines(1)" id="nextBtn"><i class="bi bi-chevron-right"></i></button>
             </div>
         </div>
 
-        <div class="col-lg-5">
-            <div class="card shadow-sm border-0 p-3 h-100 bg-white">
+        <div class="col-lg-4">
+            <div class="chart-card shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="small fw-bold mb-0">PRODUÇÃO POR VARIEDADE (KG)</h6>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-secondary btn-sm py-0 px-2 active" style="font-size: 0.6rem;">D</button>
-                        <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.6rem;">M</button>
+                    <small class="fw-bold text-muted text-uppercase" style="font-size: 0.6rem;">Produção Realizada</small>
+                    <div class="filter-group">
+                        <button class="btn-filter" onclick="setPeriod('D', this)">D</button>
+                        <button class="btn-filter" onclick="setPeriod('S', this)">S</button>
+                        <button class="btn-filter active" onclick="setPeriod('M', this)">M</button>
                     </div>
                 </div>
-                <div class="chart-container d-flex align-items-center justify-content-center">
-                    <svg viewBox="0 0 400 150" class="w-100">
-                        <path d="M0,100 L100,80 L200,120 L300,40 L400,60" fill="none" stroke="#FFD600" stroke-width="4" />
-                        <path d="M0,120 L100,110 L200,50 L300,90 L400,30" fill="none" stroke="#4E342E" stroke-width="4" />
-                        <path d="M0,60 L100,130 L200,90 L300,110 L400,10" fill="none" stroke="#9C27B0" stroke-width="4" />
-                        <circle cx="300" cy="40" r="5" fill="#FFD600" />
-                    </svg>
+                <div style="height: 140px;">
+                    <canvas id="roastChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- WRAPPER DE RESPONSIVIDADE INICIADO AQUI --}}
+    <div class="d-flex justify-content-start mb-2 px-1">
+        <button class="btn btn-success fw-bold btn-sm shadow-sm px-3" style="font-size: 0.7rem; border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#modalCreateRoast">
+            <i class="bi bi-plus-lg me-1"></i> NOVA DEMANDA
+        </button>
+    </div>
+
     <div class="kanban-wrapper">
-        
-        {{-- COLUNA 1 --}}
-        <div class="kanban-column-custom">
-            <div class="p-3 rounded-3 shadow-inner h-100" style="background: #EBE7E0; min-height: 600px;">
-                <h6 class="fw-bold mb-3 text-uppercase opacity-50 small">Fila: A Torrar</h6>
-                
-                <div class="card card-roast border-0 shadow-sm mb-3 border-yellow">
-                    <div class="p-3">
-                        <div class="d-flex justify-content-between">
-                            <strong class="fs-5" style="color: var(--coffee-brown);">
-                                <i class="bi bi-chevron-down small me-2" data-bs-toggle="collapse" data-bs-target="#expA_1" style="cursor:pointer"></i>
-                                Bourbon Amarelo
-                            </strong>
-                            <i class="bi bi-pencil-square text-muted" style="cursor: pointer;"></i>
-                        </div>
-                        <div class="mt-2 d-flex align-items-center gap-2">
-                            <span class="badge bg-white text-dark border border-warning">Clara</span>
-                            <span class="badge badge-machine"><i class="bi bi-gear-fill me-1"></i>Probat</span>
-                            <span class="mestre-label ms-auto">Mestre: Carlos</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-end mt-3">
-                            <div>
-                                <small class="text-muted d-block fw-bold" style="font-size: 0.65rem;">TOTAL / CARGA</small>
-                                <div class="h5 fw-bold mb-0">100kg <span class="text-muted fw-normal fs-6">/ 25kg</span></div>
-                            </div>
-                            <div class="bg-dark text-warning d-flex align-items-center justify-content-center rounded-3 fw-bold shadow" style="width: 40px; height: 40px; font-size: 1.2rem;">4</div>
-                        </div>
-                    </div>
-                    <div class="collapse bg-white p-2 border-top" id="expA_1">
-                        <div class="px-2 small py-1 border-bottom d-flex justify-content-between"><span>Torra #1</span> <span class="fw-bold">25kg</span></div>
-                        <div class="px-2 small py-1 d-flex justify-content-between"><span>Torra #2</span> <span class="fw-bold">25kg</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- COLUNA 2 --}}
-        <div class="kanban-column-custom">
-            <div class="p-3 rounded-3 h-100" style="background: rgba(192, 161, 107, 0.15); min-height: 600px; border: 1px solid var(--coffee-gold);">
-                <h6 class="fw-bold mb-3 text-uppercase text-dark small">No Torrador (Ativo)</h6>
-                
-                <div class="card card-roast border-0 shadow mb-3 border-brown">
-                    <div class="p-3">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <strong class="fs-5">Blend Unique</strong>
-                            <div class="text-danger small fw-bold anim-pulse"><i class="bi bi-record-circle-fill me-1"></i>TORRANDO</div>
-                        </div>
-                        <div class="mt-2 d-flex align-items-center gap-2">
-                            <span class="badge bg-dark text-white">Média</span>
-                            <span class="badge badge-machine"><i class="bi bi-gear-fill me-1"></i>Probat</span>
-                            <span class="mestre-label ms-auto">Mestre: Carlos</span>
-                        </div>
-                        
-                        <div class="mt-3 p-3 rounded-3 shadow-sm border bg-white">
-                            <div class="row align-items-center">
-                                <div class="col-5 border-end">
-                                    <small class="text-muted d-block fw-bold" style="font-size: 0.6rem;">CARGA ATUAL</small>
-                                    <span class="h4 fw-bold">20 kg</span>
-                                </div>
-                                <div class="col-7 text-end">
-                                    <small class="text-muted d-block fw-bold" style="font-size: 0.6rem;">HORA INÍCIO / TEMPO CORRIDO</small>
-                                    <span class="h5 fw-bold text-danger">14:20 <span class="mx-1">|</span> 14 mins</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-2 text-center small opacity-75">Ciclo 1 de 1 da demanda</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- COLUNA 3 --}}
-        <div class="kanban-column-custom">
-            <div class="p-3 rounded-3 shadow-inner h-100" style="background: #EBE7E0; min-height: 600px;">
-                <h6 class="fw-bold mb-3 text-uppercase text-success small">Finalizado (Hoje)</h6>
-                
-                <div class="card card-roast border-0 shadow-sm mb-3 border-purple">
-                    <div class="p-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong class="fs-5" style="color: var(--coffee-brown);">
-                                <i class="bi bi-chevron-down small me-2" data-bs-toggle="collapse" data-bs-target="#expF_1" style="cursor:pointer"></i>
-                                Catuaí Vermelho
-                            </strong>
-                            <span class="text-success small fw-bold">CONCLUÍDO 14:20</span>
-                        </div>
-                        <div class="mt-2 d-flex align-items-center gap-2">
-                            <span class="badge bg-white text-dark border border-secondary">Média</span>
-                            <span class="badge badge-machine"><i class="bi bi-gear-fill me-1"></i>Probat</span>
-                            <span class="mestre-label ms-auto">Mestre: Carlos</span>
-                        </div>
-                        <div class="mt-3 d-flex justify-content-between align-items-center">
-                            <span class="small text-muted">ID: #TR-992</span>
-                            <div class="h5 fw-bold text-success mb-0">Total: 45kg</div>
-                        </div>
-                    </div>
-                    <div class="collapse bg-white p-2 border-top" id="expF_1">
-                        <div class="px-2 small py-1 border-bottom d-flex justify-content-between">
-                            <span>Torra #1 (13:50)</span> <span class="fw-bold">22.5kg</span>
-                        </div>
-                        <div class="px-2 small py-1 d-flex justify-content-between">
-                            <span>Torra #2 (14:15)</span> <span class="fw-bold">22.5kg</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div> {{-- FIM DO KANBAN WRAPPER --}}
+       @include('roasting.partials.modal_kanban_content')
+    </div>
 </div>
 
-<style>
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-.anim-pulse { animation: pulse 1.5s infinite; }
-</style>
+<script>
+    let selectedMachine = null;
+    let currentPeriod = 'M';
+
+    const chartData = {
+        'D': { labels: ['08h', '10h', '12h', '14h', '16h', '18h'], global: [5, 12, 8, 20, 15, 5], machine: [2, 5, 3, 10, 4, 1] },
+        'S': { labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'], global: [120, 150, 180, 90, 200, 50], machine: [40, 50, 60, 30, 70, 10] },
+        'M': { labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'], global: [800, 1200, 950, 1100], machine: [300, 400, 250, 350] }
+    };
+
+    const ctx = document.getElementById('roastChart').getContext('2d');
+    const roastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData['M'].labels,
+            datasets: [
+                { label: 'Global', data: chartData['M'].global, borderColor: '#c0a16b', borderWidth: 3, tension: 0.4, pointRadius: 0 },
+                { label: 'Máquina', data: chartData['M'].machine, borderColor: '#3e2723', borderDash: [5, 5], borderWidth: 2, tension: 0.4, pointRadius: 0 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } }
+        }
+    });
+
+    function setPeriod(period, btn) {
+        currentPeriod = period;
+        document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const labelMap = { 'D': 'Hoje', 'S': 'Semana', 'M': 'Mês' };
+        document.querySelectorAll('.label-period').forEach(el => el.innerText = labelMap[period]);
+        refreshAllData();
+    }
+
+    function selectMachine(btn, data) {
+        selectedMachine = data;
+        document.querySelectorAll('.btn-machine-select').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.demand-card').forEach(card => {
+            card.style.display = (card.dataset.machine == data.id) ? 'block' : 'none';
+        });
+        refreshAllData();
+    }
+
+    function refreshAllData() {
+        if (!selectedMachine) return;
+        let factor = (currentPeriod === 'D') ? 1 : (currentPeriod === 'S' ? 7 : 30);
+        let globalSum = 250 * factor; 
+        document.getElementById('kpi-global-weight').innerText = globalSum.toLocaleString('pt-BR') + " kg";
+        let machineSum = 80 * factor;
+        document.getElementById('kpi-machine-name').innerText = "Volume " + selectedMachine.name;
+        document.getElementById('kpi-machine-weight').innerText = machineSum.toLocaleString('pt-BR') + " kg";
+        document.getElementById('clean-current').innerText = selectedMachine.current;
+        document.getElementById('clean-threshold').innerText = selectedMachine.threshold;
+        updateCleaningUI(selectedMachine.current, selectedMachine.threshold);
+        roastChart.data.labels = chartData[currentPeriod].labels;
+        roastChart.data.datasets[0].data = chartData[currentPeriod].global;
+        roastChart.data.datasets[1].data = chartData[currentPeriod].machine;
+        roastChart.update();
+    }
+
+    function updateCleaningUI(current, threshold) {
+        const valText = document.getElementById('clean-current');
+        if (current >= threshold) {
+            valText.className = 'text-danger-clean';
+        } else if (current >= threshold * 0.9) {
+            valText.className = 'text-warning';
+        } else {
+            valText.className = '';
+        }
+    }
+
+    let currentPos = 0;
+    const itemsToShow = 3;
+    function scrollMachines(dir) {
+        const track = document.getElementById('machineTrack');
+        const btns = document.querySelectorAll('.btn-machine-select');
+        const itemWidth = btns[0].offsetWidth + 8;
+        currentPos += dir;
+        if (currentPos < 0) currentPos = 0;
+        if (currentPos > btns.length - itemsToShow) currentPos = btns.length - itemsToShow;
+        track.style.transform = `translateX(-${currentPos * itemWidth}px)`;
+        document.getElementById('prevBtn').disabled = (currentPos === 0);
+        document.getElementById('nextBtn').disabled = (currentPos >= btns.length - itemsToShow);
+    }
+
+    window.onload = () => {
+        const first = document.querySelector('.btn-machine-select.active');
+        if(first) first.click();
+        scrollMachines(0);
+    };
+</script>
 
 @include('roasting.partials.modal_create_roast_demand')
 @endsection
