@@ -21,7 +21,7 @@
     <g id="estrutura-fixa">
         <rect x="1758" y="1000" width="17" height="165" fill="#8B7E74" stroke="#402318" stroke-width="4" rx="4"/> {{-- Porta Lateral direita --}}
         <rect x="2" y="1350" width="17" height="495" fill="#8B7E74" stroke="#402318" stroke-width="4" rx="4"/> {{-- Porta Lateral esquerda --}}
-        <rect x="60" y="1860" width="877" height="17" fill="#8B7E74" stroke="#402318" stroke-width="4" rx="4"/> {{-- Porta Frontal --}}
+        <rect x="60" y="1860" width="647" height="17" fill="#8B7E74" stroke="#402318" stroke-width="4" rx="4"/> {{-- Porta Frontal --}}
         <rect x="2" y="1180" width="609" height="148" fill="#8B7E74" stroke="#402318" stroke-width="4" rx="10"/> {{-- Balcão Esq --}}
         <rect x="1073" y="1180" width="702" height="148" fill="#8B7E74" stroke="#402318" stroke-width="4" rx="10"/> {{-- Balcão Dir --}}
     </g>
@@ -141,5 +141,10 @@
         renderSlot('F5', 1067, 1140, 249, 165, $mapData, $offX, $offY);
         renderSlot('F6', 809, 1140, 249, 165, $mapData, $offX, $offY);
         renderSlot('F7', 551, 1140, 249, 165, $mapData, $offX, $offY);
+        renderSlot('F8', 292, 1140, 249, 165, $mapData, $offX, $offY);
+
+        // Fileira G
+        renderSlot('G1',-400, 788, 249, 165, $mapData, $offX, $offY);
+        renderSlot('G2', -142, 788, 249, 165, $mapData, $offX, $offY);
     @endphp
 </svg>

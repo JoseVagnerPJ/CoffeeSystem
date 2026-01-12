@@ -64,4 +64,10 @@ class GreenCoffeeLot extends Model
     {
         return $this->hasMany(GreenCoffeeLotLocation::class);
     }
+
+    // Dentro do arquivo GreenCoffeeLot.php
+public function roastDemands()
+{
+    return $this->hasMany(RoastDemand::class, 'green_coffee_lot_id');
+}
 }

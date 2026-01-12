@@ -190,7 +190,45 @@ class GreenCoffeeLotController extends Controller
     }
 
     public function store(Request $request) { $request->validate(['reference' => 'required', 'origin' => 'required', 'sensory_profile_id' => 'required', 'unit_weight' => 'required', 'locations' => 'required', 'quantity_bags' => 'required', 'total_weight' => 'required']); $lote = new GreenCoffeeLot(); $lote->user_id = Auth::id(); $lote->reference = $request->reference; $lote->origin = $request->origin; $lote->origin_id = $request->origin_id; $lote->origin_type = $request->origin_type; $lote->sensory_profile_id = $request->sensory_profile_id; $lote->unit_weight = $request->unit_weight; $lote->quantity_bags = $request->quantity_bags; $lote->total_weight = $request->total_weight; $lote->save(); foreach ($request->locations as $loc) { if (!empty($loc['row'])) { $lote->locations()->create(['address_row' => strtoupper($loc['row']), 'address_pos' => $loc['pos'], 'quantity_bags' => (int)$loc['bags'], 'remainder_weight' => $loc['remainder'] ?? 0]); } } return redirect()->route('estoque.index')->with('success', 'Lote registrado!'); }
-    public function destroy($id) { $lote = GreenCoffeeLot::with(['attachments', 'locations'])->findOrFail($id); try { DB::transaction(function () use ($lote, $id) { DB::table('inventory_adjustments')->where('green_coffee_lot_id', $id)->delete(); $lote->locations()->delete(); foreach ($lote->attachments as $at) { if (Storage::disk('public')->exists($at->file_path)) Storage::disk('public')->delete($at->file_path); } $lote->attachments()->delete(); $lote->delete(); }); return redirect()->route('estoque.index')->with('success', 'Lote excluído!'); } catch (\Exception $e) { return redirect()->back()->with('error', 'Erro ao excluir.'); } }
+    public function destroy($id)
+{
+    // Buscamos o lote com todas as relações que precisam ser limpas
+    $lote = GreenCoffeeLot::with(['attachments', 'locations', 'roastDemands.batches'])->findOrFail($id);
+
+    try {
+        DB::transaction(function () use ($lote, $id) {
+            // 1. Deletar ajustes de inventário vinculados a este lote
+            DB::table('inventory_adjustments')->where('green_coffee_lot_id', $id)->delete();
+
+            // 2. Deletar localizações no armazém
+            $lote->locations()->delete();
+
+            // 3. Deletar Demandas de Torra e seus respectivos Ciclos (Batches)
+            foreach ($lote->roastDemands as $demand) {
+                // Primeiro removemos os ciclos (batches) daquela demanda
+                $demand->batches()->delete();
+                // Depois removemos a demanda em si
+                $demand->delete();
+            }
+
+            // 4. Gerenciar arquivos físicos e registros de anexos
+            foreach ($lote->attachments as $at) {
+                if (Storage::disk('public')->exists($at->file_path)) {
+                    Storage::disk('public')->delete($at->file_path);
+                }
+            }
+            $lote->attachments()->delete();
+
+            // 5. Finalmente, excluir o lote
+            $lote->delete();
+        });
+
+        return redirect()->route('estoque.index')->with('success', 'Lote e todas as demandas vinculadas foram excluídos!');
+    } catch (\Exception $e) {
+        // Retornamos o erro caso algo falhe na transação
+        return redirect()->back()->with('error', 'Erro ao excluir o lote: ' . $e->getMessage());
+    }
+}
     public function storeAttachment(Request $request, $id) { $request->validate(['file' => 'required|file|max:2048']); $lote = GreenCoffeeLot::findOrFail($id); if ($request->hasFile('file')) { $path = $request->file('file')->store('attachments', 'public'); $lote->attachments()->create(['file_name' => $request->file('file')->getClientOriginalName(), 'file_path' => $path]); } return back()->with('success', 'Anexo salvo!'); }
     public function destroyAttachment($id) { $attachment = LotAttachment::findOrFail($id); if (Storage::disk('public')->exists($attachment->file_path)) Storage::disk('public')->delete($attachment->file_path); $attachment->delete(); return redirect()->back()->with('success', 'Anexo removido!'); }
     public function capture($id) { $lote = GreenCoffeeLot::findOrFail($id); session(['captured_lot' => $lote->id, 'captured_lot_name' => $lote->reference]); return redirect()->back()->with('success', 'Lote capturado!'); }
