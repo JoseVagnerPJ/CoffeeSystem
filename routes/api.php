@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CuppingController;
 use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\RoastController;
 use Illuminate\Support\Facades\Route;
 
 // Rota de Login (Pública)

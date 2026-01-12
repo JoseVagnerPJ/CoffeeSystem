@@ -24,10 +24,11 @@ class AuthController extends Controller
 
         // BUSCA CORRIGIDA: Nome do relacionamento deve ser 'mainCompany'
         $user = User::where('username', $request->username)
-            ->whereHas('mainCompany', function ($query) use ($cnpjLimpo) {
-                // Remove formatação do banco em tempo real para comparar com o CNPJ limpo
-                $query->whereRaw("REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = ?", [$cnpjLimpo]);
-            })->first();
+    ->where('is_active', true) // Garante que o usuário está ativo
+    ->whereHas('mainCompany', function ($query) use ($cnpjLimpo) {
+        // Busca o CNPJ ignorando qualquer formatação (ponto, barra, traço)
+         $query->whereRaw("REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '') = ?", [$cnpjLimpo]);
+    })->first();
 
         // Verifica se o usuário existe e se a senha está correta
         if (! $user || ! Hash::check($request->password, $user->password)) {

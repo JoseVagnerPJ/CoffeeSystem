@@ -133,7 +133,7 @@
         renderSlot('E2', 473, -61, 161, 253, $mapData, $offX, $offY);
         renderSlot('E3', 473, 200, 161, 164, $mapData, $offX, $offY);
 
-        // Fileira F e G
+        // Fileira F 
         renderSlot('F1', 551, 788, 249, 165, $mapData, $offX, $offY);
         renderSlot('F2', 809, 788, 249, 165, $mapData, $offX, $offY);
         renderSlot('F3', 1067, 788, 249, 165, $mapData, $offX, $offY);

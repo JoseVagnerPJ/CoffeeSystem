@@ -87,6 +87,8 @@ Route::middleware(['auth'])->group(function () {
         
         // Informações extras do Lote (caso queira puxar via ID)
         Route::get('/lot-info/{id}', [RoastController::class, 'getLotInfo'])->name('lot-info');
+
+        Route::post('/update-order', [RoastController::class, 'updateOrder'])->name('update-order');
     });
 
     // --- MÓDULO: CONFIGURAÇÕES (Geral) ---

@@ -19,18 +19,66 @@
     .kpi-mini small { font-size: 0.55rem; font-weight: 800; color: #888; text-transform: uppercase; }
     .kpi-mini .val { font-size: 1.1rem; font-weight: 800; color: var(--coffee-brown); line-height: 1.2; }
 
-    /* Seletor de Máquinas */
-    .machine-nav-container { position: relative; display: flex; align-items: center; background: #f8f9fa; border-radius: 15px; padding: 8px; border: 1px solid #eee; }
-    .machine-track { display: flex; overflow: hidden; gap: 8px; width: 100%; transition: transform 0.4s ease; }
-    .btn-machine-select { 
-        min-width: calc(33.33% - 6px); 
-        background: #fff; border: 2px solid transparent; border-radius: 10px; padding: 10px;
-        text-align: center; transition: 0.3s; cursor: pointer;
-        display: flex; align-items: center; justify-content: center; height: 50px;
+    /* Seletor de Máquinas Corrigido */
+    .machine-nav-container { 
+        position: relative; 
+        display: flex; 
+        align-items: center; 
+        background: #f8f9fa; 
+        border-radius: 15px; 
+        padding: 8px 40px; /* Espaço para as setas absolute */
+        border: 1px solid #eee; 
+        overflow: hidden;
     }
+    
+    .machine-track { 
+        display: flex; 
+        gap: 8px; 
+        width: 100%; 
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+
+    .btn-machine-select { 
+        /* flex: 0 0 garante que o botão não encolha nem cresça, mantendo 1/3 exato do espaço */
+        flex: 0 0 calc(33.333% - 6px); 
+        background: #fff; 
+        border: 2px solid transparent; 
+        border-radius: 10px; 
+        padding: 10px;
+        text-align: center; 
+        transition: 0.3s; 
+        cursor: pointer;
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        height: 50px;
+        white-space: nowrap;
+    }
+    
     .btn-machine-select.active { border-color: var(--coffee-gold); background: var(--coffee-brown); color: #fff; }
     
-    .nav-arrow { background: var(--coffee-brown); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .nav-arrow { 
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        background: var(--coffee-brown); 
+        color: white; 
+        border: none; 
+        border-radius: 50%; 
+        width: 30px; 
+        height: 30px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    #prevBtn { left: 8px; }
+    #nextBtn { right: 8px; }
+    
+    .nav-arrow:disabled { background: #ccc; opacity: 0.5; cursor: not-allowed; }
 
     /* Botões de Filtro D/S/M */
     .filter-group { display: flex; gap: 2px; background: #eee; padding: 2px; border-radius: 8px; }
@@ -127,6 +175,8 @@
 <script>
     let selectedMachine = null;
     let currentPeriod = 'M';
+    let currentPos = 0;
+    const itemsToShow = 3;
 
     const chartData = {
         'D': { labels: ['08h', '10h', '12h', '14h', '16h', '18h'], global: [5, 12, 8, 20, 15, 5], machine: [2, 5, 3, 10, 4, 1] },
@@ -198,24 +248,42 @@
         }
     }
 
-    let currentPos = 0;
-    const itemsToShow = 3;
     function scrollMachines(dir) {
         const track = document.getElementById('machineTrack');
         const btns = document.querySelectorAll('.btn-machine-select');
-        const itemWidth = btns[0].offsetWidth + 8;
+        if (btns.length <= itemsToShow) return;
+
+        // Calcula a largura real do item baseada no primeiro botão
+        const itemWidth = btns[0].offsetWidth + 8; 
+        
         currentPos += dir;
+        
         if (currentPos < 0) currentPos = 0;
         if (currentPos > btns.length - itemsToShow) currentPos = btns.length - itemsToShow;
+
         track.style.transform = `translateX(-${currentPos * itemWidth}px)`;
+        
+        updateArrowStates(btns.length);
+    }
+
+    function updateArrowStates(totalItems) {
         document.getElementById('prevBtn').disabled = (currentPos === 0);
-        document.getElementById('nextBtn').disabled = (currentPos >= btns.length - itemsToShow);
+        document.getElementById('nextBtn').disabled = (currentPos >= totalItems - itemsToShow);
+        
+        // Esconde as setas se houver 3 ou menos itens
+        const arrowDisplay = totalItems > itemsToShow ? 'flex' : 'none';
+        document.getElementById('prevBtn').style.display = arrowDisplay;
+        document.getElementById('nextBtn').style.display = arrowDisplay;
     }
 
     window.onload = () => {
         const first = document.querySelector('.btn-machine-select.active');
         if(first) first.click();
-        scrollMachines(0);
+        
+        // Timeout curto para garantir que o offsetWidth seja calculado após a renderização
+        setTimeout(() => {
+            updateArrowStates(document.querySelectorAll('.btn-machine-select').length);
+        }, 100);
     };
 </script>
 

@@ -18,18 +18,17 @@ class RoastController extends Controller
     /**
      * Tela Principal (Kanban)
      */
-    public function index() {
-        $machines = Machine::where('is_active', true)->get();
-        
-        // Demandas que ainda não foram finalizadas para o Kanban
-        $demands = RoastDemand::with(['lot', 'machine', 'mestre', 'batches', 'sensoryProfile'])
-                    ->where('status', '!=', 'finished')
-                    ->orderBy('created_at', 'asc')
-                    ->get();
+public function index() {
+    $machines = Machine::where('is_active', true)->get();
+    
+    // IMPORTANTE: Adicione 'lot.locations' no with()
+    $demands = RoastDemand::with(['lot.locations', 'machine', 'mestre', 'batches', 'sensoryProfile'])
+                ->where('status', '!=', 'finished')
+                ->orderBy('created_at', 'asc')
+                ->get();
 
-        return view('roasting.index', compact('machines', 'demands'));
-    }
-
+    return view('roasting.index', compact('machines', 'demands'));
+}
     /**
      * Retorna estatísticas filtradas por Máquina e Período (D/S/M) via AJAX
      */
@@ -184,4 +183,45 @@ class RoastController extends Controller
             return redirect()->route('roasting.index')->with('success', 'Demanda e ciclos gerados!');
         });
     }
+
+    public function updateOrder(Request $request)
+{
+    // Opcional: Validar se o usuário tem permissão
+    
+    $order = $request->input('order');
+
+    // Usamos uma transação para garantir que todos sejam atualizados ou nenhum
+    \DB::transaction(function () use ($order) {
+        foreach ($order as $item) {
+            \App\Models\RoastDemand::where('id', $item['id'])
+                ->update(['position' => $item['position']]);
+        }
+    });
+
+    return response()->json(['status' => 'success', 'message' => 'Ordem atualizada!']);
+}
+
+public function apiQueue() {
+    $user = auth()->user();
+    $demands = \App\Models\RoastDemand::with([
+        'lot.locations', // <--- ISSO É O QUE TRAZ O A1, B2, ETC
+        'sensoryProfile', 
+        'batches', 
+        'machine'
+    ])
+    ->where('mestre_user_id', $user->id)
+    ->where('status', '!=', 'finished')
+    ->get();
+
+    $totalCycles = 0;
+    foreach($demands as $demand) {
+        $totalCycles += $demand->batches->where('status', 'pending')->count();
+    }
+
+    return response()->json([
+        'mestre_name' => $user->name,
+        'total_cycles_today' => $totalCycles,
+        'demands' => $demands
+    ]);
+}
 }

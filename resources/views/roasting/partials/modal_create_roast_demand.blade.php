@@ -74,7 +74,7 @@
                                     <input type="number" name="total_weight" id="in-total" step="0.01" class="form-control fw-bold border-primary">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-primary">PESO POR CICLO (KG)</label>
+                                    <label class="form-label small fw-bold text-primary">PESO POR CICLO PADRÃO (KG)</label>
                                     <input type="number" name="partial_weight" id="in-partial" step="0.01" class="form-control fw-bold border-primary" disabled>
                                 </div>
                             </div>
@@ -88,10 +88,17 @@
                                 <div id="calc-details" class="d-none">
                                     <div class="p-3 bg-white shadow-sm rounded border-start border-4 border-primary mb-2">
                                         <div class="h3 fw-bold mb-0" id="res-ciclos">0</div>
-                                        <div class="small fw-bold text-uppercase opacity-50">Ciclos Gerados</div>
+                                        <div class="small fw-bold text-uppercase opacity-50">Ciclos Totais</div>
                                     </div>
-                                    <div id="alert-machine" class="alert alert-danger p-2 small d-none">Peso fora do limite da máquina!</div>
-                                    <div id="alert-remainder" class="alert alert-danger p-2 small d-none"><strong>Bloqueado:</strong> A divisão não é exata. Ajuste os pesos para não haver sobra.</div>
+
+                                    {{-- Info de Torra Quebrada --}}
+                                    <div id="box-quebrada" class="p-2 mb-2 border rounded bg-white d-none">
+                                        <small class="text-muted fw-bold d-block" style="font-size: 0.6rem;">TORRA PARCIAL (FINAL)</small>
+                                        <span id="val-quebrada" class="fw-bold text-dark">0.00 kg</span>
+                                    </div>
+
+                                    <div id="alert-machine" class="alert alert-danger p-2 small d-none">Ciclo padrão fora do limite!</div>
+                                    <div id="alert-remainder" class="alert alert-danger p-2 small d-none">A torra parcial está fora do limite da máquina!</div>
                                     <div id="suggest-machine" class="alert alert-info p-2 small d-none"></div>
                                 </div>
                                 <textarea name="notes" class="form-control mt-3" rows="3" placeholder="Observações..."></textarea>
@@ -135,7 +142,6 @@ $(document).ready(function() {
     $('#ajax-profile-search').on('input', function() {
         let q = $(this).val();
         if(q.length < 1) return $('#profile-res').addClass('d-none');
-        
         $.get("{{ route('roasting.search.profiles') }}", { q }, function(data) {
             let h = '';
             data.forEach(p => {
@@ -175,7 +181,7 @@ $(document).ready(function() {
 
     // 4. Lógica de Pesos e Máquinas
     $('#select-machine').change(function() { 
-        $('#in-partial').prop('disabled', false).val(''); 
+        $('#in-partial').prop('disabled', false); 
         calc();
     });
 
@@ -198,33 +204,36 @@ $(document).ready(function() {
             $('#calc-summary').addClass('d-none');
             $('#calc-details').removeClass('d-none');
             
-            let ciclos = Math.floor(total / partial);
+            let ciclosInteiros = Math.floor(total / partial);
             let sobra = fmod(total, partial);
             
-            // Exibe o número de ciclos (incluindo o ciclo incompleto visualmente se houver sobra)
-            $('#res-ciclos').text(sobra > 0.01 ? ciclos + 1 : ciclos);
+            // Total de batidas no torrador
+            $('#res-ciclos').text(sobra > 0.01 ? ciclosInteiros + 1 : ciclosInteiros);
+
+            // Exibe box de torra quebrada se houver sobra significativa
+            if(sobra > 0.01) {
+                $('#box-quebrada').removeClass('d-none');
+                $('#val-quebrada').text(sobra.toFixed(2) + ' kg');
+            } else {
+                $('#box-quebrada').addClass('d-none');
+            }
 
             const hasRemainder = sobra > 0.01;
             const machineLimitError = (partial < min || partial > max);
+            // Agora validamos se a SOBRA também cabe na máquina
+            const remainderLimitError = hasRemainder && (sobra < min || sobra > max);
             const stockError = (total > currentLotWeight);
 
             // Controle de alertas
             if (machineLimitError) $('#alert-machine').removeClass('d-none'); else $('#alert-machine').addClass('d-none');
-            if (hasRemainder) $('#alert-remainder').removeClass('d-none'); else $('#alert-remainder').addClass('d-none');
+            if (remainderLimitError) $('#alert-remainder').removeClass('d-none'); else $('#alert-remainder').addClass('d-none');
 
-            // Lógica de bloqueio do botão: 
-            // Bloqueia se: Sobrar café OU fora do limite da máquina OU falta de estoque
-            if(hasRemainder || machineLimitError || stockError) {
+            // Lógica de bloqueio: 
+            // Permite se (Não tem erro de máquina no ciclo padrão) E (Não tem erro de máquina na sobra ou não tem sobra) E (Tem estoque)
+            if(machineLimitError || remainderLimitError || stockError) {
                 $('#btn-submit').prop('disabled', true);
             } else {
                 $('#btn-submit').prop('disabled', false);
-            }
-
-            // Sugestão informativa (apenas se não estiver bloqueado pelo remainder)
-            if(!hasRemainder && sobra > 0.01 && sobra < min) {
-                $('#suggest-machine').html(`⚠️ Ciclo final de <b>${sobra.toFixed(2)}kg</b> abaixo do mínimo.`).removeClass('d-none');
-            } else {
-                $('#suggest-machine').addClass('d-none');
             }
 
         } else {
@@ -236,7 +245,6 @@ $(document).ready(function() {
 
     function fmod(a, b) { return Number((a - (Math.floor(a / b) * b)).toPrecision(8)); }
 
-    // Fechar listas ao clicar fora
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.position-relative').length) {
             $('.list-group').addClass('d-none');
