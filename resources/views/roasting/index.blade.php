@@ -19,6 +19,14 @@
     .kpi-mini small { font-size: 0.55rem; font-weight: 800; color: #888; text-transform: uppercase; }
     .kpi-mini .val { font-size: 1.1rem; font-weight: 800; color: var(--coffee-brown); line-height: 1.2; }
 
+    /* Botão de Ação Estilizado como KPI */
+    .btn-add-kpi { 
+        height: 75px; border-radius: 10px; border: none; background: #198754; color: white; 
+        display: flex; align-items: center; justify-content: center; gap: 8px; 
+        font-weight: 800; font-size: 0.75rem; text-transform: uppercase; transition: 0.3s;
+    }
+    .btn-add-kpi:hover { background: #157347; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
     /* Seletor de Máquinas Corrigido */
     .machine-nav-container { 
         position: relative; 
@@ -26,7 +34,7 @@
         align-items: center; 
         background: #f8f9fa; 
         border-radius: 15px; 
-        padding: 8px 40px; /* Espaço para as setas absolute */
+        padding: 8px 40px; 
         border: 1px solid #eee; 
         overflow: hidden;
     }
@@ -39,45 +47,24 @@
     }
 
     .btn-machine-select { 
-        /* flex: 0 0 garante que o botão não encolha nem cresça, mantendo 1/3 exato do espaço */
         flex: 0 0 calc(33.333% - 6px); 
-        background: #fff; 
-        border: 2px solid transparent; 
-        border-radius: 10px; 
-        padding: 10px;
-        text-align: center; 
-        transition: 0.3s; 
-        cursor: pointer;
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        height: 50px;
+        background: #fff; border: 2px solid transparent; border-radius: 10px; padding: 10px;
+        text-align: center; transition: 0.3s; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; height: 50px;
         white-space: nowrap;
     }
     
     .btn-machine-select.active { border-color: var(--coffee-gold); background: var(--coffee-brown); color: #fff; }
     
     .nav-arrow { 
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 10;
-        background: var(--coffee-brown); 
-        color: white; 
-        border: none; 
-        border-radius: 50%; 
-        width: 30px; 
-        height: 30px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
+        background: var(--coffee-brown); color: white; border: none; border-radius: 50%; 
+        width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; 
+        cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     
     #prevBtn { left: 8px; }
     #nextBtn { right: 8px; }
-    
     .nav-arrow:disabled { background: #ccc; opacity: 0.5; cursor: not-allowed; }
 
     /* Botões de Filtro D/S/M */
@@ -101,19 +88,19 @@
             </div>
 
             <div class="row g-2">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="kpi-mini shadow-sm">
                         <small>Total Torrado <span class="label-period">Mês</span></small>
                         <div class="val" id="kpi-global-weight">0,0 kg</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="kpi-mini shadow-sm">
                         <small id="kpi-machine-name">Torrado na Máquina</small>
                         <div class="val" id="kpi-machine-weight">0,0 kg</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="kpi-mini shadow-sm" id="clean-status-card">
                         <small>Status de Limpeza</small>
                         <div class="val">
@@ -121,6 +108,12 @@
                             <small class="fs-6 text-muted">/ <span id="clean-threshold">0</span> torras</small>
                         </div>
                     </div>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn-add-kpi shadow-sm w-100" data-bs-toggle="modal" data-bs-target="#modalCreateRoast">
+                        <i class="bi bi-plus-circle-fill fs-5"></i>
+                        Nova Demanda
+                    </button>
                 </div>
             </div>
 
@@ -159,12 +152,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="d-flex justify-content-start mb-2 px-1">
-        <button class="btn btn-success fw-bold btn-sm shadow-sm px-3" style="font-size: 0.7rem; border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#modalCreateRoast">
-            <i class="bi bi-plus-lg me-1"></i> NOVA DEMANDA
-        </button>
     </div>
 
     <div class="kanban-wrapper">
@@ -253,24 +240,19 @@
         const btns = document.querySelectorAll('.btn-machine-select');
         if (btns.length <= itemsToShow) return;
 
-        // Calcula a largura real do item baseada no primeiro botão
         const itemWidth = btns[0].offsetWidth + 8; 
-        
         currentPos += dir;
         
         if (currentPos < 0) currentPos = 0;
         if (currentPos > btns.length - itemsToShow) currentPos = btns.length - itemsToShow;
 
         track.style.transform = `translateX(-${currentPos * itemWidth}px)`;
-        
         updateArrowStates(btns.length);
     }
 
     function updateArrowStates(totalItems) {
         document.getElementById('prevBtn').disabled = (currentPos === 0);
         document.getElementById('nextBtn').disabled = (currentPos >= totalItems - itemsToShow);
-        
-        // Esconde as setas se houver 3 ou menos itens
         const arrowDisplay = totalItems > itemsToShow ? 'flex' : 'none';
         document.getElementById('prevBtn').style.display = arrowDisplay;
         document.getElementById('nextBtn').style.display = arrowDisplay;
@@ -279,8 +261,6 @@
     window.onload = () => {
         const first = document.querySelector('.btn-machine-select.active');
         if(first) first.click();
-        
-        // Timeout curto para garantir que o offsetWidth seja calculado após a renderização
         setTimeout(() => {
             updateArrowStates(document.querySelectorAll('.btn-machine-select').length);
         }, 100);
