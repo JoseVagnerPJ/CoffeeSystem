@@ -3,102 +3,114 @@
 @section('title', 'Início')
 
 @section('content')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <div class="fade-in">
+    {{-- Header Personalizado --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="h3 fw-bold mb-0" style="color: var(--coffee-brown);">Bem-vindo, José! 👋</h2>
-            <p class="text-muted small mb-0">Painel de Controle Real-Time da Unique Cafés</p>
+            <h2 class="h3 fw-bold mb-0" style="color: var(--coffee-brown);">Bem-vindo, José Vagner! 👋</h2>
+            <p class="text-muted small mb-0">Painel de Controle Real-Time | {{ Auth::user()->mainCompany->name }}</p>
         </div>
-        <div class="input-group" style="width: 250px;">
-            <input type="text" class="form-control form-control-sm border-0 shadow-sm" placeholder="Buscar ID (Rastrear)...">
-            <button class="btn btn-sm btn-dark shadow-sm"><i class="bi bi-search"></i></button>
+        
+        {{-- Filtro de Período Suspenso --}}
+        <div class="d-flex gap-2">
+            <form action="{{ route('inicio') }}" method="GET" id="filterForm">
+                <select name="periodo" class="form-select form-select-sm border-0 shadow-sm fw-bold" onchange="this.form.submit()" style="border-radius: 8px; color: var(--coffee-brown);">
+                    <option value="dia" {{ $periodo == 'dia' ? 'selected' : '' }}>Hoje</option>
+                    <option value="semana" {{ $periodo == 'semana' ? 'selected' : '' }}>Esta Semana</option>
+                    <option value="mes" {{ $periodo == 'mes' ? 'selected' : '' }}>Este Mês</option>
+                    <option value="trimestre" {{ $periodo == 'trimestre' ? 'selected' : '' }}>Trimestre</option>
+                    <option value="semestre" {{ $periodo == 'semestre' ? 'selected' : '' }}>Semestre</option>
+                    <option value="ano" {{ $periodo == 'ano' ? 'selected' : '' }}>Anual</option>
+                </select>
+            </form>
         </div>
     </div>
 
+    {{-- Seção 1: Estoque por Perfil Sensorial --}}
+    <h6 class="fw-bold text-uppercase mb-3" style="color: var(--coffee-gold); font-size: 0.75rem; letter-spacing: 1px;">Armazenamento por Perfil Sensorial</h6>
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm d-flex flex-row overflow-hidden" style="border-radius: 12px; background: white;">
-                <div class="d-flex align-items-center justify-content-center" style="width: 70px; background-color: var(--coffee-gold); color: var(--coffee-brown);">
-                    <i class="bi bi-gear-wide-connected fs-2"></i>
-                </div>
-                <div class="p-3 flex-grow-1">
-                    <div class="text-muted small text-uppercase">Torradores Ativos</div>
-                    <h3 class="fw-bold mb-0" style="color: var(--coffee-brown);">{{ $stats['maquinas'] }} <small class="fs-6 text-muted">/ 2</small></h3>
-                    <span class="badge bg-success" style="font-size: 0.6rem;">SISTEMA ONLINE</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm d-flex flex-row overflow-hidden" style="border-radius: 12px; background: white;">
-                <div class="d-flex align-items-center justify-content-center" style="width: 70px; background-color: var(--coffee-brown); color: var(--coffee-gold);">
-                    <i class="bi bi-fire fs-2"></i>
-                </div>
-                <div class="p-3 flex-grow-1">
-                    <div class="d-flex justify-content-between">
-                        <div class="text-muted small text-uppercase">Produção Total</div>
-                        <div class="btn-group">
-                            <button class="btn btn-outline-warning btn-sm py-0 px-2 active" style="font-size: 0.6rem;">D</button>
-                            <button class="btn btn-outline-warning btn-sm py-0 px-2" style="font-size: 0.6rem;">M</button>
-                        </div>
+        @foreach($estoquePorPerfil as $perfil)
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; border-left: 5px solid {{ $perfil->color }} !important;">
+                <div class="p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="fw-bold small" style="color: {{ $perfil->color }}">{{ $perfil->name }}</span>
+                        <span class="badge bg-light text-muted small">Lote #{{ $perfil->lote_id }}</span>
                     </div>
-                    <h3 class="fw-bold mb-0" style="color: var(--coffee-brown);">120.5 <small class="fs-6">kg</small></h3>
+                    <h4 class="fw-bold mb-0" style="color: var(--coffee-brown);">{{ $perfil->total_kg }} <small class="fs-6">kg</small></h4>
+                    <div class="text-muted small fw-bold">{{ $perfil->total_sacas }} sacas</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm d-flex flex-row overflow-hidden border-start border-danger border-4" style="border-radius: 12px; background: white;">
-                <div class="d-flex align-items-center justify-content-center text-danger" style="width: 70px;">
-                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
-                </div>
-                <div class="p-3 flex-grow-1">
-                    <div class="text-muted small text-uppercase">Próxima Limpeza</div>
-                    <h3 class="fw-bold mb-0 text-danger">38 <small class="fs-6 text-muted">/ 40 torras</small></h3>
-                    <span class="text-danger fw-bold" style="font-size: 0.7rem;">Carmomaq: Limpeza pendente!</span>
-                </div>
-            </div>
-        </div>
+        @endforeach
     </div>
 
+    {{-- Seção 2: Gráficos --}}
     <div class="row">
-        <div class="col-md-8 mb-4">
+        {{-- Gráfico de Recebimento --}}
+        <div class="col-md-6 mb-4">
             <div class="card border-0 shadow-sm p-4 h-100" style="background: white; border-radius: 12px;">
-                <h6 class="mb-4 fw-bold text-uppercase" style="color: var(--coffee-gold); letter-spacing: 1px;">Fila de Produção Hoje</h6>
-                <div class="row g-3">
-                    <div class="col-4">
-                        <div class="p-2 rounded bg-light">
-                            <div class="text-muted mb-3 fw-bold small">A TORRAR (2)</div>
-                            <div class="bg-white p-2 rounded shadow-sm mb-2 border-start border-3 border-warning small">#502 - Bourbon Amarelo</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="p-2 rounded" style="background: rgba(192, 161, 107, 0.1);">
-                            <div class="text-warning mb-3 fw-bold small">NO TORRADOR (1)</div>
-                            <div class="bg-white p-2 rounded shadow-sm mb-2 border-start border-3 border-dark small"><strong>PROBAT L25</strong></div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="p-2 rounded bg-light">
-                            <div class="text-success mb-3 fw-bold small">FINALIZADO (8)</div>
-                            <div class="bg-white p-2 rounded shadow-sm mb-2 border-start border-3 border-success small">#499 - Geisha</div>
-                        </div>
-                    </div>
-                </div>
+                <h6 class="mb-4 fw-bold text-uppercase" style="color: var(--coffee-gold); letter-spacing: 1px;">Recebimentos (KG)</h6>
+                <canvas id="chartRecebimento" height="200"></canvas>
             </div>
         </div>
 
-        <div class="col-md-4 mb-4">
+        {{-- Gráfico de Laboratório --}}
+        <div class="col-md-6 mb-4">
             <div class="card border-0 shadow-sm p-4 h-100" style="background: white; border-radius: 12px;">
-                <h6 class="mb-4 fw-bold text-uppercase" style="color: var(--coffee-gold); letter-spacing: 1px;">Últimas Provas</h6>
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item px-0 border-0 mb-2">
-                        <div class="d-flex justify-content-between"><small class="text-muted">Hoje, 14:20</small><span class="badge bg-dark text-warning">87.5 pts</span></div>
-                        <p class="mb-0 small fw-bold">Bourbon Amarelo</p>
-                    </div>
-                </div>
+                <h6 class="mb-4 fw-bold text-uppercase" style="color: var(--coffee-gold); letter-spacing: 1px;">Atividade de Laboratório</h6>
+                <canvas id="chartLaboratorio" height="200"></canvas>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    // Gráfico de Recebimentos
+    const ctxRec = document.getElementById('chartRecebimento').getContext('2d');
+    new Chart(ctxRec, {
+        type: 'line',
+        data: {
+            labels: {!! json_encode($recebimentos->pluck('data')) !!},
+            datasets: [{
+                label: 'Peso Recebido (kg)',
+                data: {!! json_encode($recebimentos->pluck('peso')) !!},
+                borderColor: '#c0a16b',
+                backgroundColor: 'rgba(192, 161, 107, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // Gráfico de Laboratório (Mesas vs Xícaras)
+    const ctxLab = document.getElementById('chartLaboratorio').getContext('2d');
+    new Chart(ctxLab, {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode($cuppingData->pluck('data')) !!},
+            datasets: [
+                {
+                    label: 'Mesas de Prova',
+                    data: {!! json_encode($cuppingData->pluck('total_mesas')) !!},
+                    backgroundColor: '#3e2723',
+                    borderRadius: 5,
+                },
+                {
+                    label: 'Xícaras Provadas',
+                    data: {!! json_encode($cuppingData->pluck('total_xicaras')) !!},
+                    backgroundColor: '#c0a16b',
+                    borderRadius: 5,
+                }
+            ]
+        },
+        options: { 
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>
 @endsection

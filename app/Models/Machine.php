@@ -10,18 +10,19 @@ class Machine extends Model
     use HasFactory;
 
     // Campos que podem ser preenchidos em massa
-    protected $fillable = [
-        'name', 
-        'brand', 
-        'model', 
-        'year', 
-        'serial_number', 
-        'max_capacity', 
-        'min_capacity', 
-        'cleaning_threshold', 
-        'current_roasts', 
-        'is_active'
-    ];
+protected $fillable = [
+    'main_company_id', 
+    'name', 
+    'brand', 
+    'model', 
+    'year', 
+    'serial_number', 
+    'max_capacity', 
+    'min_capacity', 
+    'cleaning_threshold', 
+    'current_roasts', 
+    'is_active'
+];
 
     /**
      * Relacionamento: Uma máquina tem muitas manutenções.

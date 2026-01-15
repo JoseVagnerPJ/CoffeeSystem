@@ -3,50 +3,62 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Company;
 use App\Models\User;
 use App\Models\GreenCoffeeLot;
 use App\Models\Machine;
+use App\Models\CuppingSession; // Assumindo que este é o nome do seu modelo
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    private function getStats()
+    public function index(Request $request) 
     {
         $companyId = Auth::user()->main_company_id;
-        return [
-            'usuarios' => User::where('main_company_id', $companyId)->count(),
-            'lotes'    => GreenCoffeeLot::where('user_id', Auth::id())->count(), // Ajustar se lote for por empresa
-            'maquinas' => Machine::count(),
+        $periodo = $request->get('periodo', 'mes'); // Padrão: mensal
+
+        // 1. Estatísticas Básicas
+        $stats = [
+            'maquinas' => Machine::where('main_company_id', $companyId)->count(),
+            'lotes'    => GreenCoffeeLot::where('main_company_id', $companyId)->count(),
         ];
-    }
 
-    public function index() 
-    {
-        $stats = $this->getStats();
-        return view('dashboard.index', compact('stats'));
-    }
+        // 2. Estoque por Perfil Sensorial (Sacas e KG)
+        // Assume-se que GreenCoffeeLot tem sensory_profile_id e peso_atual
+        $estoquePorPerfil = DB::table('green_coffee_lots')
+            ->join('sensory_profiles', 'green_coffee_lots.sensory_profile_id', '=', 'sensory_profiles.id')
+            ->where('green_coffee_lots.main_company_id', $companyId)
+            ->select(
+                'sensory_profiles.name',
+                'sensory_profiles.color',
+                'green_coffee_lots.id as lote_id',
+                DB::raw('SUM(peso_atual) as total_kg')
+            )
+            ->groupBy('sensory_profiles.id', 'sensory_profiles.name', 'sensory_profiles.color', 'green_coffee_lots.id')
+            ->get()
+            ->map(function($item) {
+                $item->total_sacas = number_format($item->total_kg / 60, 1); // 60kg por saca
+                return $item;
+            });
 
-    public function laboratorio() 
-    {
-        $labStats = ['total_mesas' => 42, 'total_xicaras' => 156, 'maior_nota' => 91.5];
-        return view('laboratory.index', compact('labStats'));
-    }
+        // 3. Dados para o Gráfico de Recebimento
+        $recebimentos = GreenCoffeeLot::where('main_company_id', $companyId)
+            ->select(DB::raw('DATE(created_at) as data'), DB::raw('SUM(peso_inicial) as peso'))
+            ->groupBy('data')
+            ->orderBy('data', 'ASC')
+            ->get();
 
-    public function torrefacao() 
-    {
-        return view('roasting.index');
-    }
+        // 4. Dados para o Gráfico de Laboratório (Mesas e Xícaras)
+        $cuppingData = DB::table('cupping_sessions')
+            ->where('main_company_id', $companyId)
+            ->select(
+                DB::raw('DATE(created_at) as data'),
+                DB::raw('COUNT(id) as total_mesas'),
+                DB::raw('SUM(items_count) as total_xicaras') // Assume que tem contador de amostras
+            )
+            ->groupBy('data')
+            ->get();
 
-    public function cadastros()
-    {
-        $cadastrosStats = ['variedades' => 12, 'fornecedores' => 28, 'maquinas' => 2, 'equipe' => 5];
-        return view('registries.index', compact('cadastrosStats'));
-    }
-
-    public function configuracoes() 
-    {
-        return view('settings.index');
+        return view('dashboard.index', compact('stats', 'estoquePorPerfil', 'recebimentos', 'cuppingData', 'periodo'));
     }
 }

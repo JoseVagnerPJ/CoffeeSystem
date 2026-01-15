@@ -11,9 +11,12 @@ class CreateMachinesTable extends Migration
      *
      * @return void
      */
-    public function up() {
+public function up() {
     Schema::create('machines', function (Blueprint $table) {
         $table->id();
+        // Adicionado para o controle multi-unidade do Ctrl+Café
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade'); 
+        
         $table->string('name');
         $table->string('brand');
         $table->string('model');
@@ -25,8 +28,8 @@ class CreateMachinesTable extends Migration
         $table->integer('current_roasts')->default(0); // Contador atual
         $table->boolean('is_active')->default(true); // Para a exclusão lógica
         $table->timestamps();
-        });
-    }
+    });
+}
 
     /**
      * Reverse the migrations.
