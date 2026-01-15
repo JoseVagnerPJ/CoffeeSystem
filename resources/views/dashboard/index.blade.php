@@ -33,10 +33,10 @@
     <div class="row g-3 mb-4">
         @foreach($estoquePorPerfil as $perfil)
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; border-left: 5px solid {{ $perfil->color }} !important;">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; border-left: 5px solid {{ $perfil->color_hex }} !important;">
                 <div class="p-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="fw-bold small" style="color: {{ $perfil->color }}">{{ $perfil->name }}</span>
+                        <span class="fw-bold small" style="color: {{ $perfil->color_hex }}">{{ $perfil->name }}</span>
                         <span class="badge bg-light text-muted small">Lote #{{ $perfil->lote_id }}</span>
                     </div>
                     <h4 class="fw-bold mb-0" style="color: var(--coffee-brown);">{{ $perfil->total_kg }} <small class="fs-6">kg</small></h4>
