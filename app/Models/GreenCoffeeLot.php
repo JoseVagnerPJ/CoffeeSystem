@@ -14,7 +14,7 @@ class GreenCoffeeLot extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'sensory_profile_id', 'origin_id', 'origin_type',
+        'main_company_id', 'user_id', 'sensory_profile_id', 'origin_id', 'origin_type',
         'reference', 'origin', 'process', 'address_row', 'address_pos',
         'quantity_bags', 'unit_weight', 'total_weight',
     ];

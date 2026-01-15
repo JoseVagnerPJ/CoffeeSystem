@@ -18,6 +18,7 @@ class CreateGreenCoffeeLotsTable extends Migration
             // Relacionamento Polimórfico (ID e Tipo do Fornecedor/Fazenda/Empresa)
             $table->unsignedBigInteger('origin_id')->nullable();
             $table->string('origin_type')->nullable();
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
 
             $table->string('reference');       
             $table->string('origin'); // Mantido para nome de exibição rápido          
