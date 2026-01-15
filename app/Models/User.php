@@ -33,17 +33,19 @@ class User extends Authenticatable
     }
 
     public function hasPermission($permission)
-    {
-        if (!$this->profile) {
-            return false;
-        }
-
-        $permissions = $this->profile->permissions;
-
-        if (isset($permissions['all_access']) && $permissions['all_access']) {
-            return true;
-        }
-
-        return isset($permissions[$permission]) && $permissions[$permission];
+{
+    if (!$this->profile || !$this->is_active) {
+        return false;
     }
+
+    $permissions = $this->profile->permissions;
+
+    // Chave Mestra: Se tiver all_access ou for Dev, retorna true para tudo
+    if ((isset($permissions['all_access']) && $permissions['all_access']) || 
+        (isset($permissions['dev_access']) && $permissions['dev_access'])) {
+        return true;
+    }
+
+    return isset($permissions[$permission]) && $permissions[$permission];
+}
 }

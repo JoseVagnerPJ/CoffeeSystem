@@ -8,7 +8,7 @@ use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage; // Necessário para gerenciar arquivos
+use Illuminate\Support\Facades\Storage;
 
 class TeamController extends Controller
 {
@@ -17,15 +17,20 @@ class TeamController extends Controller
      */
     public function index()
     {
-        $company = Auth::user()->mainCompany;
+        $user = Auth::user();
+        $company = $user->mainCompany;
+
+        // Bloqueio de segurança: Se não tem nenhuma das permissões de time, não acessa a tela
+        if (!$user->hasPermission('team_full') && !$user->hasPermission('team_user_only')) {
+            abort(403, 'Acesso Negado. Você não tem permissão para gerenciar a equipe.');
+        }
+
         $profiles = Profile::where('main_company_id', $company->id)->get();
         
-        // Puxa todos os usuários da unidade sem filtrar pelo status
         $users = User::where('main_company_id', $company->id)
                      ->with('profile')
                      ->get();
 
-        // CORREÇÃO: Caminho atualizado para a nova pasta 'registries'
         return view('registries.team.index', compact('company', 'profiles', 'users'));
     }
 
@@ -34,20 +39,24 @@ class TeamController extends Controller
      */
     public function updateCompany(Request $request)
     {
+        // VALIDAÇÃO DE PERMISSÃO
+        if (!auth()->user()->hasPermission('settings_edit')) {
+            return redirect()->back()->with('error', 'Você não tem permissão para alterar os dados da empresa.');
+        }
+
         $company = Auth::user()->mainCompany;
         
         $request->validate([
             'name' => 'required|string|max:255',
             'cnpj' => 'required|string',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048' // Validação de imagem
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
         $data = [
             'name' => $request->name,
-            'cnpj' => preg_replace('/\D/', '', $request->cnpj) // Salva apenas números
+            'cnpj' => preg_replace('/\D/', '', $request->cnpj)
         ];
 
-        // Se houver nova logo, apaga a antiga e salva a nova
         if ($request->hasFile('logo')) {
             if ($company->logo) {
                 Storage::disk('public')->delete($company->logo);
@@ -61,44 +70,84 @@ class TeamController extends Controller
     }
 
     /**
-     * Cadastra um novo perfil de acesso.
+     * Cadastra um novo perfil de acesso com trava de hierarquia.
      */
-public function storeProfile(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-    ]);
+    public function storeProfile(Request $request)
+    {
+        // VALIDAÇÃO DE PERMISSÃO
+        if (!auth()->user()->hasPermission('team_full')) {
+            return redirect()->back()->with('error', 'Você não tem permissão para gerenciar perfis de acesso.');
+        }
 
-    // O segredo está em capturar o array de permissões e o ID da empresa
-    \App\Models\Profile::create([
-        'name' => $request->name,
-        'permissions' => $request->permissions ?? [], // Se nada for marcado, salva array vazio
-        'main_company_id' => auth()->user()->main_company_id,
-    ]);
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
 
-    return redirect()->back()->with('success', 'Nível de acesso configurado!');
-}
+        $requestedPermissions = $request->permissions ?? [];
+        $allowedPermissions = [];
+
+        // TRAVA DE HIERARQUIA: Só permite salvar permissões que o criador já possui
+        foreach ($requestedPermissions as $key => $value) {
+            if (auth()->user()->hasPermission($key)) {
+                $allowedPermissions[$key] = $value;
+            }
+        }
+
+        Profile::create([
+            'name' => $request->name,
+            'permissions' => $allowedPermissions,
+            'main_company_id' => auth()->user()->main_company_id,
+        ]);
+
+        return redirect()->back()->with('success', 'Nível de acesso configurado com base nas suas permissões!');
+    }
 
     /**
-     * Exclui um perfil de acesso.
+     * Exclui um perfil de acesso (Protege o Desenvolvedor).
      */
     public function destroyProfile($id)
     {
         $profile = Profile::where('main_company_id', Auth::user()->main_company_id)->findOrFail($id);
+
+        // IMUNIDADE: Perfil Desenvolvedor ou All Access não podem ser apagados
+        $isDevProfile = ($profile->name === 'Desenvolvedor' || (isset($profile->permissions['dev_access']) && $profile->permissions['dev_access']));
+        
+        if ($isDevProfile) {
+            return redirect()->back()->with('error', 'O perfil mestre do sistema é vitalício e não pode ser removido.');
+        }
+
+        // Apenas Admin Total ou Dev podem excluir perfis
+        if (!auth()->user()->hasPermission('all_access') && !auth()->user()->hasPermission('dev_access')) {
+            return redirect()->back()->with('error', 'Apenas administradores totais podem remover perfis de acesso.');
+        }
+
         $profile->delete();
-        return redirect()->back()->with('success', 'Perfil removido!');
+        return redirect()->back()->with('success', 'Perfil removido com sucesso!');
     }
 
+    /**
+     * Cria um novo usuário com validação de hierarquia.
+     */
     public function storeUser(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            // A validação unique agora ignora quem não é da mesma empresa
             'username' => 'required|string|unique:users,username', 
             'password' => 'required|min:3',
             'profile_id' => 'required|exists:profiles,id',
             'photo' => 'nullable|image|max:2048'
         ]);
+
+        $targetProfile = Profile::findOrFail($request->profile_id);
+
+        // TRAVA DE HIERARQUIA: Não permite criar usuário com cargo superior ao seu
+        if (!auth()->user()->hasPermission('all_access')) {
+            foreach ($targetProfile->permissions as $perm => $isActive) {
+                if ($isActive && !auth()->user()->hasPermission($perm)) {
+                    return redirect()->back()->with('error', 'Você não pode atribuir um perfil que possui permissões superiores às suas.');
+                }
+            }
+        }
 
         $userData = [
             'main_company_id' => Auth::user()->main_company_id,
@@ -106,7 +155,7 @@ public function storeProfile(Request $request)
             'name' => $request->name,
             'username' => $request->username,
             'password' => Hash::make($request->password),
-            'is_active' => true // GARANTA que isso seja true para ele aparecer na lista
+            'is_active' => true
         ];
 
         if ($request->hasFile('photo')) {
@@ -115,12 +164,11 @@ public function storeProfile(Request $request)
 
         User::create($userData);
 
-        // CORREÇÃO: Rota de redirecionamento atualizada para o novo padrão registries.team
         return redirect()->route('registries.team.index')->with('success', 'Colaborador cadastrado e ativo!');
     }
 
     /**
-     * Atualiza dados do colaborador e gerencia a substituição da foto.
+     * Atualiza dados do colaborador com validação de hierarquia.
      */
     public function updateUser(Request $request, $id)
     {
@@ -128,12 +176,22 @@ public function storeProfile(Request $request)
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'profile_id' => 'required|exists:profiles,id', // Adicionado validação do perfil
+            'profile_id' => 'required|exists:profiles,id',
             'password' => 'nullable|min:3',
             'photo' => 'nullable|image|max:2048'
         ]);
 
-        // Atualizamos o nome e o perfil
+        $targetProfile = Profile::findOrFail($request->profile_id);
+
+        // TRAVA DE HIERARQUIA: Impede promover alguém para um nível que você não alcança
+        if (!auth()->user()->hasPermission('all_access')) {
+            foreach ($targetProfile->permissions as $perm => $isActive) {
+                if ($isActive && !auth()->user()->hasPermission($perm)) {
+                    return redirect()->back()->with('error', 'Você não tem autoridade para atribuir este nível de acesso.');
+                }
+            }
+        }
+
         $data = [
             'name' => $request->name,
             'profile_id' => $request->profile_id
@@ -156,7 +214,7 @@ public function storeProfile(Request $request)
     }
 
     /**
-     * Inativa o colaborador e LIBERA o nome de usuário para novo cadastro.
+     * Inativa o colaborador (Protege o Desenvolvedor).
      */
     public function inactivateUser($id)
     {
@@ -166,7 +224,11 @@ public function storeProfile(Request $request)
             return redirect()->back()->with('error', 'Você não pode alterar seu próprio status.');
         }
 
-        // Inverte o status atual (Toggle)
+        // IMUNIDADE: Desenvolvedor ou Admin Total não podem ser inativados por terceiros
+        if ($user->hasPermission('dev_access') || $user->hasPermission('all_access')) {
+            return redirect()->back()->with('error', 'Este usuário possui acesso vitalício de segurança e não pode ser alterado.');
+        }
+
         $user->update([
             'is_active' => !$user->is_active
         ]);
