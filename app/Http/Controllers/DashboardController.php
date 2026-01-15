@@ -5,60 +5,175 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\GreenCoffeeLot;
-use App\Models\Machine;
-use App\Models\CuppingSession; // Assumindo que este é o nome do seu modelo
+use App\Models\CuppingSession;
+use App\Models\Cup;
+use App\Models\Company;
+use App\Models\Farm;
+use App\Models\Producer;
+use App\Models\RoastingBatch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    /**
+     * Dashboard Principal
+     */
     public function index(Request $request) 
     {
-        $companyId = Auth::user()->main_company_id;
-        $periodo = $request->get('periodo', 'mes'); // Padrão: mensal
+        $user = Auth::user();
+        $periodo = $request->get('periodo', 'M');
 
-        // 1. Estatísticas Básicas
-        $stats = [
-            'maquinas' => Machine::where('main_company_id', $companyId)->count(),
-            'lotes'    => GreenCoffeeLot::where('main_company_id', $companyId)->count(),
-        ];
+        // Ajuste de fuso: -3 horas para o filtro de início
+        $dataInicio = Carbon::now()->subHours(3)->startOfMonth();
+        switch ($periodo) {
+            case 'D': $dataInicio = Carbon::now()->subHours(3)->startOfDay(); break;
+            case 'S': $dataInicio = Carbon::now()->subHours(3)->startOfWeek(); break;
+            case 'T': $dataInicio = Carbon::now()->subHours(3)->subMonths(3); break;
+            case 'Se': $dataInicio = Carbon::now()->subHours(3)->subMonths(6); break;
+            case 'A': $dataInicio = Carbon::now()->subHours(3)->startOfYear(); break;
+        }
 
-        // 2. Estoque por Perfil Sensorial (Sacas e KG)
-        // Assume-se que GreenCoffeeLot tem sensory_profile_id e peso_atual
-        $estoquePorPerfil = DB::table('green_coffee_lots')
-            ->join('sensory_profiles', 'green_coffee_lots.sensory_profile_id', '=', 'sensory_profiles.id')
-            ->where('green_coffee_lots.main_company_id', $companyId)
-            ->select(
-                'sensory_profiles.name',
-                'sensory_profiles.color',
-                'green_coffee_lots.id as lote_id',
-                DB::raw('SUM(peso_atual) as total_kg')
-            )
-            ->groupBy('sensory_profiles.id', 'sensory_profiles.name', 'sensory_profiles.color', 'green_coffee_lots.id')
+        // 1. ESTOQUE POR PERFIL (Cards e Mapa)
+        $estoquePorPerfil = GreenCoffeeLot::with('sensoryProfile')
+            ->select('sensory_profile_id', 'reference',
+                DB::raw('SUM(total_weight) as total_kg'),
+                DB::raw('SUM(quantity_bags) as total_sacas'))
+            ->groupBy('sensory_profile_id', 'reference')
+            ->get();
+
+        // 2. ÚLTIMOS RECEBIMENTOS (Ordenado do antigo -> novo e -3h)
+        $ultimosRecebimentos = GreenCoffeeLot::orderBy('created_at', 'DESC')
+            ->limit(6)
             ->get()
-            ->map(function($item) {
-                $item->total_sacas = number_format($item->total_kg / 60, 1); // 60kg por saca
-                return $item;
+            ->reverse() // Inverte para o antigo ficar na esquerda
+            ->values()
+            ->map(function($lote) {
+                return [
+                    'perfil_id' => $lote->sensory_profile_id,
+                    'peso' => $lote->total_weight,
+                    'data' => $lote->created_at->subHours(3)->format('d/m H:i:s')
+                ];
             });
 
-        // 3. Dados para o Gráfico de Recebimento
-        $recebimentos = GreenCoffeeLot::where('main_company_id', $companyId)
-            ->select(DB::raw('DATE(created_at) as data'), DB::raw('SUM(peso_inicial) as peso'))
+        // 3. LABORATÓRIO (Ordenado ASC e ajuste de -3h no Agrupamento)
+        $mesasData = CuppingSession::where('session_date', '>=', $dataInicio)
+            ->select(
+                DB::raw('DATE(DATE_SUB(created_at, INTERVAL 3 HOUR)) as data'), 
+                DB::raw('COUNT(id) as total')
+            )
             ->groupBy('data')
             ->orderBy('data', 'ASC')
             ->get();
 
-        // 4. Dados para o Gráfico de Laboratório (Mesas e Xícaras)
-        $cuppingData = DB::table('cupping_sessions')
-            ->where('main_company_id', $companyId)
+        $xicarasData = Cup::where('created_at', '>=', $dataInicio)
             ->select(
-                DB::raw('DATE(created_at) as data'),
-                DB::raw('COUNT(id) as total_mesas'),
-                DB::raw('SUM(items_count) as total_xicaras') // Assume que tem contador de amostras
+                DB::raw('DATE(DATE_SUB(created_at, INTERVAL 3 HOUR)) as data'), 
+                DB::raw('COUNT(id) as total')
             )
             ->groupBy('data')
+            ->orderBy('data', 'ASC')
             ->get();
 
-        return view('dashboard.index', compact('stats', 'estoquePorPerfil', 'recebimentos', 'cuppingData', 'periodo'));
+        return view('dashboard.index', compact('user', 'estoquePorPerfil', 'ultimosRecebimentos', 'mesasData', 'xicarasData', 'periodo'));
+    }
+
+    /**
+     * AJAX: Alternância entre Entradas (Recebimentos) e Saídas (Torras)
+     */
+    public function getMovimentacaoData(Request $request) 
+{
+    $tipo = $request->get('tipo', 'entrada');
+    
+    if ($tipo == 'entrada') {
+        // Busca os últimos 6 lotes de café verde (Entradas)
+        $dados = \App\Models\GreenCoffeeLot::orderBy('created_at', 'DESC')
+            ->limit(6)->get()->reverse()->values()
+            ->map(function($lote) {
+                return [
+                    'peso' => $lote->total_weight,
+                    'data' => $lote->created_at->subHours(3)->format('d/m H:i:s')
+                ];
+            });
+        $titulo = "ÚLTIMOS RECEBIMENTOS";
+    } else {
+        // Busca as últimas 6 torras finalizadas (Saídas)
+        $dados = \App\Models\RoastingBatch::whereNotNull('finished_at')
+            ->orderBy('finished_at', 'DESC')
+            ->limit(6)->get()->reverse()->values()
+            ->map(function($batch) {
+                return [
+                    'peso' => $batch->weight_out,
+                    'data' => $batch->finished_at->subHours(3)->format('d/m H:i:s')
+                ];
+            });
+        $titulo = "ÚLTIMAS SAÍDAS";
+    }
+
+    return response()->json(['dados' => $dados, 'titulo' => $titulo]);
+}
+    
+public function getLaboratorioData(Request $request) 
+{
+    $periodo = $request->get('periodo', 'M');
+
+    // Ajuste de fuso: -3 horas para o filtro de início
+    $dataInicio = Carbon::now()->subHours(3)->startOfMonth();
+    switch ($periodo) {
+        case 'D': $dataInicio = Carbon::now()->subHours(3)->startOfDay(); break;
+        case 'S': $dataInicio = Carbon::now()->subHours(3)->startOfWeek(); break;
+        case 'T': $dataInicio = Carbon::now()->subHours(3)->subMonths(3); break;
+        case 'Se': $dataInicio = Carbon::now()->subHours(3)->subMonths(6); break;
+        case 'A': $dataInicio = Carbon::now()->subHours(3)->startOfYear(); break;
+    }
+
+    // Busca Mesas (CuppingSession)
+    $mesas = \App\Models\CuppingSession::where('created_at', '>=', $dataInicio)
+        ->select(DB::raw('DATE(DATE_SUB(created_at, INTERVAL 3 HOUR)) as data'), DB::raw('COUNT(id) as total'))
+        ->groupBy('data')->orderBy('data', 'ASC')->get();
+
+    // Busca Xícaras (Cup)
+    $xicaras = \App\Models\Cup::where('created_at', '>=', $dataInicio)
+        ->select(DB::raw('DATE(DATE_SUB(created_at, INTERVAL 3 HOUR)) as data'), DB::raw('COUNT(id) as total'))
+        ->groupBy('data')->orderBy('data', 'ASC')->get();
+
+    // Organiza labels únicos (datas)
+    $labels = $mesas->pluck('data')->merge($xicaras->pluck('data'))->unique()->sort()->values();
+
+    return response()->json([
+        'labels' => $labels,
+        'mesas' => $mesas->pluck('total'),
+        'xicaras' => $xicaras->pluck('total')
+    ]);
+}
+
+    /**
+     * Módulo de Cadastros (Registries)
+     */
+    public function cadastros()
+    {
+        $cadastrosStats = [
+            'variedades'   => 12, 
+            'fornecedores' => Company::count() + Farm::count() + Producer::count(),
+            'equipe'       => User::count()
+        ];
+        
+        return view('registries.index', compact('cadastrosStats'));
+    }
+
+    public function laboratorio() 
+    {
+        return view('laboratory.index');
+    }
+
+    public function torrefacao() 
+    {
+        return view('roasting.index');
+    }
+
+    public function configuracoes() 
+    {
+        return view('settings.index');
     }
 }

@@ -35,6 +35,8 @@ Route::middleware(['auth'])->group(function () {
     
     // Dashboard Principal
     Route::get('/', [DashboardController::class, 'index'])->name('inicio');
+    Route::get('/dashboard/movimentacao-data', [DashboardController::class, 'getMovimentacaoData'])->name('dashboard.movimentacao_data');
+    Route::get('/dashboard/laboratorio-data', [DashboardController::class, 'getLaboratorioData'])->name('dashboard.laboratorio_data');
 
     // --- MÓDULO: ESTOQUE VERDE ---
     Route::prefix('green-coffee')->name('estoque.')->group(function () {

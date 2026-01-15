@@ -10,6 +10,7 @@ class CreateCuppingSessionsTable extends Migration
         // Tabela Principal
         Schema::create('cupping_sessions', function (Blueprint $table) {
             $table->id();
+            //$table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->string('title'); 
             $table->date('session_date');
             $table->foreignId('created_by')->constrained('users'); 
@@ -17,6 +18,7 @@ class CreateCuppingSessionsTable extends Migration
             $table->text('notes')->nullable(); 
             $table->timestamp('started_at')->nullable(); 
             $table->timestamp('finished_at')->nullable(); 
+            $table->integer('items_count')->default(0);
             $table->timestamps();
         });
 

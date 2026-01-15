@@ -15,7 +15,7 @@ public function up() {
     Schema::create('machines', function (Blueprint $table) {
         $table->id();
         // Adicionado para o controle multi-unidade do Ctrl+Café
-        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade'); 
+        //$table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade'); 
         
         $table->string('name');
         $table->string('brand');

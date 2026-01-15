@@ -10,10 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 class CuppingSession extends Model
 {
     protected $fillable = [
+        'main_company_id',
         'title', 
         'session_date', 
         'created_by', 
         'status',
+        'items_count',
         'notes',
         'started_at',
         'finished_at'

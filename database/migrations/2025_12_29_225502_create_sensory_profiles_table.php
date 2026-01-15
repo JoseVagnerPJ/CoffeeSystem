@@ -20,6 +20,7 @@ class CreateSensoryProfilesTable extends Migration
         $table->string('roast_intensity'); // Ex: Clara, Média, Escura
         $table->string('color_hex', 7)->default('#3d2b1f');
         $table->text('notes')->nullable(); // Guardará as #tags
+        //$table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         
         // Atributos de 1 a 5
         $table->integer('sweetness')->default(1);
