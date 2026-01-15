@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RoastDemand extends Model 
 {
-    // ADICIONE 'partial_weight' e 'sensory_profile_id' AQUI:
+
     protected $fillable = [
         'user_id', 
         'green_coffee_lot_id', 
@@ -17,10 +17,11 @@ class RoastDemand extends Model
         'mestre_user_id', 
         'reference', 
         'total_weight_requested', 
-        'partial_weight', // Campo que estava causando o erro
+        'partial_weight',
         'roast_level', 
         'status', 
-        'notes'
+        'notes',
+        'position'
     ];
 
     public function lot(): BelongsTo 

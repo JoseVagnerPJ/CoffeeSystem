@@ -13,7 +13,6 @@
         
         {{-- Busca Centralizada --}}
         <div class="col-lg-6">
-            {{-- Rota atualizada --}}
             <form action="{{ route('registries.sensory-profiles.index') }}" method="GET">
                 <div class="input-group shadow-sm mx-auto" style="max-width: 700px;">
                     <span class="input-group-text bg-white border-end-0">
@@ -34,10 +33,18 @@
         </div>
 
         <div class="col-lg-3 text-lg-end">
-            <button type="button" class="btn btn-dark shadow-sm d-inline-flex align-items-center px-4 py-2" 
-                    data-bs-toggle="modal" data-bs-target="#modalCreateProfile">
-                <i class="bi bi-plus-lg me-2"></i> Novo Perfil
-            </button>
+            {{-- PERMISSÃO: APENAS SENSORY_FULL PODE CRIAR --}}
+            @if(auth()->user()->hasPermission('sensory_full'))
+                <button type="button" class="btn btn-dark shadow-sm d-inline-flex align-items-center px-4 py-2" 
+                        data-bs-toggle="modal" data-bs-target="#modalCreateProfile">
+                    <i class="bi bi-plus-lg me-2"></i> Novo Perfil
+                </button>
+            @else
+                <button type="button" class="btn btn-dark shadow-sm d-inline-flex align-items-center px-4 py-2 opacity-50" 
+                        onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                    <i class="bi bi-lock-fill me-2"></i> Novo Perfil
+                </button>
+            @endif
         </div>
     </div>
 
@@ -70,17 +77,33 @@
                             <td class="text-muted small">{{ $profile->notes }}</td>
                             <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <button type="button" class="btn btn-sm btn-outline-primary border-0 btn-view-profile" 
-                                            data-id="{{ $profile->id }}" title="Ver Ficha">
-                                        <i class="bi bi-eye-fill fs-5"></i>
-                                    </button>
-                                    {{-- Rota atualizada --}}
-                                    <form action="{{ route('registries.sensory-profiles.destroy', $profile->id) }}" method="POST" onsubmit="return confirm('Excluir perfil?');">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Excluir">
-                                            <i class="bi bi-trash-fill fs-5"></i>
+                                    {{-- PERMISSÃO: FULL OU VIEW PODEM VER DETALHES --}}
+                                    @if(auth()->user()->hasPermission('sensory_full') || auth()->user()->hasPermission('sensory_view'))
+                                        <button type="button" class="btn btn-sm btn-outline-primary border-0 btn-view-profile" 
+                                                data-id="{{ $profile->id }}" title="Ver Ficha">
+                                            <i class="bi bi-eye-fill fs-5"></i>
                                         </button>
-                                    </form>
+                                    @else
+                                        <button type="button" class="btn btn-sm btn-outline-secondary border-0 opacity-50" 
+                                                onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                                            <i class="bi bi-lock-fill fs-5"></i>
+                                        </button>
+                                    @endif
+
+                                    {{-- PERMISSÃO: APENAS SENSORY_FULL PODE EXCLUIR --}}
+                                    @if(auth()->user()->hasPermission('sensory_full'))
+                                        <form action="{{ route('registries.sensory-profiles.destroy', $profile->id) }}" method="POST" onsubmit="return confirm('Excluir perfil?');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Excluir">
+                                                <i class="bi bi-trash-fill fs-5"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <button type="button" class="btn btn-sm btn-outline-secondary border-0 opacity-50" 
+                                                onclick="alert('Você não tem permissão para excluir perfis sensoriais!')">
+                                            <i class="bi bi-lock-fill fs-5"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -116,7 +139,7 @@
             var modalContent = $('#modalViewProfileContent');
             modalContent.html('<div class="p-5 text-center"><div class="spinner-border text-primary"></div></div>');
             new bootstrap.Modal('#modalViewProfile').show();
-            // URL AJAX atualizada para o novo prefixo registries
+            
             $.get('/registries/sensory-profiles/' + profileId, function(data) {
                 modalContent.html(data);
             });

@@ -16,4 +16,5 @@ class SensoryProfile extends Model
     {
         return $this->hasMany(SensoryProfileComponent::class);
     }
+    
 }

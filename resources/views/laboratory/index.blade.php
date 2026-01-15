@@ -176,9 +176,16 @@
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <button type="button" class="btn btn-main-action w-100 shadow-sm" style="background: #198754;" data-bs-toggle="modal" data-bs-target="#modalCreateCupping">
-                        <i class="bi bi-plus-circle-fill fs-3"></i><span class="small">INICIAR MESA</span>
-                    </button>
+                    {{-- AJUSTADO: BOTÃO BLOQUEADO PARA LAB_VIEW CONFORME MUDANÇA DE IDEIA --}}
+                    @if(auth()->user()->hasPermission('lab_full'))
+                        <button type="button" class="btn btn-main-action w-100 shadow-sm" style="background: #198754;" data-bs-toggle="modal" data-bs-target="#modalCreateCupping">
+                            <i class="bi bi-plus-circle-fill fs-3"></i><span class="small">INICIAR MESA</span>
+                        </button>
+                    @else
+                        <button type="button" class="btn btn-main-action w-100 shadow-sm opacity-50" style="background: #198754;" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                            <i class="bi bi-lock-fill fs-3"></i><span class="small">INICIAR MESA</span>
+                        </button>
+                    @endif
                 </div>
             </div>
             
@@ -248,18 +255,28 @@
                         <td><span class="badge {{ $session->status == 'finalizado' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} fw-bold" style="font-size: 0.6rem;">{{ strtoupper($session->status) }}</span></td>
                         <td class="text-center no-print">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button type="button" class="btn-action text-info" onclick="openSessionInfo({{ $session->id }})"><i class="bi bi-info-circle-fill"></i></button>
+                                @if(auth()->user()->hasPermission('lab_full') || auth()->user()->hasPermission('lab_view'))
+                                    <button type="button" class="btn-action text-info" onclick="openSessionInfo({{ $session->id }})"><i class="bi bi-info-circle-fill"></i></button>
+                                @else
+                                    <button type="button" class="btn-action text-muted" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i></button>
+                                @endif
                                 
-                                <form action="{{ route('laboratory.destroy', $session->id) }}" method="POST">
-                                    @csrf 
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="btn-action text-danger border-0 bg-transparent" 
-                                            title="Excluir Mesa"
-                                            onclick="return confirm('Deseja realmente excluir a mesa {{ addslashes($session->title) }}?')">
-                                        <i class="bi bi-trash-fill"></i>
+                                @if(auth()->user()->hasPermission('lab_full'))
+                                    <form action="{{ route('laboratory.destroy', $session->id) }}" method="POST">
+                                        @csrf 
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="btn-action text-danger border-0 bg-transparent" 
+                                                title="Excluir Mesa"
+                                                onclick="return confirm('Deseja realmente excluir a mesa {{ addslashes($session->title) }}?')">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    </form>
+                                @else
+                                    <button type="button" class="btn-action text-muted border-0 bg-transparent" onclick="alert('Você não tem permissão para excluir mesas!')">
+                                        <i class="bi bi-lock-fill"></i>
                                     </button>
-                                </form>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -304,7 +321,13 @@
                                             <td class="text-center fw-bold">{{ number_format($avgBody, 2) }}</td>
                                             <td class="text-center fw-bold">{{ number_format($avgAfter, 2) }}</td>
                                             <td class="text-center"><span class="sca-pill">{{ number_format($finalSca, 2) }}</span></td>
-                                            <td class="text-center"><button type="button" class="btn-action btn-sm mx-auto text-primary border-0" onclick="openCupInfo({{ $item->id }})"><i class="bi bi-info-lg"></i></button></td>
+                                            <td class="text-center">
+                                                @if(auth()->user()->hasPermission('lab_full') || auth()->user()->hasPermission('lab_view'))
+                                                    <button type="button" class="btn-action btn-sm mx-auto text-primary border-0" onclick="openCupInfo({{ $item->id }})"><i class="bi bi-info-lg"></i></button>
+                                                @else
+                                                    <button type="button" class="btn-action btn-sm mx-auto text-muted border-0" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i></button>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endforeach
                                     </tbody>

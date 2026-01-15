@@ -10,53 +10,62 @@ use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Seed the application's database.
+     *
+     * @return void
+     */
     public function run()
     {
-        // 1. Cria a Empresa Principal (CNPJ sem pontos no banco)
+        // 1. Cria a Empresa Principal
         $company = MainCompany::create([
             'name' => 'Unique Cafés Especiais',
-            'cnpj' => '99999999999999', // Exemplo
+            'cnpj' => '99999999999999',
         ]);
 
-    // 2. Cria um Perfil de Administrador com CONTROLE TOTAL
-    $profile = Profile::create([
-        'main_company_id' => $company->id,
-        'name' => 'Administrador',
-        'permissions' => [
-            // Master
-            'all_access' => true,
-            
-            // Módulos Operacionais
-            'green_coffee_full' => true,
-            'green_coffee_view' => true,
-            'lab_full' => true,
-            'lab_view' => true,
-            'roast_full' => true,
-            'roast_view' => true,
-            
-            // Cadastros e Gestão (Registries)
-            'supplier_edit' => true,
-            'supplier_delete' => true,
-            'sample_edit' => true,
-            'sample_delete' => true,
-            'profile_edit' => true,
-            'profile_delete' => true,
-            'machine_edit' => true,
-            'machine_delete' => true,
-            
-            // Permissão de time (Caso use no controller)
-            'manage_team' => true 
-        ]
-    ]);
+        // 2. Cria o Perfil de DESENVOLVEDOR com todas as chaves
+        $devProfile = Profile::create([
+            'main_company_id' => $company->id,
+            'name' => 'Desenvolvedor',
+            'permissions' => [
+                'dev_access' => true,      // Chave especial de desenvolvedor
+                'all_access' => true,      // Controle Total (Cadeado Master)
+                
+                // Módulos Operacionais
+                'green_coffee_full' => true,
+                'green_coffee_view' => true,
+                'lab_full'          => true,
+                'lab_view'          => true,
+                'roast_full'        => true,
+                'roast_view'        => true,
+                
+                // Gestão de Equipe
+                'team_full'         => true,
+                'team_user_only'    => true,
 
-        // 3. Cria o Usuário Administrador
+                // Cadastros
+                'supplier_full'     => true,
+                'supplier_view'     => true,
+                'sample_full'       => true,
+                'sample_view'       => true,
+                'machine_full'      => true,
+                'machine_view'      => true,
+                'sensory_full'      => true,
+                'sensory_view'      => true,
+
+                // Configurações
+                'settings_edit'     => true,
+            ]
+        ]);
+
+        // 3. Cria o seu Usuário (zevagner)
         User::create([
             'main_company_id' => $company->id,
-            'profile_id' => $profile->id,
-            'name' => 'José Vagner',
-            'username' => 'zevagner',
-            'password' => Hash::make('123'), // Senha simples para teste conforme solicitado
-            'is_active' => true,
+            'profile_id'      => $devProfile->id,
+            'name'            => 'José Vagner',
+            'username'        => 'zevagner',
+            'password'        => Hash::make('1572'), // Sua senha solicitada
+            'is_active'       => true,
         ]);
     }
 }

@@ -10,27 +10,40 @@
         border: 2px solid transparent !important;
         cursor: pointer;
         min-height: 200px;
+        position: relative;
     }
-    .card-modulo:hover {
+    .card-modulo:not(.locked):hover {
         transform: translateY(-10px);
         border-color: var(--coffee-gold) !important;
         box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
     }
 
+    /* Estilo para cards travados */
+    .card-modulo.locked {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background-color: #f8f9fa;
+    }
+
     /* Estilo para o botão de Equipe (horizontal) */
     .btn-equipe-horizontal {
         transition: all 0.3s ease;
-        border: 2px solid transparent !important; /* Começa transparente */
+        border: 2px solid transparent !important;
         text-decoration: none;
         display: flex;
         align-items: center;
         background-color: white;
     }
 
-    .btn-equipe-horizontal:hover {
-        border-color: var(--coffee-gold) !important; /* Dourado apenas no hover */
+    .btn-equipe-horizontal:not(.locked):hover {
+        border-color: var(--coffee-gold) !important;
         transform: translateX(5px);
         box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    .btn-equipe-horizontal.locked {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     .icon-box {
@@ -45,9 +58,17 @@
         margin-bottom: 20px;
         transition: all 0.3s;
     }
-    .card-modulo:hover .icon-box {
+    .card-modulo:not(.locked):hover .icon-box {
         background-color: var(--coffee-brown);
         color: var(--coffee-gold);
+    }
+
+    .lock-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        color: var(--coffee-brown);
+        font-size: 1.2rem;
     }
 </style>
 
@@ -60,7 +81,12 @@
     <div class="row g-4">
         {{-- Módulo: Fornecedores --}}
         <div class="col-md-6 col-lg-3">
-            <a href="{{ route('registries.suppliers.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @if(auth()->user()->hasPermission('supplier_full') || auth()->user()->hasPermission('supplier_view'))
+                <a href="{{ route('registries.suppliers.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @else
+                <div class="card card-modulo locked shadow-sm p-4 text-center h-100" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                    <i class="bi bi-lock-fill lock-badge"></i>
+            @endif
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-truck fs-1"></i>
@@ -68,25 +94,43 @@
                 </div>
                 <h5 class="fw-bold text-dark">Fornecedores</h5>
                 <p class="small text-muted mb-0">Fazendas, produtores e parceiros de café verde.</p>
-            </a>
+            @if(auth()->user()->hasPermission('supplier_full') || auth()->user()->hasPermission('supplier_view'))
+                </a>
+            @else
+                </div>
+            @endif
         </div>
 
         {{-- Módulo: Cadastro de Amostras --}}
         <div class="col-md-6 col-lg-3">
-            <a href="{{ route('registries.samples.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @if(auth()->user()->hasPermission('sample_full') || auth()->user()->hasPermission('sample_view'))
+                <a href="{{ route('registries.samples.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @else
+                <div class="card card-modulo locked shadow-sm p-4 text-center h-100" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                    <i class="bi bi-lock-fill lock-badge"></i>
+            @endif
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
-                        <i class="bi bi-clipboard-pulse fs-1"></i> {{-- Ícone de Pacotinho --}}
+                        <i class="bi bi-clipboard-pulse fs-1"></i>
                     </div>
                 </div>
                 <h5 class="fw-bold text-dark">Cadastro de Amostras</h5>
                 <p class="small text-muted mb-0">Registro, classificação e controle de amostras de café.</p>
-            </a>
+            @if(auth()->user()->hasPermission('sample_full') || auth()->user()->hasPermission('sample_view'))
+                </a>
+            @else
+                </div>
+            @endif
         </div>
 
         {{-- Módulo: Máquinas --}}
         <div class="col-md-6 col-lg-3">
-            <a href="{{ route('registries.machines.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @if(auth()->user()->hasPermission('machine_full') || auth()->user()->hasPermission('machine_view'))
+                <a href="{{ route('registries.machines.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @else
+                <div class="card card-modulo locked shadow-sm p-4 text-center h-100" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                    <i class="bi bi-lock-fill lock-badge"></i>
+            @endif
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-nut fs-1"></i>
@@ -94,12 +138,21 @@
                 </div>
                 <h5 class="fw-bold text-dark">Máquinas</h5>
                 <p class="small text-muted mb-0">Cadastro de Máquinas e equipamentos.</p>
-            </a>
+            @if(auth()->user()->hasPermission('machine_full') || auth()->user()->hasPermission('machine_view'))
+                </a>
+            @else
+                </div>
+            @endif
         </div>
 
         {{-- Módulo: Perfil Sensorial --}}
         <div class="col-md-6 col-lg-3">
-            <a href="{{ route('registries.sensory-profiles.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @if(auth()->user()->hasPermission('sensory_full') || auth()->user()->hasPermission('sensory_view'))
+                <a href="{{ route('registries.sensory-profiles.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @else
+                <div class="card card-modulo locked shadow-sm p-4 text-center h-100" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                    <i class="bi bi-lock-fill lock-badge"></i>
+            @endif
                 <div class="d-flex justify-content-center">
                     <div class="icon-box">
                         <i class="bi bi-activity fs-1"></i>
@@ -107,7 +160,11 @@
                 </div>
                 <h5 class="fw-bold text-dark">Perfil Sensorial</h5>
                 <p class="small text-muted mb-0">Notas, aromas e características técnicas dos cafés.</p>
-            </a>
+            @if(auth()->user()->hasPermission('sensory_full') || auth()->user()->hasPermission('sensory_view'))
+                </a>
+            @else
+                </div>
+            @endif
         </div>
     </div>
 
@@ -117,14 +174,23 @@
         <div class="row g-3">
             {{-- Módulo: Equipe --}}
             <div class="col-md-4">
-                <a href="{{ route('registries.team.index') }}" class="btn-equipe-horizontal p-3 rounded shadow-sm">
+                @if(auth()->user()->hasPermission('team_full') || auth()->user()->hasPermission('team_user_only'))
+                    <a href="{{ route('registries.team.index') }}" class="btn-equipe-horizontal p-3 rounded shadow-sm">
+                @else
+                    <div class="btn-equipe-horizontal locked p-3 rounded shadow-sm" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                @endif
                     <i class="bi bi-people-fill me-3 fs-4 text-muted"></i>
                     <div>
                         <h6 class="mb-0 fw-bold text-dark">Equipe</h6>
                         <small class="text-muted">Gestão de colaboradores e acessos.</small>
                     </div>
-                    <i class="bi bi-arrow-right-short fs-4 ms-auto text-dark"></i>
-                </a>
+                    @if(auth()->user()->hasPermission('team_full') || auth()->user()->hasPermission('team_user_only'))
+                        <i class="bi bi-arrow-right-short fs-4 ms-auto text-dark"></i>
+                        </a>
+                    @else
+                        <i class="bi bi-lock-fill fs-5 ms-auto text-muted"></i>
+                        </div>
+                    @endif
             </div>
         </div>
     </div>

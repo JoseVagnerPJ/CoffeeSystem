@@ -63,18 +63,21 @@ class TeamController extends Controller
     /**
      * Cadastra um novo perfil de acesso.
      */
-    public function storeProfile(Request $request)
-    {
-        $request->validate(['name' => 'required|string|max:255']);
+public function storeProfile(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+    ]);
 
-        Profile::create([
-            'main_company_id' => Auth::user()->main_company_id,
-            'name' => $request->name,
-            'permissions' => $request->permissions // Array convertido em JSON pelo Model
-        ]);
+    // O segredo está em capturar o array de permissões e o ID da empresa
+    \App\Models\Profile::create([
+        'name' => $request->name,
+        'permissions' => $request->permissions ?? [], // Se nada for marcado, salva array vazio
+        'main_company_id' => auth()->user()->main_company_id,
+    ]);
 
-        return redirect()->back()->with('success', 'Perfil criado!');
-    }
+    return redirect()->back()->with('success', 'Nível de acesso configurado!');
+}
 
     /**
      * Exclui um perfil de acesso.

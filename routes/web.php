@@ -46,6 +46,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/clear-capture', [GreenCoffeeLotController::class, 'clearCapture'])->name('clear-capture');
         Route::post('/{id}/attach', [GreenCoffeeLotController::class, 'storeAttachment'])->name('attach');
         Route::delete('/attachment/{id}', [GreenCoffeeLotController::class, 'destroyAttachment'])->name('attachment.destroy');
+        Route::post('/registrar-saida', [GreenCoffeeLotController::class, 'registrarSaida'])->name('registrar-saida');
 
         // GRUPO DE INVENTÁRIO (AUDITORIA MENSAL)
         Route::prefix('inventory')->name('inventory.')->group(function () {
@@ -67,28 +68,20 @@ Route::middleware(['auth'])->group(function () {
     });
 // --- MÓDULO: TORREFAÇÃO ---
     Route::prefix('roasting')->name('roasting.')->group(function () {
-        // Tela Principal (Kanban)
         Route::get('/', [RoastController::class, 'index'])->name('index'); 
-        
-        // Ação de Salvar Demanda e Gerar Ciclos
         Route::post('/store', [RoastController::class, 'store'])->name('store');
-        
-        // Atualização de Status via Kanban
         Route::patch('/update-status', [RoastController::class, 'updateStatus'])->name('updateStatus');
-
-        // --- NOVA ROTA: ESTATÍSTICAS PARA GRÁFICO E KPIs ---
-        // Essencial para o funcionamento do seletor D/S/M e troca de máquinas
         Route::get('/stats', [RoastController::class, 'getStats'])->name('stats');
-
-        // --- ROTAS DE BUSCA DINÂMICA (AJAX) PARA O MODAL ---
         Route::get('/search-lots', [RoastController::class, 'searchLots'])->name('search.lots');
         Route::get('/search-profiles', [RoastController::class, 'searchProfiles'])->name('search.profiles');
         Route::get('/search-mestres', [RoastController::class, 'searchMestres'])->name('search.mestres');
-        
-        // Informações extras do Lote (caso queira puxar via ID)
         Route::get('/lot-info/{id}', [RoastController::class, 'getLotInfo'])->name('lot-info');
-
         Route::post('/update-order', [RoastController::class, 'updateOrder'])->name('update-order');
+        Route::post('/request-split', [RoastController::class, 'webRequestSplit'])->name('webRequestSplit');
+        Route::post('/batches/{id}/start', [RoastController::class, 'apiStartBatch']);
+        Route::post('/batches/{id}/finish', [RoastController::class, 'apiFinishBatch']);
+        Route::post('/batches/{id}/discard', [RoastController::class, 'apiDiscardBatch']);
+        Route::post('/machines/{id}/clean', [RoastController::class, 'apiRegisterCleaning']);
     });
 
     // --- MÓDULO: CONFIGURAÇÕES (Geral) ---

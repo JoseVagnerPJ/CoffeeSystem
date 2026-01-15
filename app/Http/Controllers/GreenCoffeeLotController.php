@@ -14,78 +14,82 @@ use Illuminate\Support\Facades\DB;
 
 class GreenCoffeeLotController extends Controller
 {
-    public function index(Request $request)
-    {
-        $query = GreenCoffeeLot::with(['sensoryProfile', 'attachments', 'roastingBatches.machine', 'locations'])
-            ->where('total_weight', '>', 0);
+public function index(Request $request)
+{
+    $query = GreenCoffeeLot::with(['sensoryProfile', 'attachments', 'roastingBatches.machine', 'locations', 'movements'])
+        ->where('total_weight', '>', 0);
 
-        if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->where('origin', 'like', '%' . $request->search . '%')
-                  ->orWhere('reference', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        if ($request->filled('profile')) {
-            $query->where('sensory_profile_id', $request->profile);
-        }
-
-        $lotes = $query->orderBy('created_at', 'desc')->get();
-        $perfis = SensoryProfile::all(); 
-
-        $mapData = [];
-        foreach ($lotes as $lote) {
-            foreach ($lote->locations as $loc) {
-                $coord = strtoupper($loc->address_row . $loc->address_pos);
-                $mapData[$coord][] = [
-                    'id' => $lote->id,
-                    'color' => $lote->sensoryProfile->color_hex ?? '#777',
-                    'reference' => $lote->reference
-                ];
-            }
-        }
-
-        $lastSubtractions = RoastingBatch::with('demand.lot') // Carrega a árvore: Torra -> Demanda -> Lote
-    ->orderBy('created_at', 'desc')
-    ->take(3)
-    ->get()
-    ->map(function($batch) {
-        return [
-            // Agora acessamos via demand->lot
-            'description' => "Torra: " . ($batch->demand->lot->reference ?? 'Lote N/A'),
-            'value' => number_format($batch->weight_in, 1, ',', '.') . "kg",
-            'type' => 'danger'
-        ];
-    });
-
-        $session = InventorySession::whereIn('status', ['aberto', 'iniciado'])
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        if (!$session) {
-            $session = InventorySession::create([
-                'status' => 'aberto',
-                'user_id' => Auth::id(),
-                'inventory_date' => now()->setTimezone('America/Sao_Paulo')->toDateString()
-            ]);
-        }
-
-        // BUSCA AJUSTES AGRUPADOS POR LOTE
-        $adjustments = DB::table('inventory_adjustments')
-            ->where('inventory_session_id', $session->id)
-            ->get()
-            ->groupBy('green_coffee_lot_id');
-
-        $history = InventorySession::where('status', 'finalizado')
-            ->orderBy('id', 'desc') 
-            ->get()
-            ->toArray(); 
-
-        return view('green-coffee.index', compact(
-            'lotes', 'perfis', 'mapData', 'lastSubtractions', 'session', 'adjustments', 'history'
-        ));
+    if ($request->filled('search')) {
+        $query->where(function($q) use ($request) {
+            $q->where('origin', 'like', '%' . $request->search . '%')
+              ->orWhere('reference', 'like', '%' . $request->search . '%');
+        });
     }
 
+    if ($request->filled('profile')) {
+        $query->where('sensory_profile_id', $request->profile);
+    }
+
+    $lotes = $query->orderBy('created_at', 'desc')->get();
+    $perfis = SensoryProfile::all(); 
+
+    $mapData = [];
+    foreach ($lotes as $lote) {
+        foreach ($lote->locations as $loc) {
+            $coord = strtoupper($loc->address_row . $loc->address_pos);
+            $mapData[$coord][] = [
+                'id' => $lote->id,
+                'color' => $lote->sensoryProfile->color_hex ?? '#777',
+                'reference' => $lote->reference
+            ];
+        }
+    }
+
+    $lastSubtractions = RoastingBatch::with('demand.lot')
+        ->orderBy('created_at', 'desc')
+        ->take(3)
+        ->get()
+        ->map(function($batch) {
+            return [
+                'description' => "Torra: " . ($batch->demand->lot->reference ?? 'Lote N/A'),
+                'value' => number_format($batch->weight_in, 1, ',', '.') . "kg",
+                'type' => 'danger'
+            ];
+        });
+
+    // --- NOVA PARTE: BUSCA AS ÚLTIMAS SAÍDAS MANUAIS PARA O FEED ---
+    $ultimasSaidas = \App\Models\StockMovement::with('lote')
+        ->where('type', 'out')
+        ->latest()
+        ->take(2)
+        ->get();
+
+    $session = InventorySession::whereIn('status', ['aberto', 'iniciado'])
+        ->orderBy('created_at', 'desc')
+        ->first();
+
+    if (!$session) {
+        $session = InventorySession::create([
+            'status' => 'aberto',
+            'user_id' => Auth::id(),
+            'inventory_date' => now()->setTimezone('America/Sao_Paulo')->toDateString()
+        ]);
+    }
+
+    $adjustments = DB::table('inventory_adjustments')
+        ->where('inventory_session_id', $session->id)
+        ->get()
+        ->groupBy('green_coffee_lot_id');
+
+    $history = InventorySession::where('status', 'finalizado')
+        ->orderBy('id', 'desc') 
+        ->get()
+        ->toArray(); 
+
+    return view('green-coffee.index', compact(
+        'lotes', 'perfis', 'mapData', 'lastSubtractions', 'session', 'adjustments', 'history', 'ultimasSaidas'
+    ));
+}
     public function startInventory(Request $request)
     {
         $session = InventorySession::where('status', 'aberto')->first();
@@ -132,6 +136,28 @@ class GreenCoffeeLotController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function registrarSaida(Request $request)
+{
+    return DB::transaction(function () use ($request) {
+        $lote = GreenCoffeeLot::findOrFail($request->green_coffee_lot_id);
+
+        // 1. Desconta o peso do lote
+        $lote->decrement('total_weight', $request->weight);
+
+        // 2. CRIA O REGISTRO DE MOVIMENTAÇÃO (Isso corrige o erro do Modal)
+        $lote->movements()->create([
+            'user_id' => auth()->id(),
+            'location_id' => $request->location_id,
+            'type' => 'out',
+            'weight' => $request->weight,
+            'reason' => $request->reason,
+            'notes' => $request->notes,
+        ]);
+
+        return redirect()->back()->with('success', 'Saída registrada no histórico!');
+    });
+}
 
     public function finishInventory(Request $request)
     {

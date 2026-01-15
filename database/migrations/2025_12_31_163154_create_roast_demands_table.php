@@ -11,20 +11,22 @@ public function up() {
         $table->id();
         $table->foreignId('user_id')->constrained();
         $table->foreignId('green_coffee_lot_id')->constrained();
-        $table->foreignId('sensory_profile_id')->nullable()->constrained(); // Adicionado
+        $table->foreignId('sensory_profile_id')->nullable()->constrained();
         $table->foreignId('machine_id')->constrained();
         $table->foreignId('mestre_user_id')->constrained('users'); 
         
         $table->string('reference')->unique();
         $table->decimal('total_weight_requested', 10, 2); 
-        $table->decimal('partial_weight', 10, 2); // Peso por ciclo
+        $table->decimal('partial_weight', 10, 2);
         $table->string('roast_level'); 
-        $table->text('notes')->nullable(); // Adicionado
+        $table->text('notes')->nullable();
         
         $table->string('status')->default('pending');
+        // ADICIONE ESTA LINHA ABAIXO:
+        $table->integer('position')->default(0); 
+        
         $table->timestamps();
     });
-
 }
 
     public function down()

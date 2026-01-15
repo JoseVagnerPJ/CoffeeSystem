@@ -44,7 +44,30 @@
                             <select name="profile_id" class="form-select bg-light border-0 p-3" required style="border-radius: 10px;">
                                 <option value="" selected disabled>Selecione um nível...</option>
                                 @foreach($profiles as $profile)
-                                    <option value="{{ $profile->id }}">{{ $profile->name }}</option>
+                                    @php
+                                        // 1. Bloqueia o perfil "Desenvolvedor" pelo nome ou pela chave especial
+                                        $isDevProfile = ($profile->name === 'Desenvolvedor' || (isset($profile->permissions['dev_access']) && $profile->permissions['dev_access']));
+                                        
+                                        $canAssign = true;
+                                        
+                                        // 2. Se o usuário logado não for o mestre (all_access), validamos a hierarquia
+                                        if (!$isDevProfile && !auth()->user()->hasPermission('all_access')) {
+                                            if ($profile->permissions) {
+                                                foreach ($profile->permissions as $permissionKey => $isEnabled) {
+                                                    // Se o perfil alvo tiver uma permissão ativada que o criador NÃO tem, ele não pode atribuir
+                                                    if ($isEnabled && !auth()->user()->hasPermission($permissionKey)) {
+                                                        $canAssign = false;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    @endphp
+
+                                    {{-- Só exibe se não for Dev e se passar no teste de hierarquia --}}
+                                    @if(!$isDevProfile && $canAssign)
+                                        <option value="{{ $profile->id }}">{{ $profile->name }}</option>
+                                    @endif
                                 @endforeach
                             </select>
                         </div>

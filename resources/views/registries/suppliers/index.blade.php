@@ -25,9 +25,7 @@
         
         {{-- Barra de Busca Centralizada --}}
         <div class="col-lg-6">
-            {{-- Rota atualizada para registries.suppliers.index --}}
             <form action="{{ route('registries.suppliers.index') }}" method="GET" id="formSearchSuppliers">
-                {{-- IMPORTANTE: Classe 'input-tab-control' permite que o JS sincronize a aba --}}
                 <input type="hidden" name="tab" class="input-tab-control" value="{{ $activeTab }}">
                 
                 <div class="input-group shadow-sm mx-auto" style="max-width: 700px;">
@@ -49,12 +47,11 @@
         </div>
 
         <div class="col-lg-3 text-lg-end">
-            {{-- Rota atualizada para o hub de cadastros --}}
             <a href="{{ route('registries.index') }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">Voltar</a>
         </div>
     </div>
 
-    {{-- Alerta de Item Capturado (🖐️) --}}
+    {{-- Alerta de Item Capturado --}}
     @if(session('captured_name'))
     <div class="alert bg-white border-start border-warning border-4 shadow-sm d-flex justify-content-between align-items-center mb-4 py-2" style="border-radius: 8px;">
         <div class="d-flex align-items-center">
@@ -66,7 +63,6 @@
                 <strong class="text-dark">{{ session('captured_name') }}</strong>
             </div>
         </div>
-        {{-- Rota atualizada --}}
         <a href="{{ route('registries.suppliers.clear') }}" class="btn btn-sm btn-light border rounded-pill px-3 fw-bold">Soltar</a>
     </div>
     @endif
@@ -101,7 +97,11 @@
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0">Produtores Cadastrados</h5>
-                    <button class="btn btn-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalProducer">+ Novo Produtor</button>
+                    @if(auth()->user()->hasPermission('supplier_full'))
+                        <button class="btn btn-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalProducer">+ Novo Produtor</button>
+                    @else
+                        <button class="btn btn-dark btn-sm rounded-pill px-3 opacity-50" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i> + Novo Produtor</button>
+                    @endif
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
@@ -115,18 +115,21 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group-custom">
                                         <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoProducer{{ $p->id }}"><i class="bi bi-info-circle-fill"></i></button>
-                                        {{-- Rota capturar atualizada --}}
-                                        <a href="{{ route('registries.suppliers.capture', ['producer', $p->id]) }}" class="btn btn-sm btn-white border btn-action shadow-sm {{ session('captured_producer_id') == $p->id ? 'bg-warning border-warning' : '' }}"><i class="bi bi-hand-index-thumb"></i></a>
-                                        {{-- Rota inativar atualizada --}}
-                                        <form action="{{ route('registries.suppliers.inactivate', ['producer', $p->id]) }}" method="POST">
-                                            @csrf @method('PATCH')
-                                            <input type="hidden" name="tab" value="producers">
-                                            <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm" onclick="return confirm('Excluir?')"><i class="bi bi-trash3"></i></button>
-                                        </form>
+                                        
+                                        @if(auth()->user()->hasPermission('supplier_full'))
+                                            <a href="{{ route('registries.suppliers.capture', ['producer', $p->id]) }}" class="btn btn-sm btn-white border btn-action shadow-sm {{ session('captured_producer_id') == $p->id ? 'bg-warning border-warning' : '' }}"><i class="bi bi-hand-index-thumb"></i></a>
+                                            <form action="{{ route('registries.suppliers.inactivate', ['producer', $p->id]) }}" method="POST">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="tab" value="producers">
+                                                <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm" onclick="return confirm('Excluir?')"><i class="bi bi-trash3"></i></button>
+                                            </form>
+                                        @else
+                                            <button class="btn btn-sm btn-white border btn-action text-muted shadow-sm" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i></button>
+                                            <button class="btn btn-sm btn-white border btn-action text-muted shadow-sm" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i></button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
-                            {{-- Include atualizado para nova pasta registries.suppliers.partials --}}
                             @include('registries.suppliers.partials.modal_info_producer', ['p' => $p])
                             @empty
                             <tr><td colspan="4" class="text-center py-4 text-muted">Nenhum produtor encontrado.</td></tr>
@@ -142,7 +145,11 @@
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0">Fazendas Cadastradas</h5>
-                    <button class="btn btn-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalFarm">+ Nova Fazenda</button>
+                    @if(auth()->user()->hasPermission('supplier_full'))
+                        <button class="btn btn-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalFarm">+ Nova Fazenda</button>
+                    @else
+                        <button class="btn btn-dark btn-sm rounded-pill px-3 opacity-50" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i> + Nova Fazenda</button>
+                    @endif
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
@@ -157,25 +164,25 @@
                                     <div class="btn-group-custom">
                                         <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoFarm{{ $f->id }}"><i class="bi bi-info-circle-fill"></i></button>
                                         
-                                        {{-- Rota link atualizada --}}
-                                        @if(session('captured_producer_id'))
-                                            <a href="{{ route('registries.suppliers.link', ['farm', $f->id]) }}" class="btn btn-sm btn-success btn-action shadow-sm text-white" title="Vincular Produtor a esta Fazenda">
-                                                <i class="bi bi-link-45deg"></i>
-                                            </a>
+                                        @if(auth()->user()->hasPermission('supplier_full'))
+                                            @if(session('captured_producer_id'))
+                                                <a href="{{ route('registries.suppliers.link', ['farm', $f->id]) }}" class="btn btn-sm btn-success btn-action shadow-sm text-white" title="Vincular Produtor a esta Fazenda">
+                                                    <i class="bi bi-link-45deg"></i>
+                                                </a>
+                                            @endif
+                                            <a href="{{ route('registries.suppliers.capture', ['farm', $f->id]) }}" class="btn btn-sm btn-white border btn-action shadow-sm {{ session('captured_farm_id') == $f->id ? 'bg-warning border-warning' : '' }}"><i class="bi bi-hand-index-thumb"></i></a>
+                                            <form action="{{ route('registries.suppliers.inactivate', ['farm', $f->id]) }}" method="POST">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="tab" value="farms">
+                                                <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm" onclick="return confirm('Excluir?')"><i class="bi bi-trash3"></i></button>
+                                            </form>
+                                        @else
+                                            <button class="btn btn-sm btn-white border btn-action text-muted shadow-sm" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i></button>
+                                            <button class="btn btn-sm btn-white border btn-action text-muted shadow-sm" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i></button>
                                         @endif
-
-                                        {{-- Rota capture atualizada --}}
-                                        <a href="{{ route('registries.suppliers.capture', ['farm', $f->id]) }}" class="btn btn-sm btn-white border btn-action shadow-sm {{ session('captured_farm_id') == $f->id ? 'bg-warning border-warning' : '' }}"><i class="bi bi-hand-index-thumb"></i></a>
-                                        {{-- Rota inactivate atualizada --}}
-                                        <form action="{{ route('registries.suppliers.inactivate', ['farm', $f->id]) }}" method="POST">
-                                            @csrf @method('PATCH')
-                                            <input type="hidden" name="tab" value="farms">
-                                            <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm" onclick="return confirm('Excluir?')"><i class="bi bi-trash3"></i></button>
-                                        </form>
                                     </div>
                                 </td>
                             </tr>
-                            {{-- Include atualizado para nova pasta --}}
                             @include('registries.suppliers.partials.modal_info_farm', ['f' => $f])
                             @empty
                             <tr><td colspan="4" class="text-center py-4 text-muted">Nenhuma fazenda encontrada.</td></tr>
@@ -191,7 +198,11 @@
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0">Empresas / Cooperativas</h5>
-                    <button class="btn btn-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCompany">+ Nova Empresa</button>
+                    @if(auth()->user()->hasPermission('supplier_full'))
+                        <button class="btn btn-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCompany">+ Nova Empresa</button>
+                    @else
+                        <button class="btn btn-dark btn-sm rounded-pill px-3 opacity-50" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i> + Nova Empresa</button>
+                    @endif
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
@@ -206,23 +217,23 @@
                                     <div class="btn-group-custom">
                                         <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoCompany{{ $c->id }}"><i class="bi bi-info-circle-fill"></i></button>
                                         
-                                        {{-- Rota link atualizada --}}
-                                        @if(session('captured_producer_id') || session('captured_farm_id'))
-                                            <a href="{{ route('registries.suppliers.link', ['company', $c->id]) }}" class="btn btn-sm btn-success btn-action shadow-sm text-white" title="Vincular Item a esta Empresa">
-                                                <i class="bi bi-link-45deg"></i>
-                                            </a>
+                                        @if(auth()->user()->hasPermission('supplier_full'))
+                                            @if(session('captured_producer_id') || session('captured_farm_id'))
+                                                <a href="{{ route('registries.suppliers.link', ['company', $c->id]) }}" class="btn btn-sm btn-success btn-action shadow-sm text-white" title="Vincular Item a esta Empresa">
+                                                    <i class="bi bi-link-45deg"></i>
+                                                </a>
+                                            @endif
+                                            <form action="{{ route('registries.suppliers.inactivate', ['company', $c->id]) }}" method="POST">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="tab" value="companies">
+                                                <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm" onclick="return confirm('Excluir?')"><i class="bi bi-trash3"></i></button>
+                                            </form>
+                                        @else
+                                            <button class="btn btn-sm btn-white border btn-action text-muted shadow-sm" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i></button>
                                         @endif
-
-                                        {{-- Rota inactivate atualizada --}}
-                                        <form action="{{ route('registries.suppliers.inactivate', ['company', $c->id]) }}" method="POST">
-                                            @csrf @method('PATCH')
-                                            <input type="hidden" name="tab" value="companies">
-                                            <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm" onclick="return confirm('Excluir?')"><i class="bi bi-trash3"></i></button>
-                                        </form>
                                     </div>
                                 </td>
                             </tr>
-                            {{-- Include atualizado para nova pasta --}}
                             @include('registries.suppliers.partials.modal_info_company', ['c' => $c])
                             @empty
                             <tr><td colspan="4" class="text-center py-4 text-muted">Nenhuma empresa encontrada.</td></tr>
@@ -235,20 +246,14 @@
     </div>
 </div>
 
-{{-- Inclusão dos Partials atualizada para nova estrutura registries.suppliers.partials --}}
+{{-- Inclusão dos Partials --}}
 @include('registries.suppliers.partials.modals_create')
 @include('registries.suppliers.partials.filter')
 
 <script>
-    /**
-     * Sincroniza todos os formulários da página com a aba atual
-     */
     function updateTabParam(tabName) {
-        // Atualiza todos os inputs hidden que controlam a aba ativa (Busca e Filtro)
         const inputs = document.querySelectorAll('.input-tab-control');
         inputs.forEach(el => el.value = tabName);
-
-        // Atualiza a URL visualmente para o usuário
         const url = new URL(window.location);
         url.searchParams.set('tab', tabName);
         window.history.pushState({}, '', url);

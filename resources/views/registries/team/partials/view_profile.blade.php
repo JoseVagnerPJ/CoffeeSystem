@@ -27,32 +27,42 @@
                             <div class="row g-3">
                                 @php
                                     $categories = [
-                                        'all_access' => ['label' => 'Acesso Mestre', 'icon' => 'bi-star-fill', 'color' => 'text-warning'],
+                                        'all_access'   => ['label' => 'Acesso Mestre', 'icon' => 'bi-star-fill', 'color' => 'text-warning'],
+                                        'dev_access'   => ['label' => 'Desenvolvedor', 'icon' => 'bi-code-slash', 'color' => 'text-secondary'],
                                         'green_coffee' => ['label' => 'Estoque Verde', 'icon' => 'bi-box-seam', 'color' => 'text-primary'],
-                                        'lab' => ['label' => 'Laboratório', 'icon' => 'bi-microscope', 'color' => 'text-info'],
-                                        'roast' => ['label' => 'Torrefação', 'icon' => 'bi-fire', 'color' => 'text-danger'],
-                                        'supplier' => ['label' => 'Fornecedores', 'icon' => 'bi-truck', 'color' => 'text-dark'],
-                                        'sample' => ['label' => 'Amostras', 'icon' => 'bi-clipboard-pulse', 'color' => 'text-success'],
-                                        'profile' => ['label' => 'Sensorial', 'icon' => 'bi-activity', 'color' => 'text-secondary'],
-                                        'machine' => ['label' => 'Máquinas', 'icon' => 'bi-nut', 'color' => 'text-dark'],
+                                        'lab'          => ['label' => 'Laboratório', 'icon' => 'bi-microscope', 'color' => 'text-info'],
+                                        'roast'        => ['label' => 'Torrefação', 'icon' => 'bi-fire', 'color' => 'text-danger'],
+                                        'production'   => ['label' => 'Produção', 'icon' => 'bi-boxes', 'color' => 'text-warning'],
+                                        'team'         => ['label' => 'Gestão de Equipe', 'icon' => 'bi-people-fill', 'color' => 'text-danger'],
+                                        'supplier'     => ['label' => 'Fornecedores', 'icon' => 'bi-truck', 'color' => 'text-dark'],
+                                        'sample'       => ['label' => 'Amostras', 'icon' => 'bi-clipboard-pulse', 'color' => 'text-success'],
+                                        'sensory'      => ['label' => 'Perfis Sensoriais', 'icon' => 'bi-activity', 'color' => 'text-secondary'],
+                                        'machine'      => ['label' => 'Máquinas', 'icon' => 'bi-nut', 'color' => 'text-dark'],
+                                        'settings'     => ['label' => 'Configurações', 'icon' => 'bi-gear-fill', 'color' => 'text-dark'],
                                     ];
 
                                     $labels = [
-                                        'all_access' => 'Controle Total do Sistema',
-                                        'green_coffee_full' => 'Recebimento & Operação',
-                                        'green_coffee_view' => 'Monitoramento de Saldo',
-                                        'lab_full' => 'Gestão de Qualidade',
-                                        'lab_view' => 'Consulta de Laudos',
-                                        'roast_full' => 'Engenharia de Torra',
-                                        'roast_view' => 'Acompanhamento de Lotes',
-                                        'supplier_edit' => 'Cadastro & Edição',
-                                        'supplier_delete' => 'Poder de Exclusão',
-                                        'sample_edit' => 'Registro de Amostras',
-                                        'sample_delete' => 'Exclusão de Amostras',
-                                        'profile_edit' => 'Criação de Perfis/Blends',
-                                        'profile_delete' => 'Exclusão de Perfis',
-                                        'machine_edit' => 'Gestão de Equipamentos',
-                                        'machine_delete' => 'Remoção de Máquinas'
+                                        'all_access'        => 'Controle Total (Mestre)',
+                                        'dev_access'        => 'Acesso Interno de Sistema',
+                                        'green_coffee_full' => 'Recebimento e Operação Total',
+                                        'green_coffee_view' => 'Visualização de Saldos',
+                                        'lab_full'          => 'Gestão de Qualidade (Cientista)',
+                                        'lab_view'          => 'Visualização e Degustação',
+                                        'roast_full'        => 'Mestre de Torra (Controle)',
+                                        'roast_view'        => 'Acompanhamento de Torras',
+                                        'production_full'   => 'Gestão de Produção Total',
+                                        'production_view'   => 'Visualização de Produção',
+                                        'team_full'         => 'Administração de Time (Total)',
+                                        'team_user_only'    => 'Apenas Criação de Usuários',
+                                        'supplier_full'     => 'Editor de Fornecedores',
+                                        'supplier_view'     => 'Consulta de Origens',
+                                        'sample_full'       => 'Editor de Amostras',
+                                        'sample_view'       => 'Consulta de Amostras',
+                                        'sensory_full'      => 'Editor de Perfis Sensoriais',
+                                        'sensory_view'      => 'Consulta de Perfis',
+                                        'machine_full'      => 'Editor de Equipamentos',
+                                        'machine_view'      => 'Consulta de Máquinas',
+                                        'settings_edit'     => 'Alterar Dados da Empresa'
                                     ];
                                 @endphp
 
@@ -82,12 +92,16 @@
                                             </div>
                                         @endif
                                     @endforeach
+                                @else
+                                    <div class="col-12 text-center py-4">
+                                        <p class="text-muted small italic">Este perfil não possui permissões ativas.</p>
+                                    </div>
                                 @endif
                             </div>
                         </div>
                     </div>
 
-                    {{-- Coluna 2: Equipe Vinculada (Ativos e Inativos) --}}
+                    {{-- Coluna 2: Equipe Vinculada --}}
                     <div class="col-lg-5">
                         <div class="p-3 bg-white border rounded-4 h-100 shadow-sm">
                             <h6 class="fw-bold mb-4 d-flex align-items-center" style="color: var(--coffee-brown);">
@@ -100,7 +114,7 @@
                                             @if($user->photo)
                                                 <img src="{{ asset('storage/' . $user->photo) }}" 
                                                      class="rounded-circle border" 
-                                                     style="width: 48px; height: 48px; object-fit: cover; filter: {{ !$user->is_active ? 'grayscale(100%)' : 'none' }};">
+                                                     style="width: 48px; height: 48px; object-fit: cover;">
                                             @else
                                                 <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border text-secondary" style="width: 48px; height: 48px;">
                                                     <i class="bi bi-person-fill fs-4"></i>
@@ -143,12 +157,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .hover-shadow:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        border-color: var(--coffee-gold) !important;
-    }
-    .transition-all { transition: all 0.3s ease; }
-</style>

@@ -18,9 +18,16 @@
             <p class="text-muted small mb-0">Controle de torradores e manutenção técnica.</p>
         </div>
         <div class="d-flex gap-2">
-            {{-- ROTA ATUALIZADA --}}
             <a href="{{ route('registries.index') }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">Voltar</a>
-            <button class="btn btn-sm btn-dark rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCreateMachine">+ Nova Máquina</button>
+            
+            {{-- PERMISSÃO: APENAS MACHINE_FULL PODE CRIAR --}}
+            @if(auth()->user()->hasPermission('machine_full'))
+                <button class="btn btn-sm btn-dark rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCreateMachine">+ Nova Máquina</button>
+            @else
+                <button class="btn btn-sm btn-dark rounded-pill px-3 opacity-50" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                    <i class="bi bi-lock-fill"></i> + Nova Máquina
+                </button>
+            @endif
         </div>
     </div>
 
@@ -59,13 +66,29 @@
                         </td>
                         <td class="text-end">
                             <div class="d-flex gap-2 justify-content-end">
-                                <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoMachine{{ $m->id }}"><i class="bi bi-info-circle-fill"></i></button>
-                                <button class="btn btn-sm btn-white border btn-action text-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalMaintenanceMachine{{ $m->id }}"><i class="bi bi-tools"></i></button>
-                                {{-- ROTA ATUALIZADA --}}
-                                <form action="{{ route('registries.machines.inactivate', $m->id) }}" method="POST" onsubmit="return confirm('Deseja inativar?')">
-                                    @csrf @method('PATCH')
-                                    <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm"><i class="bi bi-trash3"></i></button>
-                                </form>
+                                {{-- PERMISSÃO: FULL OU VIEW PODEM VER DETALHES --}}
+                                @if(auth()->user()->hasPermission('machine_full') || auth()->user()->hasPermission('machine_view'))
+                                    <button class="btn btn-sm btn-white border btn-action text-info shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInfoMachine{{ $m->id }}"><i class="bi bi-info-circle-fill"></i></button>
+                                @else
+                                    <button class="btn btn-sm btn-white border btn-action text-muted shadow-sm" onclick="alert('Você não tem permissão para acessar esse módulo!')"><i class="bi bi-lock-fill"></i></button>
+                                @endif
+
+                                {{-- PERMISSÃO: APENAS MACHINE_FULL PODE REGISTRAR MANUTENÇÃO --}}
+                                @if(auth()->user()->hasPermission('machine_full'))
+                                    <button class="btn btn-sm btn-white border btn-action text-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalMaintenanceMachine{{ $m->id }}"><i class="bi bi-tools"></i></button>
+                                @else
+                                    <button class="btn btn-sm btn-white border btn-action text-muted shadow-sm" onclick="alert('Você não tem permissão para registrar manutenção!')"><i class="bi bi-lock-fill"></i></button>
+                                @endif
+
+                                {{-- PERMISSÃO: APENAS MACHINE_FULL PODE INATIVAR --}}
+                                @if(auth()->user()->hasPermission('machine_full'))
+                                    <form action="{{ route('registries.machines.inactivate', $m->id) }}" method="POST" onsubmit="return confirm('Deseja inativar?')">
+                                        @csrf @method('PATCH')
+                                        <button type="submit" class="btn btn-sm btn-white border btn-action text-danger shadow-sm"><i class="bi bi-trash3"></i></button>
+                                    </form>
+                                @else
+                                    <button class="btn btn-sm btn-white border btn-action text-muted shadow-sm" onclick="alert('Você não tem permissão para excluir máquinas!')"><i class="bi bi-lock-fill"></i></button>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -78,11 +101,10 @@
     </div>
 </div>
 
-{{-- MODAIS (CAMINHOS ATUALIZADOS) --}}
+{{-- MODAIS --}}
 @include('registries.machines.partials.modal_create')
 
 @foreach($machines as $m)
-    {{-- Certifique-se de que o modal_info exista nesta pasta --}}
     @include('registries.machines.partials.modal_info', ['m' => $m])
     @include('registries.machines.partials.modal_maintenance', ['m' => $m])
 @endforeach

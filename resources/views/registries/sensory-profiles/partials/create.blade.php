@@ -207,17 +207,20 @@ $(document).ready(function() {
         i18n: { 'ui:save': 'Confirmar Cor' }
     });
 
-    // Função central para atualizar cor
+    // Função central para atualizar cor (Ajustado para não fechar sozinho)
     function updateColor(color) {
         const hex = color.toHEXA().toString();
         $('#color_hex_hidden').val(hex);
-        pickr.applyColor(); // Força a cor a aparecer no botão/caixa do Pickr
+        // pickr.applyColor() removido daqui para evitar fechar no 'change'
     }
 
     // Eventos do Pickr
     pickr.on('change', (color) => updateColor(color));
     pickr.on('swatchselect', (color) => updateColor(color));
-    pickr.on('save', () => pickr.hide());
+    pickr.on('save', (color) => {
+        if (color) updateColor(color);
+        pickr.hide(); // Só fecha agora quando apertar o botão de salvar/confirmar
+    });
 
     // 1. Alternar modo Blend
     $('#is_blend_switch').change(function() {

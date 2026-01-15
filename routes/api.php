@@ -12,7 +12,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // Rotas Protegidas
 Route::middleware('auth:sanctum')->group(function () {
 
-//  Q-App
+//  Q-Taster
     Route::get('/cupping/sessions', [CuppingController::class, 'index']);
     Route::get('/cupping/sessions/{id}', [CuppingController::class, 'show']); // NOVA ROTA
     Route::post('/cupping/sessions', [CuppingController::class, 'startSession']);
@@ -21,8 +21,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cupping/sessions/{id}/join', [CuppingController::class, 'joinSession']);
 
 //  Q-Master
-    Route::get('/my-queue', [RoastController::class, 'apiQueue']); // Torras do mestre logado
-    Route::post('/batch/start', [RoastController::class, 'apiStartBatch']);
-    Route::post('/batch/finish', [RoastController::class, 'apiFinishBatch']);
+    Route::get('/my-queue', [RoastController::class, 'apiQueue']);
+    Route::post('/batch/{id}/start', [RoastController::class, 'apiStartBatch']);
+    Route::post('/batch/{id}/finish', [RoastController::class, 'apiFinishBatch']);
+    Route::post('/batch/{id}/discard', [RoastController::class, 'apiDiscardBatch']);
+    Route::post('/machines/{id}/clean', [RoastController::class, 'apiRegisterCleaning']);
 });
 

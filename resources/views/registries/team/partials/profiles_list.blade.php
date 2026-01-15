@@ -16,6 +16,12 @@
         </thead>
         <tbody>
             @forelse($profiles as $profile)
+            @php
+                // Identifica se este perfil é o de Desenvolvedor
+                $isRowDevProfile = ($profile->name === 'Desenvolvedor' || (isset($profile->permissions['dev_access']) && $profile->permissions['dev_access']));
+                // Verifica se o usuário logado tem poder para excluir (Master ou Dev)
+                $canUserDeleteProfiles = (auth()->user()->hasPermission('all_access') || auth()->user()->hasPermission('dev_access'));
+            @endphp
             <tr>
                 <td class="px-3">
                     <div class="fw-bold text-dark">{{ $profile->name }}</div>
@@ -33,40 +39,37 @@
                 </td>
                 <td class="text-center">
                     <div class="d-flex justify-content-center gap-2">
-                        {{-- Botão Visualizar Detalhes --}}
+                        {{-- Detalhes sempre visível --}}
                         <button class="btn btn-sm btn-light rounded-circle shadow-sm" 
                                 data-bs-toggle="modal" data-bs-target="#modalViewProfile{{ $profile->id }}" 
                                 title="Ver Detalhes">
                             <i class="bi bi-info-circle-fill text-primary"></i>
                         </button>
 
-                        {{-- Botão Excluir Perfil --}}
-                        <form action="{{ route('registries.team.destroyProfile', $profile->id) }}" method="POST" class="d-inline">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-light rounded-circle shadow-sm" 
-                                    onclick="return confirm('ATENÇÃO: Deseja excluir este perfil? Usuários vinculados ficarão sem permissões.')"
-                                    title="Excluir Perfil">
-                                <i class="bi bi-trash-fill text-danger"></i>
-                            </button>
-                        </form>
+                        {{-- LÓGICA DE EXCLUSÃO --}}
+                        @if($isRowDevProfile)
+                            {{-- Perfil Dev é intocável --}}
+                            <span class="badge bg-light text-muted border fw-normal d-flex align-items-center px-2" title="Perfil Protegido pelo Sistema">
+                                <i class="bi bi-shield-lock-fill me-1 text-warning"></i> Sistema
+                            </span>
+                        @elseif($canUserDeleteProfiles)
+                            {{-- Só Admin Total ou Dev excluem outros perfis --}}
+                            <form action="{{ route('registries.team.destroyProfile', $profile->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-light rounded-circle shadow-sm" 
+                                        onclick="return confirm('ATENÇÃO: Deseja excluir este perfil? Usuários vinculados ficarão sem permissões.')"
+                                        title="Excluir Perfil">
+                                    <i class="bi bi-trash-fill text-danger"></i>
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </td>
             </tr>
-
-            {{-- Incluindo o Modal de Detalhes para este perfil específico --}}
             @include('registries.team.partials.view_profile', ['profile' => $profile])
-
             @empty
-            <tr>
-                <td colspan="3" class="text-center py-5 text-muted">
-                    <i class="bi bi-shield-slash fs-1 d-block mb-2"></i>
-                    <p class="mb-3">Nenhum perfil de acesso personalizado criado.</p>
-                    <button class="btn btn-sm btn-dark px-4" data-bs-toggle="modal" data-bs-target="#modalCreateProfile">
-                        Criar Primeiro Perfil
-                    </button>
-                </td>
-            </tr>
+            <tr><td colspan="3" class="text-center py-5 text-muted">Nenhum perfil encontrado.</td></tr>
             @endforelse
         </tbody>
     </table>

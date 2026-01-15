@@ -9,17 +9,27 @@ class Profile extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['main_company_id', 'name', 'permissions'];
+    /**
+     * Atributos que podem ser preenchidos em massa (Mass Assignment).
+     * Essencial para que o Profile::create() funcione com esses campos.
+     */
+    protected $fillable = [
+        'main_company_id', 
+        'name', 
+        'permissions'
+    ];
 
     /**
-     * Converte o campo JSON de permissões automaticamente em Array.
+     * Casts: Converte automaticamente o campo JSON de permissões 
+     * do banco de dados em um Array PHP e vice-versa.
      */
     protected $casts = [
         'permissions' => 'array',
     ];
 
     /**
-     * Relacionamento: O perfil pertence a uma empresa principal.
+     * Relacionamento: O perfil pertence a uma empresa principal (Tenant).
+     * Isso garante que cada empresa tenha seus próprios níveis de acesso.
      */
     public function mainCompany()
     {
@@ -27,10 +37,11 @@ class Profile extends Model
     }
 
     /**
-     * Relacionamento: Um perfil pode estar vinculado a vários usuários.
+     * Relacionamento: Um perfil pode ser atribuído a vários usuários.
+     * Ex: O perfil "Mestre de Torra" pode estar em 3 colaboradores diferentes.
      */
     public function users()
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(User::class, 'profile_id');
     }
 }

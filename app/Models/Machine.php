@@ -31,6 +31,11 @@ class Machine extends Model
         return $this->hasMany(MachineMaintenance::class)->orderBy('maintenance_date', 'desc');
     }
 
+    public function cleaningLogs()
+{
+    return $this->hasMany(MachineCleaningLog::class);
+}
+
     public function getCleaningStatusAttribute()
 {
     $remaining = $this->cleaning_threshold - $this->current_roasts;

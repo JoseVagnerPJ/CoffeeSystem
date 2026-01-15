@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-// IMPORTAÇÕES OBRIGATÓRIAS
 use App\Models\RoastDemand;
 use App\Models\RoastingBatch;
 use App\Models\GreenCoffeeLot;
@@ -11,64 +10,56 @@ use App\Models\User;
 use App\Models\SensoryProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon; // <--- Certifique-se de que esta linha está aqui!
+use Carbon\Carbon;
 
 class RoastController extends Controller
 {
     /**
      * Tela Principal (Kanban)
      */
-public function index() {
-    $machines = Machine::where('is_active', true)->get();
-    
-    // IMPORTANTE: Adicione 'lot.locations' no with()
-    $demands = RoastDemand::with(['lot.locations', 'machine', 'mestre', 'batches', 'sensoryProfile'])
-                ->where('status', '!=', 'finished')
-                ->orderBy('created_at', 'asc')
-                ->get();
+    public function index() {
+        $machines = Machine::where('is_active', true)->get();
 
-    return view('roasting.index', compact('machines', 'demands'));
-}
+        $demands = RoastDemand::with(['lot.locations', 'machine', 'mestre', 'batches', 'sensoryProfile'])
+                    ->orderBy('position', 'asc')
+                    ->get();
+
+        return view('roasting.index', compact('machines', 'demands'));
+    }
+
     /**
-     * Retorna estatísticas filtradas por Máquina e Período (D/S/M) via AJAX
+     * Retorna estatísticas filtradas por Máquina e Período (D/S/M)
      */
     public function getStats(Request $request) {
         $machineId = $request->machine_id;
-        $period = $request->period; // D, S, M
+        $period = $request->period; 
 
-        // Definição da data de início com fallback seguro
         if ($period == 'D') {
-            $startDate = Carbon::now()->startOfDay();
+            $startDate = Carbon::now('America/Sao_Paulo')->startOfDay();
         } elseif ($period == 'S') {
-            $startDate = Carbon::now()->startOfWeek();
+            $startDate = Carbon::now('America/Sao_Paulo')->startOfWeek();
         } else {
-            $startDate = Carbon::now()->startOfMonth();
+            $startDate = Carbon::now('America/Sao_Paulo')->startOfMonth();
         }
 
-        // 1. Peso Global (Todas as máquinas) no período selecionado
         $globalWeight = RoastDemand::where('status', 'finished')
             ->where('updated_at', '>=', $startDate)
             ->sum('total_weight_requested');
 
-        // 2. Peso Individual da Máquina no período selecionado
         $machineWeight = RoastDemand::where('machine_id', $machineId)
             ->where('status', 'finished')
             ->where('updated_at', '>=', $startDate)
             ->sum('total_weight_requested');
 
-        // 3. Construção dos dados do gráfico
         $chartData = $this->buildChartData($machineId, $period, $startDate);
 
         return response()->json([
-            'global_weight' => number_format($globalWeight, 1, ',', '.'),
-            'machine_weight' => number_format($machineWeight, 1, ',', '.'),
+            'global_weight' => number_format($globalWeight, 2, ',', '.'),
+            'machine_weight' => number_format($machineWeight, 2, ',', '.'),
             'chart' => $chartData
         ]);
     }
 
-    /**
-     * Auxiliar para montar dados do Chart.js
-     */
     private function buildChartData($machineId, $period, $startDate) {
         $queryGlobal = RoastDemand::select(
                 DB::raw('DATE(updated_at) as date'),
@@ -98,7 +89,7 @@ public function index() {
         $days = ($period == 'D') ? 1 : (($period == 'S') ? 7 : 30);
         
         for ($i = $days - 1; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $date = Carbon::now('America/Sao_Paulo')->subDays($i)->format('Y-m-d');
             $labels[] = Carbon::parse($date)->format('d/m');
             $globalData[] = $queryGlobal->get($date, 0);
             $machineData[] = $queryMachine->get($date, 0);
@@ -111,7 +102,6 @@ public function index() {
         ];
     }
 
-    // --- BUSCAS DINÂMICAS PARA O MODAL ---
     public function searchLots(Request $request) {
         return GreenCoffeeLot::where('reference', 'like', "%{$request->q}%")
             ->where('total_weight', '>', 0)
@@ -136,23 +126,27 @@ public function index() {
         return response()->json(['success' => true]);
     }
 
-    // --- LÓGICA DE ARMAZENAMENTO INTELIGENTE ---
     public function store(Request $request) {
         return DB::transaction(function () use ($request) {
             $lot = GreenCoffeeLot::lockForUpdate()->find($request->green_coffee_lot_id);
 
+            $maxPosition = RoastDemand::where('machine_id', $request->machine_id)
+                                      ->where('status', 'pending')
+                                      ->max('position') ?? 0;
+
             $demand = RoastDemand::create([
-                'user_id' => auth()->id(),
-                'green_coffee_lot_id' => $request->green_coffee_lot_id,
-                'sensory_profile_id' => $request->sensory_profile_id,
-                'machine_id' => $request->machine_id,
-                'mestre_user_id' => $request->mestre_user_id,
-                'reference' => 'TR-' . strtoupper(uniqid()),
+                'user_id'                => auth()->id(),
+                'green_coffee_lot_id'    => $request->green_coffee_lot_id,
+                'sensory_profile_id'     => $request->sensory_profile_id,
+                'machine_id'             => $request->machine_id,
+                'mestre_user_id'         => $request->mestre_user_id,
+                'reference'              => 'TR-' . strtoupper(uniqid()),
                 'total_weight_requested' => $request->total_weight,
-                'partial_weight' => $request->partial_weight,
-                'roast_level' => $request->roast_level,
-                'notes' => $request->notes,
-                'status' => 'pending'
+                'partial_weight'         => $request->partial_weight,
+                'roast_level'            => $request->roast_level,
+                'notes'                  => $request->notes,
+                'status'                 => 'pending',
+                'position'               => $maxPosition + 1
             ]);
 
             $total = $request->total_weight;
@@ -162,66 +156,214 @@ public function index() {
 
             for ($i = 1; $i <= $count; $i++) {
                 $demand->batches()->create([
-                    'batch_number' => $i,
-                    'weight_in' => $partial,
+                    'batch_number'   => $i,
+                    'weight_in'      => $partial,
                     'mestre_user_id' => $request->mestre_user_id,
-                    'status' => 'pending'
+                    'status'         => 'pending'
                 ]);
             }
 
             if ($remainder > 0) {
                 $demand->batches()->create([
-                    'batch_number' => $count + 1,
-                    'weight_in' => $remainder,
+                    'batch_number'   => $count + 1,
+                    'weight_in'      => $remainder,
                     'mestre_user_id' => $request->mestre_user_id,
-                    'status' => 'pending'
+                    'status'         => 'pending'
                 ]);
             }
 
             $lot->decrement('total_weight', $total);
 
-            return redirect()->route('roasting.index')->with('success', 'Demanda e ciclos gerados!');
+            return redirect()->route('roasting.index')->with('success', 'Demanda enviada para o final da fila!');
         });
     }
 
     public function updateOrder(Request $request)
-{
-    // Opcional: Validar se o usuário tem permissão
-    
-    $order = $request->input('order');
+    {
+        $order = $request->input('order');
+        DB::transaction(function () use ($order) {
+            foreach ($order as $item) {
+                RoastDemand::where('id', $item['id'])
+                    ->update(['position' => $item['position']]);
+            }
+        });
 
-    // Usamos uma transação para garantir que todos sejam atualizados ou nenhum
-    \DB::transaction(function () use ($order) {
-        foreach ($order as $item) {
-            \App\Models\RoastDemand::where('id', $item['id'])
-                ->update(['position' => $item['position']]);
-        }
-    });
-
-    return response()->json(['status' => 'success', 'message' => 'Ordem atualizada!']);
-}
-
-public function apiQueue() {
-    $user = auth()->user();
-    $demands = \App\Models\RoastDemand::with([
-        'lot.locations', // <--- ISSO É O QUE TRAZ O A1, B2, ETC
-        'sensoryProfile', 
-        'batches', 
-        'machine'
-    ])
-    ->where('mestre_user_id', $user->id)
-    ->where('status', '!=', 'finished')
-    ->get();
-
-    $totalCycles = 0;
-    foreach($demands as $demand) {
-        $totalCycles += $demand->batches->where('status', 'pending')->count();
+        return response()->json(['status' => 'success', 'message' => 'Ordem atualizada!']);
     }
 
-    return response()->json([
-        'mestre_name' => $user->name,
-        'total_cycles_today' => $totalCycles,
-        'demands' => $demands
-    ]);
+    public function apiQueue() {
+        try {
+            $user = auth()->user();
+            $machines = Machine::where('is_active', true)->get();
+
+            $demands = RoastDemand::with(['lot.locations', 'sensoryProfile', 'batches', 'machine'])
+                ->where('mestre_user_id', $user->id)
+                ->where(function($query) {
+                    $query->where('status', '!=', 'finished')
+                          ->orWhere('status', 'finished');
+                })
+                ->orderBy('position', 'asc') 
+                ->get();
+
+            return response()->json([
+                'mestre_name' => $user->name,
+                'machines' => $machines,
+                'demands' => $demands
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+public function apiStartBatch($id) {
+        $batch = RoastingBatch::findOrFail($id);
+        
+        $batch->update([
+            'status' => 'roasting',
+            'started_at' => Carbon::now('America/Sao_Paulo'), // Força Brasília
+        ]);
+
+        $batch->demand->update(['status' => 'roasting']);
+
+        return response()->json([
+            'success' => true,
+            'started_at' => $batch->started_at->timestamp // Enviamos o timestamp puro para o JS
+        ]);
+    }
+
+    public function apiFinishBatch(Request $request, $id) {
+        try {
+            $batch = RoastingBatch::findOrFail($id);
+
+            // Converte o horário que vem do App para o fuso correto
+            $startTime = $request->start_time ? Carbon::parse($request->start_time)->timezone('America/Sao_Paulo') : $batch->started_at;
+
+            $batch->update([
+                'status'          => 'finished',
+                'weight_out'      => (float) str_replace(',', '.', $request->weight_out),
+                'notes'           => $request->notes ?? '',
+                'is_special_tour' => filter_var($request->is_special, FILTER_VALIDATE_BOOLEAN),
+                'started_at'      => $startTime, 
+                'finished_at'     => Carbon::now('America/Sao_Paulo'),
+            ]);
+
+            if ($batch->roast_demand_id) {
+                $demand = RoastDemand::with('batches')->find($batch->roast_demand_id);
+                if ($demand && $demand->machine_id) {
+                    DB::table('machines')->where('id', $demand->machine_id)->increment('current_roasts');
+                }
+                $isComplete = $demand->batches->every(function($b) {
+                    return in_array($b->status, ['finished', 'discarded']) && ($b->status !== 'finished' || $b->weight_out > 0);
+                });
+                if ($isComplete) {
+                    $demand->update(['status' => 'finished']);
+                }
+            }
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function apiUpdateBatch(Request $request, $id) {
+        $batch = RoastingBatch::findOrFail($id);
+        
+        $batch->update([
+            'is_special_tour' => filter_var($request->is_special, FILTER_VALIDATE_BOOLEAN),
+            'notes' => $request->notes ?? $batch->notes
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function apiDiscardBatch($id) {
+        $batch = RoastingBatch::findOrFail($id);
+        $batch->update(['status' => 'discarded']);
+
+        return response()->json(['success' => true, 'message' => 'Torra inutilizada']);
+    }
+
+    public function webRequestSplit(Request $request) {
+        $demand = RoastDemand::findOrFail($request->demand_id);
+        $demand->update(['status' => 'awaiting_split_confirmation']);
+
+        return response()->json(['success' => true, 'message' => 'Solicitação enviada ao mestre de torra.']);
+    }
+
+    public function apiConfirmSplit(Request $request, $id) {
+        return DB::transaction(function () use ($request, $id) {
+            $originalDemand = RoastDemand::with('batches')->findOrFail($id);
+            $keepCount = $request->num_remaining; 
+
+            $pendingBatches = $originalDemand->batches()
+                ->where('status', 'pending')
+                ->orderBy('batch_number', 'asc')
+                ->get();
+
+            $batchesToMove = $pendingBatches->slice($keepCount);
+
+            if ($batchesToMove->isNotEmpty()) {
+                $movedWeight = $batchesToMove->sum('weight_in');
+
+                $newDemand = RoastDemand::create([
+                    'user_id' => $originalDemand->user_id,
+                    'green_coffee_lot_id' => $originalDemand->green_coffee_lot_id,
+                    'sensory_profile_id' => $originalDemand->sensory_profile_id,
+                    'machine_id' => $originalDemand->machine_id,
+                    'mestre_user_id' => $originalDemand->mestre_user_id,
+                    'reference' => $originalDemand->reference . '-PART2',
+                    'total_weight_requested' => $movedWeight,
+                    'partial_weight' => $originalDemand->partial_weight,
+                    'roast_level' => $originalDemand->roast_level,
+                    'notes' => '(Dividido) ' . $originalDemand->notes,
+                    'status' => 'pending',
+                    'position' => $originalDemand->position + 1
+                ]);
+
+                foreach ($batchesToMove as $batch) {
+                    $batch->update(['roast_demand_id' => $newDemand->id]);
+                }
+
+                $originalDemand->decrement('total_weight_requested', $movedWeight);
+            }
+
+            $originalDemand->update(['status' => 'roasting']);
+
+            return response()->json(['success' => true, 'message' => 'Demanda reorganizada com sucesso.']);
+        });
+    }
+
+    public function apiRegisterCleaning(Request $request, $id)
+{
+    try {
+        return DB::transaction(function () use ($id, $request) {
+            $machine = Machine::findOrFail($id);
+            $user = auth()->user();
+
+            // 1. Cria o log de limpeza
+            $machine->cleaningLogs()->create([
+                'user_id' => $user->id,
+                'cleaned_at' => Carbon::now('America/Sao_Paulo'),
+                'notes' => $request->notes ?? 'Limpeza de rotina realizada pelo App',
+            ]);
+
+            // 2. Reseta o contador de torras da máquina
+            $machine->update([
+                'current_roasts' => 0
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Limpeza registrada e contador resetado!',
+                'current_roasts' => 0
+            ]);
+        });
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
 }
 }

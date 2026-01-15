@@ -70,4 +70,9 @@ public function roastDemands()
 {
     return $this->hasMany(RoastDemand::class, 'green_coffee_lot_id');
 }
+
+public function movements() {
+    return $this->hasMany(StockMovement::class);
+}
+
 }
