@@ -156,20 +156,26 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Variáveis Globais para manter o estado e acesso aos objetos Chart.js
     const dataRecebimentoInicial = {!! json_encode($ultimosRecebimentos) !!};
     let activeProfileId = null;
     let chartLab, chartUltimos, chartEstoque;
 
+    /**
+     * AJAX: Alternar entre Entradas (Recebimentos) e Saídas (Torras)
+     */
     async function toggleMovimentacao(tipo) {
         try {
             const response = await fetch(`/dashboard/movimentacao-data?tipo=${tipo}`);
             const result = await response.json();
+
             const tituloElem = document.getElementById('tituloMovimentacao');
             if(tituloElem) tituloElem.innerText = result.titulo;
 
             if (chartUltimos) {
                 const color = tipo === 'entrada' ? '#c0a16b' : '#dc3545';
                 const bgColor = tipo === 'entrada' ? 'rgba(192, 161, 107, 0.1)' : 'rgba(220, 53, 69, 0.1)';
+                
                 chartUltimos.data.labels = result.dados.map(d => d.data);
                 chartUltimos.data.datasets[0].data = result.dados.map(d => d.peso);
                 chartUltimos.data.datasets[0].label = tipo === 'entrada' ? 'kg Recebido' : 'kg Torrado';
@@ -177,45 +183,78 @@
                 chartUltimos.data.datasets[0].backgroundColor = bgColor;
                 chartUltimos.update(); 
             }
-        } catch (error) { console.error("Erro Movimentação:", error); }
+        } catch (error) {
+            console.error("Erro ao alternar gráfico de movimentação:", error);
+        }
     }
 
+    /**
+     * AJAX: Atualizar Gráfico do Laboratório (D, S, M, T, Se, A)
+     */
     async function updateChartLab(periodo) {
         try {
             const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
             const res = await response.json();
+
             if (chartLab) {
                 chartLab.data.labels = res.labels;
                 chartLab.data.datasets[0].data = res.mesas;
                 chartLab.data.datasets[1].data = res.xicaras;
                 chartLab.update(); 
             }
+
+            // Atualização visual dos botões de filtro
             document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
-            const btn = document.getElementById(`btn-lab-${periodo}`);
-            if (btn) btn.classList.replace('btn-outline-dark', 'btn-dark');
-        } catch (e) { console.error("Erro Lab:", e); }
+            const btnAtivo = document.getElementById(`btn-lab-${periodo}`);
+            if (btnAtivo) btnAtivo.classList.replace('btn-outline-dark', 'btn-dark');
+        } catch (e) {
+            console.error("Erro ao atualizar dados do laboratório:", e);
+        }
     }
 
+    /**
+     * Inicialização de todos os gráficos da página
+     */
     function initCharts() {
+        // 1. Gráfico de Produtividade do Laboratório (Linha Progressiva Unificada)
         const elLab = document.getElementById('chartLab');
         if (elLab) {
             chartLab = new Chart(elLab, {
                 type: 'line',
                 data: {
-                    labels: {!! json_encode($mesasData->pluck('data')) !!},
+                    // Usamos dadosLab para garantir que mesas e xícaras ocupem o mesmo ponto no tempo
+                    labels: {!! json_encode($dadosLab->pluck('data')) !!},
                     datasets: [
-                        { label: 'Mesas', data: {!! json_encode($mesasData->pluck('total')) !!}, borderColor: '#3d2b1f', backgroundColor: 'rgba(61, 43, 31, 0.1)', fill: true, tension: 0.4 },
-                        { label: 'Xícaras', data: {!! json_encode($xicarasData->pluck('total')) !!}, borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.1)', fill: true, tension: 0.4 }
+                        { 
+                            label: 'Mesas', 
+                            data: {!! json_encode($dadosLab->pluck('total_mesas')) !!}, 
+                            borderColor: '#3d2b1f', 
+                            backgroundColor: 'rgba(61, 43, 31, 0.1)', 
+                            fill: true, 
+                            tension: 0.4, 
+                            borderWidth: 3 
+                        },
+                        { 
+                            label: 'Xícaras', 
+                            data: {!! json_encode($dadosLab->pluck('total_xicaras')) !!}, 
+                            borderColor: '#c0a16b', 
+                            backgroundColor: 'rgba(192, 161, 107, 0.1)', 
+                            fill: true, 
+                            tension: 0.4, 
+                            borderWidth: 3 
+                        }
                     ]
                 },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
                     scales: { x: { ticks: { autoSkip: true, maxRotation: 0 } } }
                 }
             });
         }
 
+        // 2. Gráfico de Últimos Recebimentos / Movimentações (Linha)
         const elUltimos = document.getElementById('chartUltimos');
         if (elUltimos) {
             chartUltimos = new Chart(elUltimos, {
@@ -227,13 +266,20 @@
                         data: dataRecebimentoInicial.map(d => d.peso),
                         borderColor: '#c0a16b',
                         backgroundColor: 'rgba(192, 161, 107, 0.1)',
-                        fill: true, tension: 0.4
+                        fill: true, 
+                        tension: 0.4,
+                        borderWidth: 3
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } } 
+                }
             });
         }
 
+        // 3. Gráfico de Mapa de Estoque por Perfil (Barra)
         const elEstoque = document.getElementById('chartEstoqueTotal');
         if (elEstoque) {
             chartEstoque = new Chart(elEstoque, {
@@ -246,28 +292,40 @@
                         borderRadius: 5
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false } } 
+                }
             });
         }
     }
 
+    /**
+     * Filtro rápido ao clicar nos cards sensoriais do armazém
+     */
     function toggleProfileFilter(profileId) {
         const cards = document.querySelectorAll('.profile-card');
         if (activeProfileId === profileId) {
             activeProfileId = null;
             cards.forEach(c => c.classList.remove('active-filter', 'inactive-filter'));
-            updateRecebimentos(dataRecebimentoInicial);
+            updateChartUltimos(dataRecebimentoInicial);
         } else {
             activeProfileId = profileId;
             cards.forEach(c => {
                 c.classList.toggle('active-filter', c.id === `profile-${profileId}`);
                 c.classList.toggle('inactive-filter', c.id !== `profile-${profileId}`);
             });
-            updateRecebimentos(dataRecebimentoInicial.filter(d => d.perfil_id == profileId));
+            const filtered = dataRecebimentoInicial.filter(d => d.perfil_id == profileId);
+            updateChartUltimos(filtered);
         }
     }
 
-    function updateRecebimentos(data) {
+    /**
+     * Helper: Atualiza apenas os dados do gráfico de movimentação
+     */
+    function updateChartUltimos(data) {
         if (chartUltimos) {
             chartUltimos.data.labels = data.map(d => d.data);
             chartUltimos.data.datasets[0].data = data.map(d => d.peso);
@@ -275,6 +333,9 @@
         }
     }
 
+    /**
+     * Habilita rolagem horizontal do grid de perfis com a rodinha do mouse
+     */
     function enableHorizontalScroll() {
         const container = document.querySelector('.sensory-scroll-container');
         if (container) {
@@ -287,9 +348,12 @@
         }
     }
 
+    // Inicialização ao carregar a janela
     window.onload = () => {
         initCharts();
         enableHorizontalScroll();
+        // Carrega o laboratório no período 'D' (Dia) por padrão para maior precisão
+        updateChartLab('D');
     };
 </script>
 @endsection
