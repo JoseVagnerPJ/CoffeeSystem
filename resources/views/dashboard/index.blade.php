@@ -10,23 +10,27 @@
     {{-- PARTE INFERIOR: MAPA DE ESTOQUE TOTAL --}}
     <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px;">
         <h6 class="fw-bold mb-4 text-dark">MAPA DE ESTOQUE POR PERFIL (TOTAL KG)</h6>
-        <div style="height: 200px;"><canvas id="chartEstoqueTotal"></canvas></div>
-        
-        <div class="d-flex flex-wrap justify-content-center mt-4 gap-3">
-            @foreach($estoquePorPerfil as $item)
-                <div class="d-flex align-items-center">
-                    <div style="width: 15px; height: 15px; border-radius: 3px; background-color: {{ $item->sensoryProfile->color_hex }}; margin-right: 6px;"></div>
-                    <span style="font-size: 0.75rem; color: #000; font-weight: 900;">{{ strtoupper($item->sensoryProfile->name) }}</span>
-                </div>
-            @endforeach
-        </div>
+        @if($estoquePorPerfil->isEmpty())
+            <div class="py-5 text-center text-muted">Não existem dados a exibir</div>
+        @else
+            <div style="height: 200px;"><canvas id="chartEstoqueTotal"></canvas></div>
+            
+            <div class="d-flex flex-wrap justify-content-center mt-4 gap-3">
+                @foreach($estoquePorPerfil as $item)
+                    <div class="d-flex align-items-center">
+                        <div style="width: 15px; height: 15px; border-radius: 3px; background-color: {{ $item->sensoryProfile->color_hex }}; margin-right: 6px;"></div>
+                        <span style="font-size: 0.75rem; color: #000; font-weight: 900;">{{ strtoupper($item->sensoryProfile->name) }}</span>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     {{-- GRID DE PERFIS (LINHA ÚNICA COLORIDA COM PELÍCULA) --}}
     <h6 class="fw-bold text-uppercase mb-3" style="color: #c0a16b; font-size: 0.75rem; letter-spacing: 1px;">Estoque por Perfil (Filtragem Rápida)</h6>
     <div class="sensory-scroll-container mb-4">
         <div class="sensory-single-row">
-            @foreach($estoquePorPerfil as $item)
+            @forelse($estoquePorPerfil as $item)
             
             <div class="card profile-card border-0 shadow-sm" 
                 id="profile-{{ $item->sensory_profile_id }}"
@@ -52,7 +56,11 @@
                     </div>
                 </div>
             </div>
-            @endforeach
+            @empty
+                <div class="w-100 text-center py-4 bg-white shadow-sm" style="border-radius: 15px;">
+                    <span class="text-muted">Não existem dados a exibir</span>
+                </div>
+            @endforelse
         </div>
     </div>
 
@@ -72,7 +80,13 @@
                     @endforeach
                 </div>
             </div>
-            <div style="height: 250px;"><canvas id="chartLab"></canvas></div>
+            <div style="height: 250px;">
+                @if($mesasData->isEmpty() && $xicarasData->isEmpty())
+                    <div class="h-100 d-flex align-items-center justify-content-center text-muted">Não existem dados a exibir</div>
+                @else
+                    <canvas id="chartLab"></canvas>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -91,7 +105,13 @@
                     </button>
                 </div>
             </div>
-            <div style="height: 250px;"><canvas id="chartUltimos"></canvas></div>
+            <div style="height: 250px;">
+                @if($ultimosRecebimentos->isEmpty())
+                    <div class="h-100 d-flex align-items-center justify-content-center text-muted">Não existem dados a exibir</div>
+                @else
+                    <canvas id="chartUltimos"></canvas>
+                @endif
+            </div>
         </div>
     </div>
     
@@ -156,13 +176,14 @@
             const bgColor = tipo === 'entrada' ? 'rgba(192, 161, 107, 0.1)' : 'rgba(220, 53, 69, 0.1)';
 
             // 3. Atualiza o objeto Chart.js global
-            chartUltimos.data.labels = result.dados.map(d => d.data);
-            chartUltimos.data.datasets[0].data = result.dados.map(d => d.peso);
-            chartUltimos.data.datasets[0].label = tipo === 'entrada' ? 'kg Recebido' : 'kg Torrado';
-            chartUltimos.data.datasets[0].borderColor = color;
-            chartUltimos.data.datasets[0].backgroundColor = bgColor;
-
-            chartUltimos.update(); // Redesenha o gráfico suavemente
+            if (chartUltimos) {
+                chartUltimos.data.labels = result.dados.map(d => d.data);
+                chartUltimos.data.datasets[0].data = result.dados.map(d => d.peso);
+                chartUltimos.data.datasets[0].label = tipo === 'entrada' ? 'kg Recebido' : 'kg Torrado';
+                chartUltimos.data.datasets[0].borderColor = color;
+                chartUltimos.data.datasets[0].backgroundColor = bgColor;
+                chartUltimos.update(); 
+            }
         } catch (error) {
             console.error("Erro ao alternar gráfico:", error);
         }
@@ -170,51 +191,60 @@
 
     function initCharts() {
         // 1. Gráfico Lab
-        new Chart(document.getElementById('chartLab'), {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode($mesasData->pluck('data')) !!},
-                datasets: [
-                    { label: 'Mesas', data: {!! json_encode($mesasData->pluck('total')) !!}, backgroundColor: '#3d2b1f', borderRadius: 5 },
-                    { label: 'Xícaras', data: {!! json_encode($xicarasData->pluck('total')) !!}, backgroundColor: '#c0a16b', borderRadius: 5 }
-                ]
-            },
-            options: { maintainAspectRatio: false }
-        });
+        const elLab = document.getElementById('chartLab');
+        if (elLab) {
+            new Chart(elLab, {
+                type: 'bar',
+                data: {
+                    labels: {!! json_encode($mesasData->pluck('data')) !!},
+                    datasets: [
+                        { label: 'Mesas', data: {!! json_encode($mesasData->pluck('total')) !!}, backgroundColor: '#3d2b1f', borderRadius: 5 },
+                        { label: 'Xícaras', data: {!! json_encode($xicarasData->pluck('total')) !!}, backgroundColor: '#c0a16b', borderRadius: 5 }
+                    ]
+                },
+                options: { maintainAspectRatio: false }
+            });
+        }
 
         // 2. Últimos Recebimentos (Inicialização)
-        chartUltimos = new Chart(document.getElementById('chartUltimos'), {
-            type: 'line',
-            data: {
-                labels: dataRecebimento.map(d => d.data),
-                datasets: [{
-                    label: 'kg',
-                    data: dataRecebimento.map(d => d.peso),
-                    borderColor: '#c0a16b',
-                    backgroundColor: 'rgba(192, 161, 107, 0.1)',
-                    fill: true, tension: 0.4
-                }]
-            },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
+        const elUltimos = document.getElementById('chartUltimos');
+        if (elUltimos) {
+            chartUltimos = new Chart(elUltimos, {
+                type: 'line',
+                data: {
+                    labels: dataRecebimentoInicial.map(d => d.data),
+                    datasets: [{
+                        label: 'kg',
+                        data: dataRecebimentoInicial.map(d => d.peso),
+                        borderColor: '#c0a16b',
+                        backgroundColor: 'rgba(192, 161, 107, 0.1)',
+                        fill: true, tension: 0.4
+                    }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
 
         // 3. Estoque Total
-        new Chart(document.getElementById('chartEstoqueTotal'), {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
-                datasets: [{
-                    data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!},
-                    backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!},
-                    borderRadius: 5
-                }]
-            },
-            options: { 
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false } },
-                scales: { x: { display: false } }
-            }
-        });
+        const elEstoque = document.getElementById('chartEstoqueTotal');
+        if (elEstoque) {
+            new Chart(elEstoque, {
+                type: 'bar',
+                data: {
+                    labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
+                    datasets: [{
+                        data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!},
+                        backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!},
+                        borderRadius: 5
+                    }]
+                },
+                options: { 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false } }
+                }
+            });
+        }
     }
 
     async function toggleMovimentacao(tipo) {
@@ -222,52 +252,64 @@
             const response = await fetch(`{{ route('dashboard.movimentacao_data') }}?tipo=${tipo}`);
             const res = await response.json();
             document.getElementById('tituloMovimentacao').innerText = res.titulo;
-            chartUltimos.data.labels = res.dados.map(d => d.data);
-            chartUltimos.data.datasets[0].data = res.dados.map(d => d.peso);
-            chartUltimos.data.datasets[0].borderColor = (tipo === 'entrada') ? '#c0a16b' : '#dc3545';
-            chartUltimos.update();
+            if (chartUltimos) {
+                chartUltimos.data.labels = res.dados.map(d => d.data);
+                chartUltimos.data.datasets[0].data = res.dados.map(d => d.peso);
+                chartUltimos.data.datasets[0].borderColor = (tipo === 'entrada') ? '#c0a16b' : '#dc3545';
+                chartUltimos.update();
+            }
         } catch (e) { console.error(e); }
     }
+
     function initCharts() {
         // Lab
-        chartLab = new Chart(document.getElementById('chartLab'), {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode($mesasData->pluck('data')) !!},
-                datasets: [
-                    { label: 'Mesas', data: {!! json_encode($mesasData->pluck('total')) !!}, backgroundColor: '#3d2b1f' },
-                    { label: 'Xícaras', data: {!! json_encode($xicarasData->pluck('total')) !!}, backgroundColor: '#c0a16b' }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+        const elLab = document.getElementById('chartLab');
+        if (elLab) {
+            chartLab = new Chart(elLab, {
+                type: 'bar',
+                data: {
+                    labels: {!! json_encode($mesasData->pluck('data')) !!},
+                    datasets: [
+                        { label: 'Mesas', data: {!! json_encode($mesasData->pluck('total')) !!}, backgroundColor: '#3d2b1f' },
+                        { label: 'Xícaras', data: {!! json_encode($xicarasData->pluck('total')) !!}, backgroundColor: '#c0a16b' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
 
         // Movimentação
-        chartUltimos = new Chart(document.getElementById('chartUltimos'), {
-            type: 'line',
-            data: {
-                labels: dataRecebimentoInicial.map(d => d.data),
-                datasets: [{
-                    label: 'kg',
-                    data: dataRecebimentoInicial.map(d => d.peso),
-                    borderColor: '#c0a16b', fill: true, tension: 0.4
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+        const elUltimos = document.getElementById('chartUltimos');
+        if (elUltimos) {
+            chartUltimos = new Chart(elUltimos, {
+                type: 'line',
+                data: {
+                    labels: dataRecebimentoInicial.map(d => d.data),
+                    datasets: [{
+                        label: 'kg',
+                        data: dataRecebimentoInicial.map(d => d.peso),
+                        borderColor: '#c0a16b', fill: true, tension: 0.4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
 
         // Estoque Total
-        new Chart(document.getElementById('chartEstoqueTotal'), {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
-                datasets: [{
-                    data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!},
-                    backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!}
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
-        });
+        const elEstoque = document.getElementById('chartEstoqueTotal');
+        if (elEstoque) {
+            new Chart(elEstoque, {
+                type: 'bar',
+                data: {
+                    labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
+                    datasets: [{
+                        data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!},
+                        backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!}
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+            });
+        }
     }
 
     // Scroll Horizontal com Mouse
@@ -283,56 +325,61 @@
         }
     }
 
-// 1. Inicialização do Gráfico do Laboratório
-chartLab = new Chart(document.getElementById('chartLab'), {
-    type: 'line', // Alterado de 'bar' para 'line'
-    data: {
-        labels: [], // Inicia vazio, o AJAX preenche
-        datasets: [
-            { 
-                label: 'Mesas', 
-                data: [], 
-                borderColor: '#3d2b1f', 
-                backgroundColor: 'rgba(61, 43, 31, 0.1)',
-                fill: true, 
-                tension: 0.4, // Linha suave
-                borderWidth: 3
+    // 1. Inicialização do Gráfico do Laboratório
+    const elLab = document.getElementById('chartLab');
+    if (elLab) {
+        chartLab = new Chart(elLab, {
+            type: 'line', // Alterado de 'bar' para 'line'
+            data: {
+                labels: [], // Inicia vazio, o AJAX preenche
+                datasets: [
+                    { 
+                        label: 'Mesas', 
+                        data: [], 
+                        borderColor: '#3d2b1f', 
+                        backgroundColor: 'rgba(61, 43, 31, 0.1)',
+                        fill: true, 
+                        tension: 0.4, // Linha suave
+                        borderWidth: 3
+                    },
+                    { 
+                        label: 'Xícaras', 
+                        data: [], 
+                        borderColor: '#c0a16b', 
+                        backgroundColor: 'rgba(192, 161, 107, 0.1)',
+                        fill: true, 
+                        tension: 0.4, // Linha suave
+                        borderWidth: 3
+                    }
+                ]
             },
-            { 
-                label: 'Xícaras', 
-                data: [], 
-                borderColor: '#c0a16b', 
-                backgroundColor: 'rgba(192, 161, 107, 0.1)',
-                fill: true, 
-                tension: 0.4, // Linha suave
-                borderWidth: 3
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } } 
             }
-        ]
-    },
-    options: { 
-        responsive: true, 
-        maintainAspectRatio: false, 
-        plugins: { legend: { display: false } } 
+        });
     }
-});
 
-// 2. Função de atualização AJAX
-async function updateChartLab(periodo) {
-    try {
-        const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
-        const res = await response.json();
+    // 2. Função de atualização AJAX
+    async function updateChartLab(periodo) {
+        try {
+            const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
+            const res = await response.json();
 
-        chartLab.data.labels = res.labels;
-        chartLab.data.datasets[0].data = res.mesas;
-        chartLab.data.datasets[1].data = res.xicaras;
-        
-        chartLab.update(); // Atualiza as linhas com animação
+            if (chartLab) {
+                chartLab.data.labels = res.labels;
+                chartLab.data.datasets[0].data = res.mesas;
+                chartLab.data.datasets[1].data = res.xicaras;
+                chartLab.update(); // Atualiza as linhas com animação
+            }
 
-        // Estilo dos botões (opcional)
-        document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
-        document.getElementById(`btn-lab-${periodo}`).classList.replace('btn-outline-dark', 'btn-dark');
-    } catch (e) { console.error("Erro no Lab:", e); }
-}
+            // Estilo dos botões (opcional)
+            document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
+            const btn = document.getElementById(`btn-lab-${periodo}`);
+            if (btn) btn.classList.replace('btn-outline-dark', 'btn-dark');
+        } catch (e) { console.error("Erro no Lab:", e); }
+    }
 
     // Filtro dos Cards Sensoriais
     function toggleProfileFilter(profileId) {
@@ -340,28 +387,29 @@ async function updateChartLab(periodo) {
         if (activeProfileId === profileId) {
             activeProfileId = null;
             cards.forEach(c => c.classList.remove('active-filter', 'inactive-filter'));
-            updateRecebimentos(dataRecebimento);
+            updateRecebimentos(dataRecebimentoInicial);
         } else {
             activeProfileId = profileId;
             cards.forEach(c => {
                 c.classList.toggle('active-filter', c.id === `profile-${profileId}`);
                 c.classList.toggle('inactive-filter', c.id !== `profile-${profileId}`);
             });
-            const filtered = dataRecebimento.filter(d => d.perfil_id == profileId);
+            const filtered = dataRecebimentoInicial.filter(d => d.perfil_id == profileId);
             updateRecebimentos(filtered);
         }
     }
 
     function updateRecebimentos(data) {
-        chartUltimos.data.labels = data.map(d => d.data);
-        chartUltimos.data.datasets[0].data = data.map(d => d.peso);
-        chartUltimos.update();
+        if (chartUltimos) {
+            chartUltimos.data.labels = data.map(d => d.data);
+            chartUltimos.data.datasets[0].data = data.map(d => d.weight ?? d.peso);
+            chartUltimos.update();
+        }
     }
 
-window.onload = () => {
-    initCharts();
-    updateChartLab('M'); // Carrega o mês por padrão
-    enableHorizontalScroll();
-};
+    window.onload = () => {
+        initCharts();
+        enableHorizontalScroll();
+    };
 </script>
 @endsection
