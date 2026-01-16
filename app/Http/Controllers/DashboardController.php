@@ -17,13 +17,10 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    /**
-     * Dashboard Principal
-     */
-public function index(Request $request) 
+    public function index(Request $request) 
     {
         $user = Auth::user();
-        $periodo = $request->get('periodo', 'D'); // Padrão 24h
+        $periodo = $request->get('periodo', 'D');
 
         $dataInicio = Carbon::now()->subHours(3);
         if ($periodo == 'D') {
@@ -35,7 +32,7 @@ public function index(Request $request)
                 case 'S': $dataInicio = $dataInicio->subDays(7); break;
                 case 'T': $dataInicio = $dataInicio->subMonths(3); break;
                 case 'Se': $dataInicio = $dataInicio->subMonths(6); break;
-                case 'A': $dataInicio = $dataInicio->startOfYear(); break;
+                case 'A': $dataInicio = $dataInicio->subYears(2); break; // Para ver o Seeder
                 default: $dataInicio = $dataInicio->startOfMonth(); break;
             }
         }
@@ -57,7 +54,7 @@ public function index(Request $request)
                 ];
             });
 
-        // Query Unificada com Join para garantir que Xícaras e Mesas apareçam juntas
+        // Query Unificada Corrigida para SQL strict mode (orderBy pelo alias)
         $dadosLab = CuppingSession::where('cupping_sessions.created_at', '>=', $dataInicio)
             ->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
             ->select(
@@ -65,47 +62,46 @@ public function index(Request $request)
                 DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
                 DB::raw('COUNT(cupping_items.id) as total_xicaras')
             )
-            ->groupBy('data')->orderBy('data', 'ASC')->get();
+            ->groupBy('data')
+            ->orderBy('data', 'ASC')
+            ->get();
 
-        return view('dashboard.index', compact('user', 'estoquePorPerfil', 'ultimosRecebimentos', 'dadosLab', 'periodo'));
+        // Criamos as variáveis separadas para não dar erro na View
+        $mesasData = $dadosLab->map(fn($item) => (object)['data' => $item->data, 'total' => $item->total_mesas]);
+        $xicarasData = $dadosLab->map(fn($item) => (object)['data' => $item->data, 'total' => $item->total_xicaras]);
+
+        return view('dashboard.index', compact('user', 'estoquePorPerfil', 'ultimosRecebimentos', 'dadosLab', 'mesasData', 'xicarasData', 'periodo'));
     }
 
-    /**
-     * AJAX: Alternância entre Entradas (Recebimentos) e Saídas (Torras)
-     */
     public function getMovimentacaoData(Request $request) 
-{
-    $tipo = $request->get('tipo', 'entrada');
-    
-    if ($tipo == 'entrada') {
-        // Busca os últimos 6 lotes de café verde (Entradas)
-        $dados = \App\Models\GreenCoffeeLot::orderBy('created_at', 'DESC')
-            ->limit(6)->get()->reverse()->values()
-            ->map(function($lote) {
-                return [
-                    'peso' => $lote->total_weight,
-                    'data' => $lote->created_at->subHours(3)->format('d/m H:i:s')
-                ];
-            });
-        $titulo = "ÚLTIMOS RECEBIMENTOS";
-    } else {
-        // Busca as últimas 6 torras finalizadas (Saídas)
-        $dados = \App\Models\RoastingBatch::whereNotNull('finished_at')
-            ->orderBy('finished_at', 'DESC')
-            ->limit(6)->get()->reverse()->values()
-            ->map(function($batch) {
-                return [
-                    'peso' => $batch->weight_out,
-                    'data' => $batch->finished_at->subHours(3)->format('d/m H:i:s')
-                ];
-            });
-        $titulo = "ÚLTIMAS SAÍDAS";
+    {
+        $tipo = $request->get('tipo', 'entrada');
+        if ($tipo == 'entrada') {
+            $dados = \App\Models\GreenCoffeeLot::orderBy('created_at', 'DESC')
+                ->limit(6)->get()->reverse()->values()
+                ->map(function($lote) {
+                    return [
+                        'peso' => $lote->total_weight,
+                        'data' => $lote->created_at->subHours(3)->format('d/m H:i:s')
+                    ];
+                });
+            $titulo = "ÚLTIMOS RECEBIMENTOS";
+        } else {
+            $dados = \App\Models\RoastingBatch::whereNotNull('finished_at')
+                ->orderBy('finished_at', 'DESC')
+                ->limit(6)->get()->reverse()->values()
+                ->map(function($batch) {
+                    return [
+                        'peso' => $batch->weight_out,
+                        'data' => $batch->finished_at->subHours(3)->format('d/m H:i:s')
+                    ];
+                });
+            $titulo = "ÚLTIMAS SAÍDAS";
+        }
+        return response()->json(['dados' => $dados, 'titulo' => $titulo]);
     }
 
-    return response()->json(['dados' => $dados, 'titulo' => $titulo]);
-}
-
-public function getLaboratorioData(Request $request)
+    public function getLaboratorioData(Request $request)
     {
         $periodo = $request->get('periodo', 'D');
         $dataInicio = Carbon::now()->subHours(3);
@@ -118,7 +114,7 @@ public function getLaboratorioData(Request $request)
                 case 'S': $dataInicio = $dataInicio->subDays(7); break;
                 case 'T': $dataInicio = $dataInicio->subMonths(3); break;
                 case 'Se': $dataInicio = $dataInicio->subMonths(6); break;
-                case 'A': $dataInicio = $dataInicio->subYear(); break;
+                case 'A': $dataInicio = $dataInicio->subYears(2); break;
                 default: $dataInicio = $dataInicio->startOfMonth(); break;
             }
         }
@@ -130,7 +126,9 @@ public function getLaboratorioData(Request $request)
                 DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
                 DB::raw('COUNT(cupping_items.id) as total_xicaras')
             )
-            ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
+            ->groupBy('tempo')
+            ->orderBy('tempo', 'ASC')
+            ->get();
 
         return response()->json([
             'labels' => $dados->pluck('tempo'),
@@ -138,32 +136,9 @@ public function getLaboratorioData(Request $request)
             'xicaras' => $dados->pluck('total_xicaras')
         ]);
     }
-    /**
-     * Módulo de Cadastros (Registries)
-     */
-    public function cadastros()
-    {
-        $cadastrosStats = [
-            'variedades'   => 12, 
-            'fornecedores' => Company::count() + Farm::count() + Producer::count(),
-            'equipe'       => User::count()
-        ];
-        
-        return view('registries.index', compact('cadastrosStats'));
-    }
 
-    public function laboratorio() 
-    {
-        return view('laboratory.index');
-    }
-
-    public function torrefacao() 
-    {
-        return view('roasting.index');
-    }
-
-    public function configuracoes() 
-    {
-        return view('settings.index');
-    }
+    public function cadastros() { return view('registries.index'); }
+    public function laboratorio() { return view('laboratory.index'); }
+    public function torrefacao() { return view('roasting.index'); }
+    public function configuracoes() { return view('settings.index'); }
 }

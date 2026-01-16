@@ -192,17 +192,16 @@
      * AJAX: Atualizar Gráfico do Laboratório (D, S, M, T, Se, A)
      */
     async function updateChartLab(periodo) {
-        try {
-            const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
-            const res = await response.json();
-
-            if (chartLab) {
-                // Sincronia: Labels e Dados agora vêm amarrados do Controller
-                chartLab.data.labels = res.labels;
-                chartLab.data.datasets[0].data = res.mesas;
-                chartLab.data.datasets[1].data = res.xicaras;
-                chartLab.update(); 
-            }
+    try {
+        const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
+        const res = await response.json();
+        
+        if (chartLab) {
+            chartLab.data.labels = res.labels;
+            chartLab.data.datasets[0].data = res.mesas; // Deve bater com o JSON: 'mesas'
+            chartLab.data.datasets[1].data = res.xicaras; // Deve bater com o JSON: 'xicaras'
+            chartLab.update();
+        }
 
             // Atualização visual dos botões de filtro
             document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
@@ -216,48 +215,36 @@
     /**
      * Inicialização de todos os gráficos da página
      */
-    function initCharts() {
-        // 1. Gráfico de Produtividade do Laboratório (Linha Progressiva Unificada)
+function initCharts() {
         const elLab = document.getElementById('chartLab');
         if (elLab) {
             chartLab = new Chart(elLab, {
                 type: 'line',
                 data: {
-                    // Usamos dadosLab para garantir que mesas e xícaras ocupem o mesmo ponto no tempo
-                    labels: {!! json_encode($dadosLab->pluck('data')) !!},
+                    // Pega as labels do mesasData (que é o dadosLab mapeado)
+                    labels: {!! json_encode($mesasData->pluck('data')) !!},
                     datasets: [
                         { 
                             label: 'Mesas', 
-                            data: {!! json_encode($dadosLab->pluck('total_mesas')) !!}, 
+                            data: {!! json_encode($mesasData->pluck('total')) !!}, 
                             borderColor: '#3d2b1f', 
                             backgroundColor: 'rgba(61, 43, 31, 0.1)', 
-                            fill: true, 
-                            tension: 0.4, 
-                            borderWidth: 3 
+                            fill: true, tension: 0.4 
                         },
                         { 
                             label: 'Xícaras', 
-                            data: {!! json_encode($dadosLab->pluck('total_xicaras')) !!}, 
+                            data: {!! json_encode($xicarasData->pluck('total')) !!}, 
                             borderColor: '#c0a16b', 
                             backgroundColor: 'rgba(192, 161, 107, 0.1)', 
-                            fill: true, 
-                            tension: 0.4, 
-                            borderWidth: 3 
+                            fill: true, tension: 0.4 
                         }
                     ]
                 },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
                     scales: { 
-                        x: { 
-                            ticks: { 
-                                autoSkip: true, 
-                                maxRotation: 0,
-                                font: { size: 10 }
-                            } 
-                        },
+                        x: { ticks: { autoSkip: true, maxRotation: 0 } },
                         y: { beginAtZero: true }
                     }
                 }
