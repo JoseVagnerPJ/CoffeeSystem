@@ -113,38 +113,57 @@ class DashboardController extends Controller
 
     return response()->json(['dados' => $dados, 'titulo' => $titulo]);
 }
-    
+
 public function getLaboratorioData(Request $request) 
 {
     $periodo = $request->get('periodo', 'M');
+    $dataInicio = Carbon::now()->subHours(3);
+    
+    // Define o formato da data e o agrupamento SQL baseado no botão clicado
+    $groupByFormat = '%Y-%m-%d';
+    $displayFormat = 'd/m';
 
-    // Ajuste de fuso: -3 horas para o filtro de início
-    $dataInicio = Carbon::now()->subHours(3)->startOfMonth();
     switch ($periodo) {
-        case 'D': $dataInicio = Carbon::now()->subHours(3)->startOfDay(); break;
-        case 'S': $dataInicio = Carbon::now()->subHours(3)->startOfWeek(); break;
-        case 'T': $dataInicio = Carbon::now()->subHours(3)->subMonths(3); break;
-        case 'Se': $dataInicio = Carbon::now()->subHours(3)->subMonths(6); break;
-        case 'A': $dataInicio = Carbon::now()->subHours(3)->startOfYear(); break;
+        case 'D': 
+            $dataInicio = $dataInicio->startOfDay();
+            $groupByFormat = '%Y-%m-%d %H:00'; // Agrupa por hora
+            $displayFormat = 'H:00';
+            break;
+        case 'S': $dataInicio = $dataInicio->subDays(7); break;
+        case 'T': $dataInicio = $dataInicio->subMonths(3); break;
+        case 'Se': $dataInicio = $dataInicio->subMonths(6); break;
+        case 'A': $dataInicio = $dataInicio->subYear(); break;
+        default: $dataInicio = $dataInicio->startOfMonth(); break;
     }
 
-    // Busca Mesas (CuppingSession)
+    // Consulta Mesas (Mesa = CuppingSession)
     $mesas = \App\Models\CuppingSession::where('created_at', '>=', $dataInicio)
-        ->select(DB::raw('DATE(DATE_SUB(created_at, INTERVAL 3 HOUR)) as data'), DB::raw('COUNT(id) as total'))
-        ->groupBy('data')->orderBy('data', 'ASC')->get();
+        ->select(
+            DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '$groupByFormat') as tempo"),
+            DB::raw('COUNT(id) as total')
+        )
+        ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
 
-    // Busca Xícaras (Cup)
+    // Consulta Xícaras (Cup)
     $xicaras = \App\Models\Cup::where('created_at', '>=', $dataInicio)
-        ->select(DB::raw('DATE(DATE_SUB(created_at, INTERVAL 3 HOUR)) as data'), DB::raw('COUNT(id) as total'))
-        ->groupBy('data')->orderBy('data', 'ASC')->get();
+        ->select(
+            DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '$groupByFormat') as tempo"),
+            DB::raw('COUNT(id) as total')
+        )
+        ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
 
-    // Organiza labels únicos (datas)
-    $labels = $mesas->pluck('data')->merge($xicaras->pluck('data'))->unique()->sort()->values();
+    // Sincroniza labels (tempo) para as duas linhas
+    $labels = $mesas->pluck('tempo')->merge($xicaras->pluck('tempo'))->unique()->sort()->values();
+    
+    // Formata os labels para exibição (ex: de 2023-10-25 para 25/10 ou 14:00)
+    $labelsFormatados = $labels->map(function($t) use ($displayFormat) {
+        return Carbon::parse($t)->format($displayFormat);
+    });
 
     return response()->json([
-        'labels' => $labels,
-        'mesas' => $mesas->pluck('total'),
-        'xicaras' => $xicaras->pluck('total')
+        'labels' => $labelsFormatados,
+        'mesas' => $labels->map(fn($l) => $mesas->where('tempo', $l)->first()->total ?? 0),
+        'xicaras' => $labels->map(fn($l) => $xicaras->where('tempo', $l)->first()->total ?? 0)
     ]);
 }
 

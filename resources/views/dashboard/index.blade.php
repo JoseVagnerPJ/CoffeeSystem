@@ -283,19 +283,56 @@
         }
     }
 
-    async function updateChartLab(periodo) {
-        try {
-            const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
-            const res = await response.json();
-            chartLab.data.labels = res.labels;
-            chartLab.data.datasets[0].data = res.mesas;
-            chartLab.data.datasets[1].data = res.xicaras;
-            chartLab.update();
-            // Ajuste visual dos botões
-            document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
-            document.getElementById(`btn-lab-${periodo}`).classList.replace('btn-outline-dark', 'btn-dark');
-        } catch (e) { console.error(e); }
+// 1. Inicialização do Gráfico do Laboratório
+chartLab = new Chart(document.getElementById('chartLab'), {
+    type: 'line', // Alterado de 'bar' para 'line'
+    data: {
+        labels: [], // Inicia vazio, o AJAX preenche
+        datasets: [
+            { 
+                label: 'Mesas', 
+                data: [], 
+                borderColor: '#3d2b1f', 
+                backgroundColor: 'rgba(61, 43, 31, 0.1)',
+                fill: true, 
+                tension: 0.4, // Linha suave
+                borderWidth: 3
+            },
+            { 
+                label: 'Xícaras', 
+                data: [], 
+                borderColor: '#c0a16b', 
+                backgroundColor: 'rgba(192, 161, 107, 0.1)',
+                fill: true, 
+                tension: 0.4, // Linha suave
+                borderWidth: 3
+            }
+        ]
+    },
+    options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        plugins: { legend: { display: false } } 
     }
+});
+
+// 2. Função de atualização AJAX
+async function updateChartLab(periodo) {
+    try {
+        const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
+        const res = await response.json();
+
+        chartLab.data.labels = res.labels;
+        chartLab.data.datasets[0].data = res.mesas;
+        chartLab.data.datasets[1].data = res.xicaras;
+        
+        chartLab.update(); // Atualiza as linhas com animação
+
+        // Estilo dos botões (opcional)
+        document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
+        document.getElementById(`btn-lab-${periodo}`).classList.replace('btn-outline-dark', 'btn-dark');
+    } catch (e) { console.error("Erro no Lab:", e); }
+}
 
     // Filtro dos Cards Sensoriais
     function toggleProfileFilter(profileId) {
@@ -321,9 +358,10 @@
         chartUltimos.update();
     }
 
-    window.onload = () => {
-        initCharts();
-        enableHorizontalScroll();
-    };
+window.onload = () => {
+    initCharts();
+    updateChartLab('M'); // Carrega o mês por padrão
+    enableHorizontalScroll();
+};
 </script>
 @endsection
