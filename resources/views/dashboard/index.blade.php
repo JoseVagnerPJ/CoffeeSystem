@@ -197,6 +197,7 @@
             const res = await response.json();
 
             if (chartLab) {
+                // Sincronia: Labels e Dados agora vêm amarrados do Controller
                 chartLab.data.labels = res.labels;
                 chartLab.data.datasets[0].data = res.mesas;
                 chartLab.data.datasets[1].data = res.xicaras;
@@ -249,7 +250,16 @@
                     responsive: true, 
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { x: { ticks: { autoSkip: true, maxRotation: 0 } } }
+                    scales: { 
+                        x: { 
+                            ticks: { 
+                                autoSkip: true, 
+                                maxRotation: 0,
+                                font: { size: 10 }
+                            } 
+                        },
+                        y: { beginAtZero: true }
+                    }
                 }
             });
         }
@@ -352,7 +362,7 @@
     window.onload = () => {
         initCharts();
         enableHorizontalScroll();
-        // Carrega o laboratório no período 'D' (Dia) por padrão para maior precisão
+        // Sincronia: O Laboratório inicia no gráfico diário (D) para precisão de segundos
         updateChartLab('D');
     };
 </script>
