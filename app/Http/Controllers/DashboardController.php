@@ -26,7 +26,7 @@ class DashboardController extends Controller
         $periodo = $request->get('periodo', 'M');
 
         // Ajuste de fuso: -3 horas para o filtro de início
-        $dataInicio = Carbon::now()->subHours(3)->startOfMonth();
+        $dataInicio = Carbon::now()->addHours(3)->startOfMonth();
         switch ($periodo) {
             case 'D': $dataInicio = Carbon::now()->subHours(3)->startOfDay(); break;
             case 'S': $dataInicio = Carbon::now()->subHours(3)->startOfWeek(); break;
@@ -137,12 +137,12 @@ public function getLaboratorioData(Request $request)
     }
 
     // Consulta Mesas (Mesa = CuppingSession)
-    $mesas = \App\Models\CuppingSession::where('created_at', '>=', $dataInicio)
-        ->select(
-            DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '$groupByFormat') as tempo"),
-            DB::raw('COUNT(id) as total')
-        )
-        ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
+    $mesas = \App\Models\CuppingSession::where(DB::raw("DATE_ADD(created_at, INTERVAL 3 HOUR)"), '>=', $dataInicio)
+    ->select(
+        DB::raw("DATE_FORMAT(DATE_ADD(created_at, INTERVAL 3 HOUR), '$groupByFormat') as tempo"),
+        DB::raw('COUNT(id) as total')
+    )
+    ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
 
     // Consulta Xícaras (Cup)
     $xicaras = \App\Models\Cup::where('created_at', '>=', $dataInicio)
