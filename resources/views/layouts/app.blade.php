@@ -199,6 +199,20 @@
             }
         }
 
+        document.addEventListener("DOMContentLoaded", function() {
+        // Seleciona todos os formulários e define autocomplete off
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.setAttribute('autocomplete', 'off');
+        });
+
+        // Seleciona todos os inputs e define autocomplete off
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.setAttribute('autocomplete', 'off');
+        });
+    });
+
         function validateDevPass() {
             if (document.getElementById('devInputPass').value === "1572") {
                 window.location.href = pendingRoute;

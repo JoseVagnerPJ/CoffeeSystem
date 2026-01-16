@@ -193,7 +193,13 @@
             <div class="op-block shadow-sm">
                 <div class="row g-2 align-items-center">
                     <div class="col-md-8">
-                        <input type="text" id="mesaSearch" class="form-control form-control-sm border-0 bg-light py-2" placeholder="Pesquisar mesa...">
+                        <input type="text" 
+       id="mesaSearch" 
+       class="form-control form-control-sm border-0 bg-light py-2" 
+       placeholder="Pesquisar mesa..."
+       readonly 
+       onfocus="this.removeAttribute('readonly');"
+       autocomplete="chrome-off">
                     </div>
                     <div class="col-md-2 text-end">
                         <button class="btn btn-sm fw-bold border-0 w-100 py-2" 
