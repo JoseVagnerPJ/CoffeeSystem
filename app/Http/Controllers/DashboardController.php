@@ -114,58 +114,41 @@ class DashboardController extends Controller
     return response()->json(['dados' => $dados, 'titulo' => $titulo]);
 }
 
-public function getLaboratorioData(Request $request) 
-{
-    $periodo = $request->get('periodo', 'M');
-    $dataInicio = Carbon::now()->subHours();
-    
-    // Define o formato da data e o agrupamento SQL baseado no botão clicado
-    $groupByFormat = '%Y-%m-%d';
-    $displayFormat = 'd/m';
+public function getLaboratorioData(Request $request)
+    {
+        $periodo = $request->get('periodo', 'D');
+        $dataInicio = Carbon::now()->subHours(3);
+        $formatoSql = '%d/%m';
 
-    switch ($periodo) {
-        case 'D': 
-            $dataInicio = $dataInicio->startOfDay();
-            $groupByFormat = '%Y-%m-%d %H:00'; // Agrupa por hora
-            $displayFormat = 'H:00';
-            break;
-        case 'S': $dataInicio = $dataInicio->subDays(7); break;
-        case 'T': $dataInicio = $dataInicio->subMonths(3); break;
-        case 'Se': $dataInicio = $dataInicio->subMonths(6); break;
-        case 'A': $dataInicio = $dataInicio->subYear(); break;
-        default: $dataInicio = $dataInicio->startOfMonth(); break;
+        if ($periodo == 'D') {
+            $dataInicio = Carbon::now()->subHours(3)->subHours(24);
+            $formatoSql = '%H:%i:%s';
+        } else {
+            switch ($periodo) {
+                case 'S': $dataInicio = $dataInicio->subDays(7); break;
+                case 'T': $dataInicio = $dataInicio->subMonths(3); break;
+                case 'Se': $dataInicio = $dataInicio->subMonths(6); break;
+                case 'A': $dataInicio = $dataInicio->subYear(); break;
+                default: $dataInicio = $dataInicio->startOfMonth(); break;
+            }
+        }
+
+        $mesas = CuppingSession::where('created_at', '>=', $dataInicio)
+            ->select(DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '$formatoSql') as tempo"), DB::raw('COUNT(id) as total'))
+            ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
+
+        $xicaras = Cup::where('created_at', '>=', $dataInicio)
+            ->select(DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '$formatoSql') as tempo"), DB::raw('COUNT(id) as total'))
+            ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
+
+        $labels = $mesas->pluck('tempo')->merge($xicaras->pluck('tempo'))->unique()->sort()->values();
+
+        return response()->json([
+            'labels' => $labels,
+            'mesas' => $labels->map(fn($t) => $mesas->where('tempo', $t)->first()->total ?? 0),
+            'xicaras' => $labels->map(fn($t) => $xicaras->where('tempo', $t)->first()->total ?? 0)
+        ]);
     }
-
-    // Consulta Mesas (Mesa = CuppingSession)
-    $mesas = \App\Models\CuppingSession::where(DB::raw("DATE_ADD(created_at, INTERVAL 3 HOUR)"), '>=', $dataInicio)
-    ->select(
-        DB::raw("DATE_FORMAT(DATE_ADD(created_at, INTERVAL 3 HOUR), '$groupByFormat') as tempo"),
-        DB::raw('COUNT(id) as total')
-    )
-    ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
-
-    // Consulta Xícaras (Cup)
-    $xicaras = \App\Models\Cup::where('created_at', '>=', $dataInicio)
-        ->select(
-            DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '$groupByFormat') as tempo"),
-            DB::raw('COUNT(id) as total')
-        )
-        ->groupBy('tempo')->orderBy('tempo', 'ASC')->get();
-
-    // Sincroniza labels (tempo) para as duas linhas
-    $labels = $mesas->pluck('tempo')->merge($xicaras->pluck('tempo'))->unique()->sort()->values();
-    
-    // Formata os labels para exibição (ex: de 2023-10-25 para 25/10 ou 14:00)
-    $labelsFormatados = $labels->map(function($t) use ($displayFormat) {
-        return Carbon::parse($t)->format($displayFormat);
-    });
-
-    return response()->json([
-        'labels' => $labelsFormatados,
-        'mesas' => $labels->map(fn($l) => $mesas->where('tempo', $l)->first()->total ?? 0),
-        'xicaras' => $labels->map(fn($l) => $xicaras->where('tempo', $l)->first()->total ?? 0)
-    ]);
-}
 
     /**
      * Módulo de Cadastros (Registries)
