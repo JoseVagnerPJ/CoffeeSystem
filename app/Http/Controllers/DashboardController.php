@@ -117,7 +117,7 @@ class DashboardController extends Controller
 public function getLaboratorioData(Request $request) 
 {
     $periodo = $request->get('periodo', 'M');
-    $dataInicio = Carbon::now()->subHours(3);
+    $dataInicio = Carbon::now()->subHours();
     
     // Define o formato da data e o agrupamento SQL baseado no botão clicado
     $groupByFormat = '%Y-%m-%d';
