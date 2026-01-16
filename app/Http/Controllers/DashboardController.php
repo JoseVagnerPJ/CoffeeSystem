@@ -26,7 +26,7 @@ class DashboardController extends Controller
         $periodo = $request->get('periodo', 'M');
 
         // Ajuste de fuso: -3 horas para o filtro de início
-        $dataInicio = Carbon::now()->addHours(3)->startOfMonth();
+        $dataInicio = Carbon::now()->addHours()->startOfMonth();
         switch ($periodo) {
             case 'D': $dataInicio = Carbon::now()->subHours(3)->startOfDay(); break;
             case 'S': $dataInicio = Carbon::now()->subHours(3)->startOfWeek(); break;
