@@ -156,6 +156,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Função auxiliar para somar 3 horas aos rótulos de tempo
+    function add3Hours(label) {
+        if (!label || typeof label !== 'string' || !label.includes(':')) return label;
+        let parts = label.split(' ');
+        let timePart = parts.length > 1 ? parts[1] : parts[0];
+        let datePart = parts.length > 1 ? parts[0] : null;
+        let [h, m, s] = timePart.split(':').map(Number);
+        h = (h + 3) % 24;
+        let newTime = h.toString().padStart(2, '0') + ":" + (m || 0).toString().padStart(2, '0') + (s !== undefined ? ":" + s.toString().padStart(2, '0') : "");
+        return datePart ? datePart + " " + newTime : newTime;
+    }
+
     // Variáveis Globais para manter o estado e acesso aos objetos Chart.js
     const dataRecebimentoInicial = {!! json_encode($ultimosRecebimentos) !!};
     let activeProfileId = null;
@@ -176,7 +188,7 @@
                 const color = tipo === 'entrada' ? '#c0a16b' : '#dc3545';
                 const bgColor = tipo === 'entrada' ? 'rgba(192, 161, 107, 0.1)' : 'rgba(220, 53, 69, 0.1)';
                 
-                chartUltimos.data.labels = result.dados.map(d => d.data);
+                chartUltimos.data.labels = result.dados.map(d => add3Hours(d.data));
                 chartUltimos.data.datasets[0].data = result.dados.map(d => d.peso);
                 chartUltimos.data.datasets[0].label = tipo === 'entrada' ? 'kg Recebido' : 'kg Torrado';
                 chartUltimos.data.datasets[0].borderColor = color;
@@ -197,7 +209,7 @@
         const res = await response.json();
         
         if (chartLab) {
-            chartLab.data.labels = res.labels;
+            chartLab.data.labels = res.labels.map(l => add3Hours(l));
             chartLab.data.datasets[0].data = res.mesas; // Deve bater com o JSON: 'mesas'
             chartLab.data.datasets[1].data = res.xicaras; // Deve bater com o JSON: 'xicaras'
             chartLab.update();
@@ -222,7 +234,7 @@ function initCharts() {
                 type: 'line',
                 data: {
                     // Pega as labels do mesasData (que é o dadosLab mapeado)
-                    labels: {!! json_encode($mesasData->pluck('data')) !!},
+                    labels: {!! json_encode($mesasData->pluck('data')) !!}.map(l => add3Hours(l)),
                     datasets: [
                         { 
                             label: 'Mesas', 
@@ -257,7 +269,7 @@ function initCharts() {
             chartUltimos = new Chart(elUltimos, {
                 type: 'line',
                 data: {
-                    labels: dataRecebimentoInicial.map(d => d.data),
+                    labels: dataRecebimentoInicial.map(d => add3Hours(d.data)),
                     datasets: [{
                         label: 'kg',
                         data: dataRecebimentoInicial.map(d => d.peso),
@@ -324,7 +336,7 @@ function initCharts() {
      */
     function updateChartUltimos(data) {
         if (chartUltimos) {
-            chartUltimos.data.labels = data.map(d => d.data);
+            chartUltimos.data.labels = data.map(d => add3Hours(d.data));
             chartUltimos.data.datasets[0].data = data.map(d => d.peso);
             chartUltimos.update();
         }
