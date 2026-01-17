@@ -136,8 +136,10 @@
                         </li>
                         <li>
                             @php $hasSet = auth()->user()->hasPermission('settings_edit'); @endphp
-                            <a href="{{ $hasSet ? route('settings') : 'javascript:void(0)' }}" class="nav-link" onclick="if(!{{ $hasSet ? 'true' : 'false' }}) alert('Você não tem permissão!')">
-                                <i class="bi bi-gear me-2"></i> Configurações @if(!$hasSet) <i class="bi bi-lock-fill ms-auto"></i> @endif
+                            <a href="javascript:void(0)" class="nav-link" 
+                            onclick="devModuleAccess(event, '{{ route('settings') }}', {{ $hasSet ? 'true' : 'false' }})">
+                                <i class="bi bi-gear me-2"></i> Configurações 
+                                <i class="bi bi-lock-fill ms-auto" style="font-size: 0.8rem; color: {{ $hasSet ? 'inherit' : '#ff6b6b' }}"></i>
                             </a>
                         </li>
                     </ul>
