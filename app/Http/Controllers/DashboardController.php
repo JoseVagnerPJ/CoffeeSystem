@@ -87,15 +87,23 @@ class DashboardController extends Controller
                 });
             $titulo = "ÚLTIMOS RECEBIMENTOS";
         } else {
-            $dados = \App\Models\RoastingBatch::whereNotNull('finished_at')
-                ->orderBy('finished_at', 'DESC')
-                ->limit(6)->get()->reverse()->values()
-                ->map(function($batch) {
-                    return [
-                        'peso' => $batch->weight_out,
-                        'data' => $batch->finished_at->subHours(3)->format('d/m H:i:s')
-                    ];
-                });
+            $dados = \App\Models\StockMovement::with('lote')
+    ->where('type', 'out')
+    ->latest()
+    ->limit(6)
+    ->get()
+    ->reverse()
+    ->values()
+    ->map(function($movimentacao) {
+        return [
+            // perfil_id extraído através do relacionamento 'lote'
+            'perfil_id' => $movimentacao->lote->sensory_profile_id ?? null,
+            // Peso retirado no modal
+            'peso' => $movimentacao->weight,
+            // Data formatada com ajuste de fuso horário
+            'data' => $movimentacao->created_at->subHours(3)->format('d/m H:i:s')
+        ];
+    });
             $titulo = "ÚLTIMAS SAÍDAS";
         }
         return response()->json(['dados' => $dados, 'titulo' => $titulo]);
