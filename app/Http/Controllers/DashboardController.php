@@ -22,7 +22,7 @@ class DashboardController extends Controller
         $user = Auth::user();
         $periodo = $request->get('periodo', 'D');
 
-        $dataInicio = Carbon::now()->subHours(3);
+        $dataInicio = Carbon::now()->addHours(3);
         if ($periodo == 'D') {
             $dataInicio = $dataInicio->subHours(24);
             $formatoSql = '%H:%i:%s';
@@ -50,7 +50,7 @@ class DashboardController extends Controller
                 return [
                     'perfil_id' => $lote->sensory_profile_id,
                     'peso' => $lote->total_weight,
-                    'data' => $lote->created_at->subHours(3)->format('d/m H:i:s')
+                    'data' => $lote->created_at->addHours(3)->format('d/m H:i:s')
                 ];
             });
 
@@ -58,7 +58,7 @@ class DashboardController extends Controller
         $dadosLab = CuppingSession::where('cupping_sessions.created_at', '>=', $dataInicio)
             ->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
             ->select(
-                DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '$formatoSql') as data"),
+                DB::raw("DATE_FORMAT(DATE_ADD(cupping_sessions.created_at, INTERVAL 3 HOUR), '$formatoSql') as data"),
                 DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
                 DB::raw('COUNT(cupping_items.id) as total_xicaras')
             )
@@ -82,7 +82,7 @@ class DashboardController extends Controller
                 ->map(function($lote) {
                     return [
                         'peso' => $lote->total_weight,
-                        'data' => $lote->created_at->subHours(3)->format('d/m H:i:s')
+                        'data' => $lote->created_at->addHours(3)->format('d/m H:i:s')
                     ];
                 });
             $titulo = "ÚLTIMOS RECEBIMENTOS";
@@ -101,7 +101,7 @@ class DashboardController extends Controller
             // Peso retirado no modal
             'peso' => $movimentacao->weight,
             // Data formatada com ajuste de fuso horário
-            'data' => $movimentacao->created_at->subHours(3)->format('d/m H:i:s')
+            'data' => $movimentacao->created_at->addHours(3)->format('d/m H:i:s')
         ];
     });
             $titulo = "ÚLTIMAS SAÍDAS";
@@ -112,7 +112,7 @@ class DashboardController extends Controller
     public function getLaboratorioData(Request $request)
     {
         $periodo = $request->get('periodo', 'D');
-        $dataInicio = Carbon::now()->subHours(3);
+        $dataInicio = Carbon::now()->addHours(3);
         $formatoSql = ($periodo == 'D') ? '%H:%i:%s' : '%d/%m';
 
         if ($periodo == 'D') {
@@ -130,7 +130,7 @@ class DashboardController extends Controller
         $dados = CuppingSession::where('cupping_sessions.created_at', '>=', $dataInicio)
             ->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
             ->select(
-                DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '$formatoSql') as tempo"),
+                DB::raw("DATE_FORMAT(DATE_ADD(cupping_sessions.created_at, INTERVAL 3 HOUR), '$formatoSql') as tempo"),
                 DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
                 DB::raw('COUNT(cupping_items.id) as total_xicaras')
             )
