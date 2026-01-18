@@ -212,11 +212,8 @@ public function index(Request $request)
 
     public function finishInventory(Request $request)
 {
-    // 1. Busca a sessão que está REALMENTE iniciada
     $session = InventorySession::where('status', 'iniciado')->first();
-    if (!$session) {
-        return response()->json(['error' => 'Você precisa clicar em "INICIAR INVENTÁRIO" antes de finalizar.'], 422);
-    }
+    if (!$session) return response()->json(['error' => 'Sessão não encontrada.'], 422);
 
     $adjustments = DB::table('inventory_adjustments')->where('inventory_session_id', $session->id)->get();
 
@@ -232,22 +229,23 @@ public function index(Request $request)
                 $totalPhysicalLot = $adjs->sum('physical_weight');
                 $lotDiff = $totalPhysicalLot - $lote->total_weight;
 
-                // 2. Atualiza o Peso do Lote e calcula sacas (evita divisão por zero)
                 $lote->total_weight = $totalPhysicalLot;
                 $unitWeight = ($lote->unit_weight > 0) ? $lote->unit_weight : 60;
                 $lote->quantity_bags = floor($totalPhysicalLot / $unitWeight);
                 $lote->save();
 
-                // 3. Atualiza a diferença na tabela de ajustes para o histórico
-                DB::table('inventory_adjustments')
-                    ->where('inventory_session_id', $session->id)
-                    ->where('green_coffee_lot_id', $lotId)
-                    ->update(['difference_kg' => $lotDiff]);
+                // CORREÇÃO AQUI: Desvincular movimentações antes de deletar as localizações
+                // Buscamos os IDs das localizações atuais deste lote
+                $locationIds = $lote->locations->pluck('id');
+                
+                // Setamos location_id como NULL nas movimentações para não quebrar a restrição (FK)
+                \App\Models\StockMovement::whereIn('location_id', $locationIds)->update(['location_id' => null]);
 
-                // 4. Atualiza Localizações (Limpa antigas e grava novas)
+                // Agora sim, podemos deletar as localizações antigas com segurança
                 $lote->locations()->delete();
+
                 foreach ($adjs as $adj) {
-                    if (!empty($adj->new_address_row)) {
+                    if (!empty($adj->new_address_row) && !empty($adj->new_address_pos)) {
                         $lote->locations()->create([
                             'address_row' => strtoupper($adj->new_address_row),
                             'address_pos' => $adj->new_address_pos,
@@ -260,12 +258,7 @@ public function index(Request $request)
                 $totalSessionDiff += $lotDiff;
             }
             
-            // 5. Finaliza a sessão
-            $session->update([
-                'status' => 'finalizado', 
-                'total_diff_kg' => $totalSessionDiff,
-                'inventory_date' => now() // Garante a data do fechamento
-            ]);
+            $session->update(['status' => 'finalizado', 'total_diff_kg' => $totalSessionDiff]);
         });
 
         return response()->json(['success' => true]);
@@ -274,7 +267,6 @@ public function index(Request $request)
         return response()->json(['error' => 'Erro ao processar banco: ' . $e->getMessage()], 500);
     }
 }
-
     public function getInventoryDetail($id)
     {
         $session = InventorySession::with('user')->findOrFail($id);
