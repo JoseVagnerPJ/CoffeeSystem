@@ -12,6 +12,12 @@
             </div>
             
             <div class="modal-body bg-light p-0">
+                {{-- BLOCO DE BLINDAGEM CONTRA AUTOFILL (ENGANA O EDGE/CHROME) --}}
+                <div style="position: absolute; top: -9999px; left: -9999px;">
+                    <input type="text" name="fake_user_name">
+                    <input type="password" name="fake_password">
+                </div>
+
                 <div class="container-fluid py-4">
                     <div class="row g-4">
                         {{-- COLUNA ESQUERDA --}}
@@ -136,7 +142,13 @@
                                                 </td>
 
                                                 <td class="pe-4 align-top pt-3">
-                                                    <input type="text" class="form-control form-control-sm js-reason" placeholder="..." value="{{ $lotAdjustments->first()->reason ?? '' }}">
+                                                    {{-- CORREÇÃO: Adicionado autocomplete="one-time-code" para impedir o autofill do usuário --}}
+                                                    <input type="text" 
+                                                           class="form-control form-control-sm js-reason" 
+                                                           placeholder="..." 
+                                                           value="{{ $lotAdjustments->first()->reason ?? '' }}"
+                                                           autocomplete="one-time-code"
+                                                           spellcheck="false">
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -219,25 +231,26 @@ $(document).ready(function() {
             location.reload(); 
         });
     });
-$(document).on('click', '.js-btn-finish', function() {
-    const btn = $(this);
-    if(!confirm('Deseja finalizar o inventário? Isso atualizará o peso de todos os lotes no sistema.')) return;
 
-    // Feedback visual para evitar cliques duplos
-    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> FINALIZANDO...');
+    $(document).on('click', '.js-btn-finish', function() {
+        const btn = $(this);
+        if(!confirm('Deseja finalizar o inventário? Isso atualizará o peso de todos os lotes no sistema.')) return;
 
-    $.post("{{ route('estoque.inventory.finish') }}", { _token: "{{ csrf_token() }}" })
-        .done(function(res) {
-            localStorage.removeItem('reopenInventoryModal');
-            location.reload(); 
-        })
-        .fail(function(xhr) {
-            // Se o controller retornar erro 422 ou 500, o alerta abaixo dirá o porquê
-            const msg = xhr.responseJSON ? xhr.responseJSON.error : 'Erro ao finalizar inventário.';
-            alert('Atenção: ' + msg);
-            btn.prop('disabled', false).text('FINALIZAR INVENTÁRIO');
-        });
-});
+        // Feedback visual para evitar cliques duplos
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> FINALIZANDO...');
+
+        $.post("{{ route('estoque.inventory.finish') }}", { _token: "{{ csrf_token() }}" })
+            .done(function(res) {
+                localStorage.removeItem('reopenInventoryModal');
+                location.reload(); 
+            })
+            .fail(function(xhr) {
+                // Se o controller retornar erro 422 ou 500, o alerta abaixo dirá o porquê
+                const msg = xhr.responseJSON ? xhr.responseJSON.error : 'Erro ao finalizar inventário.';
+                alert('Atenção: ' + msg);
+                btn.prop('disabled', false).text('FINALIZAR INVENTÁRIO');
+            });
+    });
 
     if (localStorage.getItem('reopenInventoryModal') === 'true') {
         var modalEl = document.getElementById('modalInventario');
