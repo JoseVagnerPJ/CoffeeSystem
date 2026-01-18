@@ -101,10 +101,11 @@ public function startInventory(Request $request)
 
             foreach ($lotesComEstoque as $lote) {
                 if ($lote->locations->count() > 0) {
-                    // Controlamos se é a primeira linha do lote para atribuir o peso do sistema
+                    // Controlamos se é a primeira linha do lote para atribuir o peso do sistema apenas uma vez
                     $primeiraLinha = true;
                     foreach ($lote->locations as $loc) {
                         $pesoNaLocalizacao = ($loc->quantity_bags * ($lote->unit_weight ?: 60)) + $loc->remainder_weight;
+                        $expectativaSistema = $primeiraLinha ? $lote->total_weight : 0;
                         
                         DB::table('inventory_adjustments')->insert([
                             'inventory_session_id' => $session->id,
@@ -115,13 +116,12 @@ public function startInventory(Request $request)
                             'bag_weight'           => $lote->unit_weight ?: 60,
                             'remainder_weight'     => $loc->remainder_weight,
                             'physical_weight'      => $pesoNaLocalizacao,
-                            // AQUI A MUDANÇA: O peso do sistema só vai na primeira linha do lote
-                            'system_weight'        => $primeiraLinha ? $lote->total_weight : 0,
-                            'difference_kg'        => 0,
+                            'system_weight'        => $expectativaSistema,
+                            'difference_kg'        => $pesoNaLocalizacao - $expectativaSistema,
                             'created_at'           => now(),
                             'updated_at'           => now()
                         ]);
-                        $primeiraLinha = false; // As próximas linhas do mesmo lote não levam o peso total de novo
+                        $primeiraLinha = false; 
                     }
                 }
             }
@@ -146,6 +146,9 @@ public function startInventory(Request $request)
 
         $primeiraLinha = true;
         foreach ($request->locations as $loc) {
+            $fisicoLinha = (float)$loc['total_line'];
+            $sistemaLinha = $primeiraLinha ? (float)$request->system_weight : 0;
+
             DB::table('inventory_adjustments')->insert([
                 'inventory_session_id' => $session->id,
                 'green_coffee_lot_id' => $request->lot_id,
@@ -154,10 +157,9 @@ public function startInventory(Request $request)
                 'closed_bags' => $loc['closed_bags'] ?? 0,
                 'bag_weight' => $loc['bag_weight'] ?? 60,
                 'remainder_weight' => $loc['remainder_weight'] ?? 0,
-                'physical_weight' => $loc['total_line'],
-                // REGRA DE OURO: Só grava o system_weight do lote na primeira linha da lista
-                'system_weight' => $primeiraLinha ? $request->system_weight : 0,
-                'difference_kg' => 0, 
+                'physical_weight' => $fisicoLinha,
+                'system_weight' => $sistemaLinha,
+                'difference_kg' => $fisicoLinha - $sistemaLinha, 
                 'reason' => $request->reason,
                 'created_at' => now(),
                 'updated_at' => now()
@@ -215,11 +217,15 @@ public function startInventory(Request $request)
                 $lote->quantity_bags = floor($totalPhysicalLot / $unitWeight);
                 $lote->save();
 
+                // Atualiza as diferenças individuais de cada linha no banco para o relatório de histórico
+                foreach ($adjs as $adj) {
+                    DB::table('inventory_adjustments')
+                        ->where('id', $adj->id)
+                        ->update(['difference_kg' => $adj->physical_weight - $adj->system_weight]);
+                }
+
                 // CORREÇÃO AQUI: Desvincular movimentações antes de deletar as localizações
-                // Buscamos os IDs das localizações atuais deste lote
                 $locationIds = $lote->locations->pluck('id');
-                
-                // Setamos location_id como NULL nas movimentações para não quebrar a restrição (FK)
                 \App\Models\StockMovement::whereIn('location_id', $locationIds)->update(['location_id' => null]);
 
                 // Agora sim, podemos deletar as localizações antigas com segurança
