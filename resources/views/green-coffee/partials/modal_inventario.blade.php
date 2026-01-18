@@ -219,14 +219,25 @@ $(document).ready(function() {
             location.reload(); 
         });
     });
+$(document).on('click', '.js-btn-finish', function() {
+    const btn = $(this);
+    if(!confirm('Deseja finalizar o inventário? Isso atualizará o peso de todos os lotes no sistema.')) return;
 
-    $(document).on('click', '.js-btn-finish', function() {
-        if(!confirm('Deseja finalizar o inventário?')) return;
-        $.post("{{ route('estoque.inventory.finish') }}", { _token: "{{ csrf_token() }}" }, function(res) {
+    // Feedback visual para evitar cliques duplos
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> FINALIZANDO...');
+
+    $.post("{{ route('estoque.inventory.finish') }}", { _token: "{{ csrf_token() }}" })
+        .done(function(res) {
             localStorage.removeItem('reopenInventoryModal');
             location.reload(); 
+        })
+        .fail(function(xhr) {
+            // Se o controller retornar erro 422 ou 500, o alerta abaixo dirá o porquê
+            const msg = xhr.responseJSON ? xhr.responseJSON.error : 'Erro ao finalizar inventário.';
+            alert('Atenção: ' + msg);
+            btn.prop('disabled', false).text('FINALIZAR INVENTÁRIO');
         });
-    });
+});
 
     if (localStorage.getItem('reopenInventoryModal') === 'true') {
         var modalEl = document.getElementById('modalInventario');
