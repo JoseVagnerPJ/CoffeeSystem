@@ -90,22 +90,22 @@ public function index(Request $request)
         'lotes', 'perfis', 'mapData', 'lastSubtractions', 'session', 'adjustments', 'history', 'ultimasSaidas'
     ));
 }
-    public function startInventory(Request $request)
+public function startInventory(Request $request)
 {
     $session = InventorySession::where('status', 'aberto')->first();
     if (!$session) return response()->json(['error' => 'Sessão não encontrada.'], 422);
     
     try {
         DB::transaction(function () use ($session) {
-            // 1. Busca todos os lotes que possuem peso em estoque
-            $lotesComEstoque = GreenCoffeeLot::with('locations')
-                ->where('total_weight', '>', 0)
-                ->get();
+            $lotesComEstoque = GreenCoffeeLot::with('locations')->where('total_weight', '>', 0)->get();
 
             foreach ($lotesComEstoque as $lote) {
-                // 2. Se o lote tiver localizações, criamos um ajuste para cada uma
                 if ($lote->locations->count() > 0) {
+                    // Controlamos se é a primeira linha do lote para atribuir o peso do sistema
+                    $primeiraLinha = true;
                     foreach ($lote->locations as $loc) {
+                        $pesoNaLocalizacao = ($loc->quantity_bags * ($lote->unit_weight ?: 60)) + $loc->remainder_weight;
+                        
                         DB::table('inventory_adjustments')->insert([
                             'inventory_session_id' => $session->id,
                             'green_coffee_lot_id' => $lote->id,
@@ -114,79 +114,60 @@ public function index(Request $request)
                             'closed_bags'          => $loc->quantity_bags,
                             'bag_weight'           => $lote->unit_weight ?: 60,
                             'remainder_weight'     => $loc->remainder_weight,
-                            'physical_weight'      => ($loc->quantity_bags * ($lote->unit_weight ?: 60)) + $loc->remainder_weight,
-                            'system_weight'        => $lote->total_weight,
-                            'difference_kg'        => 0, // Inicialmente sem divergência
+                            'physical_weight'      => $pesoNaLocalizacao,
+                            // AQUI A MUDANÇA: O peso do sistema só vai na primeira linha do lote
+                            'system_weight'        => $primeiraLinha ? $lote->total_weight : 0,
+                            'difference_kg'        => 0,
                             'created_at'           => now(),
                             'updated_at'           => now()
                         ]);
+                        $primeiraLinha = false; // As próximas linhas do mesmo lote não levam o peso total de novo
                     }
-                } else {
-                    // 3. Caso o lote tenha peso mas não tenha localização (exceção), cria uma linha vazia
-                    DB::table('inventory_adjustments')->insert([
-                        'inventory_session_id' => $session->id,
-                        'green_coffee_lot_id' => $lote->id,
-                        'new_address_row'      => null,
-                        'new_address_pos'      => null,
-                        'closed_bags'          => 0,
-                        'bag_weight'           => $lote->unit_weight ?: 60,
-                        'remainder_weight'     => $lote->total_weight,
-                        'physical_weight'      => $lote->total_weight,
-                        'system_weight'        => $lote->total_weight,
-                        'difference_kg'        => 0,
-                        'created_at'           => now(),
-                        'updated_at'           => now()
-                    ]);
                 }
             }
-
-            // 4. Muda o status para iniciado
-            $session->update([
-                'status' => 'iniciado',
-                'inventory_date' => now()->setTimezone('America/Sao_Paulo')->toDateString()
-            ]);
+            $session->update(['status' => 'iniciado', 'inventory_date' => now()->setTimezone('America/Sao_Paulo')->toDateString()]);
         });
-
         return response()->json(['success' => true]);
-
     } catch (\Exception $e) {
-        return response()->json(['error' => 'Erro ao processar snapshot: ' . $e->getMessage()], 500);
+        return response()->json(['error' => 'Erro ao processar: ' . $e->getMessage()], 500);
     }
 }
 
     public function storeInventoryAdjustment(Request $request)
-    {
-        $session = InventorySession::where('status', 'iniciado')->first();
-        if (!$session) return response()->json(['error' => 'Inicie o inventário.'], 403);
+{
+    $session = InventorySession::where('status', 'iniciado')->first();
+    if (!$session) return response()->json(['error' => 'Inicie o inventário.'], 403);
 
-        DB::transaction(function () use ($request, $session) {
-            // Limpa os ajustes antigos deste lote para salvar os novos (múltiplas linhas)
-            DB::table('inventory_adjustments')
-                ->where('inventory_session_id', $session->id)
-                ->where('green_coffee_lot_id', $request->lot_id)
-                ->delete();
+    DB::transaction(function () use ($request, $session) {
+        DB::table('inventory_adjustments')
+            ->where('inventory_session_id', $session->id)
+            ->where('green_coffee_lot_id', $request->lot_id)
+            ->delete();
 
-            foreach ($request->locations as $loc) {
-                DB::table('inventory_adjustments')->insert([
-                    'inventory_session_id' => $session->id,
-                    'green_coffee_lot_id' => $request->lot_id,
-                    'new_address_row' => strtoupper($loc['row']),
-                    'new_address_pos' => $loc['pos'],
-                    'closed_bags' => $loc['closed_bags'] ?? 0,
-                    'bag_weight' => $loc['bag_weight'] ?? 60,
-                    'remainder_weight' => $loc['remainder_weight'] ?? 0,
-                    'physical_weight' => $loc['total_line'],
-                    'system_weight' => $request->system_weight,
-                    'difference_kg' => 0, // Calculado na finalização
-                    'reason' => $request->reason,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-        });
+        $primeiraLinha = true;
+        foreach ($request->locations as $loc) {
+            DB::table('inventory_adjustments')->insert([
+                'inventory_session_id' => $session->id,
+                'green_coffee_lot_id' => $request->lot_id,
+                'new_address_row' => strtoupper($loc['row']),
+                'new_address_pos' => $loc['pos'],
+                'closed_bags' => $loc['closed_bags'] ?? 0,
+                'bag_weight' => $loc['bag_weight'] ?? 60,
+                'remainder_weight' => $loc['remainder_weight'] ?? 0,
+                'physical_weight' => $loc['total_line'],
+                // REGRA DE OURO: Só grava o system_weight do lote na primeira linha da lista
+                'system_weight' => $primeiraLinha ? $request->system_weight : 0,
+                'difference_kg' => 0, 
+                'reason' => $request->reason,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            $primeiraLinha = false;
+        }
+    });
 
-        return response()->json(['success' => true]);
-    }
+    return response()->json(['success' => true]);
+}
 
     public function registrarSaida(Request $request)
 {
