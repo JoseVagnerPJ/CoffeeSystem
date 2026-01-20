@@ -45,7 +45,7 @@
                             <th class="py-3" style="width: 80px;">Logo</th>
                             <th class="py-3">Razão Social / CNPJ</th>
                             <th class="py-3 text-center">Usuários</th>
-                            <th class="py-3 text-center">Data Cadastro (-3h)</th>
+                            <th class="py-3 text-center">Data Cadastro</th>
                             <th class="py-3 text-center">Status</th>
                             <th class="py-3 text-center">Último Pagamento</th>
                             <th class="py-3 text-end pe-4">Ações</th>
