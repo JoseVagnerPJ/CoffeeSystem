@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class Farm extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCompany;
 
     protected $fillable = [
+        'main_company_id',
         'name',
         'altitude',
         'is_international',
@@ -20,6 +22,14 @@ class Farm extends Model
         'varieties_tags',
         'is_active'
     ];
+
+    /**
+     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     */
+    public function mainCompany()
+    {
+        return $this->belongsTo(MainCompany::class, 'main_company_id');
+    }
 
     /**
      * Relacionamento Polimórfico: Uma fazenda possui muitas amostras.

@@ -10,10 +10,10 @@ class CreateLotAttachmentsTable extends Migration
     {
         Schema::create('lot_attachments', function (Blueprint $table) {
             $table->id();
-            // Vincula o anexo ao lote e apaga os anexos se o lote for excluído
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->foreignId('green_coffee_lot_id')->constrained()->onDelete('cascade');
-            $table->string('file_path'); // Caminho da pasta storage
-            $table->string('file_name'); // Nome original do arquivo (ex: laudo.pdf)
+            $table->string('file_path');
+            $table->string('file_name');
             $table->timestamps();
         });
     }

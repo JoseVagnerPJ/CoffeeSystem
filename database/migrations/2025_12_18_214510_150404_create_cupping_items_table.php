@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('cupping_items', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->foreignId('cupping_session_id')->constrained()->onDelete('cascade');
             $table->foreignId('sample_id')->nullable()->constrained()->onDelete('set null');
             

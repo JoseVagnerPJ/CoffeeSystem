@@ -15,7 +15,7 @@ class CreateOriginLinksTable extends Migration
 {
     Schema::create('origin_links', function (Blueprint $table) {
         $table->id();
-        // Cria a coluna e já avisa o banco que ela é uma chave estrangeira
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         $table->foreignId('producer_id')->nullable()->constrained()->onDelete('cascade');
         $table->foreignId('farm_id')->nullable()->constrained()->onDelete('cascade');
         $table->foreignId('company_id')->nullable()->constrained()->onDelete('cascade');

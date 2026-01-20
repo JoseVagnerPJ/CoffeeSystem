@@ -12,7 +12,6 @@ class RouteServiceProvider extends ServiceProvider
 {
     /**
      * O caminho para a rota "home" da sua aplicação.
-     * Após o login, o Laravel redirecionará o usuário para esta rota.
      *
      * @var string
      */
@@ -20,18 +19,18 @@ class RouteServiceProvider extends ServiceProvider
 
     /**
      * Define seus modelos de rota, filtros de padrão, etc.
-     *
-     * @return void
      */
     public function boot()
     {
         $this->configureRateLimiting();
 
         $this->routes(function () {
+            // Rotas de API (Geralmente para Mobile ou integrações externas)
             Route::prefix('api')
                 ->middleware('api')
                 ->group(base_path('routes/api.php'));
 
+            // Rotas WEB (Seu Painel Master deve estar aqui)
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         });
@@ -39,16 +38,11 @@ class RouteServiceProvider extends ServiceProvider
 
     /**
      * Configura os limitadores de taxa (Rate Limit) para a API.
-     *
-     * @return void
      */
     protected function configureRateLimiting()
     {
         RateLimiter::for('api', function (Request $request) {
-            /**
-             * PHP 7.4: Usamos a função helper optional() 
-             * para evitar o erro de sintaxe do operador "?->"
-             */
+            // Compatível com PHP 7.4
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
         });
     }

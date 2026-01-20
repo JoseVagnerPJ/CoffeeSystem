@@ -38,36 +38,38 @@ class TeamController extends Controller
      * Atualiza os dados da empresa e processa o upload da Logo.
      */
     public function updateCompany(Request $request)
-    {
-        // VALIDAÇÃO DE PERMISSÃO
-        if (!auth()->user()->hasPermission('settings_edit')) {
-            return redirect()->back()->with('error', 'Você não tem permissão para alterar os dados da empresa.');
-        }
+{
+    // Buscamos a empresa do usuário logado
+    $company = auth()->user()->mainCompany;
 
-        $company = Auth::user()->mainCompany;
-        
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'cnpj' => 'required|string',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
+    // Ajustamos a validação: name e cnpj agora são 'sometimes' 
+    // porque campos disabled não chegam no request.
+    $request->validate([
+        'name' => 'sometimes|string|max:255',
+        'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
 
-        $data = [
-            'name' => $request->name,
-            'cnpj' => preg_replace('/\D/', '', $request->cnpj)
-        ];
-
-        if ($request->hasFile('logo')) {
-            if ($company->logo) {
-                Storage::disk('public')->delete($company->logo);
-            }
-            $data['logo'] = $request->file('logo')->store('logos', 'public');
-        }
-
-        $company->update($data);
-
-        return redirect()->back()->with('success', 'Dados da empresa atualizados com sucesso!');
+    // Atualizamos o nome APENAS se ele vier no request (proteção extra)
+    if ($request->filled('name')) {
+        $company->name = $request->name;
     }
+
+    // Lógica da LOGO (O que realmente importa agora)
+    if ($request->hasFile('logo')) {
+        // Remove a logo antiga se existir para economizar espaço
+        if ($company->logo) {
+            \Storage::disk('public')->delete($company->logo);
+        }
+
+        // Salva a nova imagem
+        $path = $request->file('logo')->store('logos', 'public');
+        $company->logo = $path;
+    }
+
+    $company->save();
+
+    return back()->with('success', 'Logotipo atualizado com sucesso!');
+}
 
     /**
      * Cadastra um novo perfil de acesso com trava de hierarquia.

@@ -14,12 +14,13 @@ class CreateProfilesTable extends Migration
     public function up()
     {
         Schema::create('profiles', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
-        $table->string('name');
-        $table->json('permissions')->nullable(); // Guardará ['edit_suppliers' => true, ...]
-        $table->timestamps();
-    });
+            $table->id();
+            // Linha adicionada para vincular o perfil à empresa principal
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
+            $table->string('name');
+            $table->json('permissions')->nullable(); // Guardará ['edit_suppliers' => true, ...]
+            $table->timestamps();
+        });
     }
 
     /**

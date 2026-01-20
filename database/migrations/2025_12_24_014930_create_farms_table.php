@@ -14,18 +14,17 @@ class CreateFarmsTable extends Migration
     public function up() {
     Schema::create('farms', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         $table->string('name');
         $table->decimal('altitude', 8, 2);
         $table->boolean('is_active')->default(true);
         $table->boolean('is_international')->default(false);
-        // Nacional
         $table->string('city')->nullable();
         $table->string('state', 2)->nullable();
-        // Internacional
         $table->string('country')->nullable();
         $table->string('district')->nullable();
         
-        $table->text('varieties_tags')->nullable(); // Tags como Bourbon, Geisha...
+        $table->text('varieties_tags')->nullable();
         $table->timestamps();
     });
 }

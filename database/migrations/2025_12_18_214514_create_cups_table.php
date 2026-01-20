@@ -15,6 +15,7 @@ class CreateCupsTable extends Migration
     {
         Schema::create('cups', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->foreignId('cupping_item_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained(); // Provador individual
 
@@ -29,6 +30,7 @@ class CreateCupsTable extends Migration
             // O valor máximo será 100.00 (60 + 10 + 10 + 10 + 10)
             $table->decimal('final_score', 5, 2)->default(60.00);
 
+            // Lógica de Inutilização (Tag de Defeito)
             // Lógica de Inutilização (Tag de Defeito)
             $table->boolean('is_invalid')->default(false);
             $table->string('invalid_reason')->nullable(); // Motivo descrito

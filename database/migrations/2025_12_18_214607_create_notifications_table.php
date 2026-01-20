@@ -14,6 +14,7 @@ class CreateNotificationsTable extends Migration
     public function up(): void {
     Schema::create('notifications', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         $table->foreignId('user_id')->constrained()->onDelete('cascade');
         $table->string('title');
         $table->text('message');

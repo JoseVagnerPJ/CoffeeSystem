@@ -10,6 +10,7 @@ class CreateGreenCoffeeLotsTable extends Migration
     {
         Schema::create('green_coffee_lots', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade'); 
             
             // Relacionamento com Perfil Sensorial (Permite a cor do grão)
@@ -18,7 +19,6 @@ class CreateGreenCoffeeLotsTable extends Migration
             // Relacionamento Polimórfico (ID e Tipo do Fornecedor/Fazenda/Empresa)
             $table->unsignedBigInteger('origin_id')->nullable();
             $table->string('origin_type')->nullable();
-            //$table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
 
             $table->string('reference');       
             $table->string('origin'); // Mantido para nome de exibição rápido          

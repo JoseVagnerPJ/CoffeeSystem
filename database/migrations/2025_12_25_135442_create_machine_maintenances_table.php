@@ -14,6 +14,7 @@ class CreateMachineMaintenancesTable extends Migration
     public function up() {
     Schema::create('machine_maintenances', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         $table->foreignId('machine_id')->constrained()->onDelete('cascade');
         $table->date('maintenance_date');
         $table->string('provider'); // Técnico ou Empresa

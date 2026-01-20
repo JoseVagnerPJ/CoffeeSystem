@@ -6,10 +6,12 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Traits\BelongsToCompany;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, Notifiable;
+    use HasFactory, BelongsToCompany;
 
     protected $fillable = [
         'main_company_id', 'profile_id', 'name', 'username', 'password', 'is_active', 'photo'
@@ -32,20 +34,33 @@ class User extends Authenticatable
         return $this->belongsTo(Profile::class);
     }
 
+    /**
+     * Relacionamentos de Atividade do Usuário no Sistema
+     */
+    public function cuppingSessions() { return $this->hasMany(CuppingSession::class, 'created_by'); }
+    public function greenCoffeeLots() { return $this->hasMany(GreenCoffeeLot::class); }
+    public function stockMovements() { return $this->hasMany(StockMovement::class); }
+    public function inventorySessions() { return $this->hasMany(InventorySession::class); }
+    public function roastDemands() { return $this->hasMany(RoastDemand::class, 'user_id'); }
+    public function roastDemandsAsMestre() { return $this->hasMany(RoastDemand::class, 'mestre_user_id'); }
+    public function roastingBatches() { return $this->hasMany(RoastingBatch::class, 'mestre_user_id'); }
+    public function cups() { return $this->hasMany(Cup::class); }
+    public function cleaningLogs() { return $this->hasMany(MachineCleaningLog::class); }
+
     public function hasPermission($permission)
-{
-    if (!$this->profile || !$this->is_active) {
-        return false;
+    {
+        if (!$this->profile || !$this->is_active) {
+            return false;
+        }
+
+        $permissions = $this->profile->permissions;
+
+        // Chave Mestra: Se tiver all_access ou for Dev, retorna true para tudo
+        if ((isset($permissions['all_access']) && $permissions['all_access']) || 
+            (isset($permissions['dev_access']) && $permissions['dev_access'])) {
+            return true;
+        }
+
+        return isset($permissions[$permission]) && $permissions[$permission];
     }
-
-    $permissions = $this->profile->permissions;
-
-    // Chave Mestra: Se tiver all_access ou for Dev, retorna true para tudo
-    if ((isset($permissions['all_access']) && $permissions['all_access']) || 
-        (isset($permissions['dev_access']) && $permissions['dev_access'])) {
-        return true;
-    }
-
-    return isset($permissions[$permission]) && $permissions[$permission];
-}
 }

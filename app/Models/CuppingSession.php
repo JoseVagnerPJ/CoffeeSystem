@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use App\Traits\BelongsToCompany;
 
 class CuppingSession extends Model
 {
+    use HasFactory, BelongsToCompany;
+
     protected $fillable = [
         'main_company_id',
         'title', 
@@ -20,6 +24,14 @@ class CuppingSession extends Model
         'started_at',
         'finished_at'
     ];
+
+    /**
+     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     */
+    public function mainCompany(): BelongsTo
+    {
+        return $this->belongsTo(MainCompany::class, 'main_company_id');
+    }
 
     // Cast para garantir que o Laravel trate como data/hora ao retornar para o Flutter
     protected $casts = [

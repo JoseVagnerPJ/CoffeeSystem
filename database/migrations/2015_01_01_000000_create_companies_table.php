@@ -10,6 +10,7 @@ class CreateCompaniesTable extends Migration
     {
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->string('name', 150);
             $table->string('action_type')->nullable(); // Ex: Cooperativa, Exportadora
             $table->string('cnpj', 20)->unique()->nullable();

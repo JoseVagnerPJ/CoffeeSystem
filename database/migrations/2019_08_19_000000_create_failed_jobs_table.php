@@ -15,6 +15,7 @@ class CreateFailedJobsTable extends Migration
     {
         Schema::create('failed_jobs', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->string('uuid')->unique();
             $table->text('connection');
             $table->text('queue');

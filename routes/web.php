@@ -17,8 +17,6 @@ Route::get('/politica-de-privacidade', function () {
     return view('privacy');
 })->name('privacy');
 
-
-
 /*
 |--------------------------------------------------------------------------
 | Rotas de Autenticação (Breeze)
@@ -28,10 +26,11 @@ require __DIR__.'/auth.php';
 
 /*
 |--------------------------------------------------------------------------
-| Rotas Protegidas do Navegador (Web) - Q-Grader
+| Rotas Protegidas do Navegador (Web) - Q-Grader e Gestão
 |--------------------------------------------------------------------------
+| Adicionado o middleware 'company.active' para validar o status do terminal.
 */
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'company.active'])->group(function () {
     
     // Dashboard Principal
     Route::get('/', [DashboardController::class, 'index'])->name('inicio');
@@ -68,7 +67,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/session-info/{id}', [LaboratoryController::class, 'getSessionInfo'])->name('laboratory.session-info');
         Route::get('/cupping-info/{id}', [LaboratoryController::class, 'getCuppingInfo'])->name('laboratory.cupping-info');
     });
-// --- MÓDULO: TORREFAÇÃO ---
+
+    // --- MÓDULO: TORREFAÇÃO ---
     Route::prefix('roasting')->name('roasting.')->group(function () {
         Route::get('/', [RoastController::class, 'index'])->name('index'); 
         Route::post('/store', [RoastController::class, 'store'])->name('store');
@@ -131,23 +131,21 @@ Route::middleware(['auth'])->group(function () {
             ])->parameter('', 'sample');
         });
 
-// Perfis Sensoriais
-Route::prefix('sensory-profiles')->group(function () {
-        // Definimos os nomes manualmente para ignorar o prefixo automático do grupo
-        Route::get('/', [SensoryProfileController::class, 'index'])->name('sensory-profiles.index'); 
-        Route::get('/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('sensory-profiles.search-samples');
-        
-        Route::resource('/', SensoryProfileController::class)->only([
-            'index', 'store', 'show', 'update', 'destroy'
-        ])->names([
-            'index'   => 'sensory-profiles.index',
-            'store'   => 'sensory-profiles.store',
-            'show'    => 'sensory-profiles.show',
-            'update'  => 'sensory-profiles.update',
-            'destroy' => 'sensory-profiles.destroy',
-        ])->parameter('', 'sensory_profile');
-    });
-
+        // Perfis Sensoriais
+        Route::prefix('sensory-profiles')->group(function () {
+            Route::get('/', [SensoryProfileController::class, 'index'])->name('sensory-profiles.index'); 
+            Route::get('/search-samples', [SensoryProfileController::class, 'searchSamples'])->name('sensory-profiles.search-samples');
+            
+            Route::resource('/', SensoryProfileController::class)->only([
+                'index', 'store', 'show', 'update', 'destroy'
+            ])->names([
+                'index'   => 'sensory-profiles.index',
+                'store'   => 'sensory-profiles.store',
+                'show'    => 'sensory-profiles.show',
+                'update'  => 'sensory-profiles.update',
+                'destroy' => 'sensory-profiles.destroy',
+            ])->parameter('', 'sensory_profile');
+        });
 
         // Equipe e Unidade
         Route::prefix('team')->name('team.')->group(function () {
@@ -166,8 +164,9 @@ Route::prefix('sensory-profiles')->group(function () {
 |--------------------------------------------------------------------------
 | --- ROTAS DA API MOBILE ---
 |--------------------------------------------------------------------------
+| Aplicado auth:sanctum e company.active para segurança do Q-App.
 */
-Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
+Route::middleware(['auth:sanctum', 'company.active'])->prefix('api')->group(function () {
     
     // ROTA: Listagem geral de amostras
     Route::get('/samples', [SampleController::class, 'index']); 
@@ -183,6 +182,30 @@ Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
         Route::get('/tags', [CuppingController::class, 'getTags']);
     });
 
+// PORTAL MASTER (José Vagner) - FORA DO PREFIXO API
+    Route::prefix('master-panel')->name('master.')->group(function () {
+        Route::get('/companies', [App\Http\Controllers\SuperAdmin\CompanyManagerController::class, 'index'])
+            ->name('companies.index')
+            ->middleware('can:dev_access');
 
+        Route::get('/companies/{id}/json', [App\Http\Controllers\SuperAdmin\CompanyManagerController::class, 'getCompanyJson'])
+            ->name('companies.json')
+            ->middleware('can:dev_access');
+
+        Route::post('/companies', [App\Http\Controllers\SuperAdmin\CompanyManagerController::class, 'store'])
+            ->name('companies.store')
+            ->middleware('can:dev_access');
+
+        Route::put('/companies/{id}', [App\Http\Controllers\SuperAdmin\CompanyManagerController::class, 'update'])
+            ->name('companies.update')
+            ->middleware('can:dev_access');
+
+        Route::patch('/companies/{id}/payment', [App\Http\Controllers\SuperAdmin\CompanyManagerController::class, 'registerPayment'])
+            ->name('companies.payment')
+            ->middleware('can:dev_access');
+
+        Route::patch('/companies/{id}/toggle', [App\Http\Controllers\SuperAdmin\CompanyManagerController::class, 'toggleStatus'])
+            ->name('companies.toggle')
+            ->middleware('can:dev_access');
+    });
 });
-    

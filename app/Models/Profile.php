@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class Profile extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCompany;
 
     /**
      * Atributos que podem ser preenchidos em massa (Mass Assignment).
@@ -37,8 +38,7 @@ class Profile extends Model
     }
 
     /**
-     * Relacionamento: Um perfil pode ser atribuído a vários usuários.
-     * Ex: O perfil "Mestre de Torra" pode estar em 3 colaboradores diferentes.
+     * Relacionamento: Um perfil pode ser atribuído a vários usuários. Ex: O perfil "Mestre de Torra" pode estar em 3 colaboradores diferentes.
      */
     public function users()
     {

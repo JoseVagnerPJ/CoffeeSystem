@@ -6,10 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use App\Traits\BelongsToCompany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class CuppingItem extends Model
 {
+    use HasFactory, BelongsToCompany;
+
 protected $fillable = [
+    'main_company_id',
     'cupping_session_id', 
     'sample_id', 
     'position',
@@ -22,10 +27,19 @@ protected $fillable = [
     'screen',
     'altitude',
     'crop',
-    'origin_id',    // Adicione se não houver
-    'origin_type',  // Adicione se não houver
+    'origin_id',
+    'origin_type',
     'notes'
 ];
+
+    /**
+     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     */
+    public function mainCompany(): BelongsTo
+    {
+        return $this->belongsTo(MainCompany::class, 'main_company_id');
+    }
+
     public function session(): BelongsTo
     {
         return $this->belongsTo(CuppingSession::class, 'cupping_session_id');

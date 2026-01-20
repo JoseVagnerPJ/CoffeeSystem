@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class RoastingBatch extends Model
 {
+    use HasFactory, BelongsToCompany;
+
     protected $guarded = []; 
 
     protected $casts = [
@@ -13,6 +17,14 @@ class RoastingBatch extends Model
         'finished_at' => 'datetime',
         'is_special_tour' => 'boolean',
     ];
+
+    /**
+     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     */
+    public function mainCompany()
+    {
+        return $this->belongsTo(MainCompany::class, 'main_company_id');
+    }
 
     // Relação com a Demanda (Pai)
     public function demand() {

@@ -15,6 +15,7 @@ class CreateInventorySessionsTable extends Migration
     {
         Schema::create('inventory_sessions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->foreignId('user_id')->constrained();
             $table->date('inventory_date');
             

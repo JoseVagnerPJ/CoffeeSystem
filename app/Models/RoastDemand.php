@@ -5,11 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\BelongsToCompany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class RoastDemand extends Model 
 {
+    use HasFactory, BelongsToCompany;
 
     protected $fillable = [
+        'main_company_id',
         'user_id', 
         'green_coffee_lot_id', 
         'sensory_profile_id', 
@@ -23,6 +27,14 @@ class RoastDemand extends Model
         'notes',
         'position'
     ];
+
+    /**
+     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     */
+    public function mainCompany(): BelongsTo
+    {
+        return $this->belongsTo(MainCompany::class, 'main_company_id');
+    }
 
     public function lot(): BelongsTo 
     { 

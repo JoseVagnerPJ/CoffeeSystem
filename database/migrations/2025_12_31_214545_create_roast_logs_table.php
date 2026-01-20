@@ -14,6 +14,7 @@ class CreateRoastLogsTable extends Migration
     public function up(): void {
     Schema::create('roast_logs', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         $table->foreignId('roast_demand_id')->constrained()->onDelete('cascade');
         $table->foreignId('mestre_id')->constrained('users');
         $table->decimal('weight_in', 7, 2);

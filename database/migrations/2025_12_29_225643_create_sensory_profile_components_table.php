@@ -15,6 +15,7 @@ class CreateSensoryProfileComponentsTable extends Migration
 {
     Schema::create('sensory_profile_components', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         $table->foreignId('sensory_profile_id')->constrained()->onDelete('cascade');
         $table->foreignId('sample_id')->constrained()->onDelete('cascade');
         $table->decimal('percentage', 5, 2); // Ex: 33.33

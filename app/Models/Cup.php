@@ -5,10 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Traits\BelongsToCompany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Cup extends Model
 {
+    use HasFactory, BelongsToCompany;
+
     protected $fillable = [
+        'main_company_id',
         'cupping_item_id', 
         'user_id', 
         'acidity', 
@@ -20,6 +25,14 @@ class Cup extends Model
         'invalid_reason', 
         'observations'
     ];
+
+    /**
+     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     */
+    public function mainCompany(): BelongsTo
+    {
+        return $this->belongsTo(MainCompany::class, 'main_company_id');
+    }
 
     /**
      * Lógica de cálculo automático da nota final: 60 + 4 pilares.

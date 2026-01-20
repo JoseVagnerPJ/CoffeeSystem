@@ -14,6 +14,7 @@ class CreateAttachmentsTable extends Migration
     public function up(): void {
     Schema::create('attachments', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         $table->morphs('attachable'); // Cria attachable_id e attachable_type
         $table->string('file_path');
         $table->string('file_type');

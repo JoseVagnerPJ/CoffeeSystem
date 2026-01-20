@@ -16,8 +16,9 @@ use Illuminate\Support\Facades\Route;
 // O AuthController deve validar se o usuário tem permissão mínima para logar no App
 Route::post('/login', [AuthController::class, 'login']);
 
-// Rotas Protegidas por Token
-Route::middleware('auth:sanctum')->group(function () {
+// Rotas Protegidas por Token e Validação de Empresa Ativa
+// Adicionado 'company.active' para garantir isolamento e bloqueio de terminais inativos
+Route::middleware(['auth:sanctum', 'company.active'])->group(function () {
 
     /*
     |----------------------------------------------------------------------

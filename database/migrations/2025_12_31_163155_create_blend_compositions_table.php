@@ -15,9 +15,10 @@ class CreateBlendCompositionsTable extends Migration
     {
         Schema::create('blend_compositions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
             $table->foreignId('sensory_profile_id')->constrained()->onDelete('cascade');
-            $table->foreignId('green_coffee_lot_id')->constrained(); // O café que compõe
-            $table->decimal('percentage', 5, 2); // Ex: 60.00
+            $table->foreignId('green_coffee_lot_id')->constrained();
+            $table->decimal('percentage', 5, 2);
             $table->timestamps();
         });
     }

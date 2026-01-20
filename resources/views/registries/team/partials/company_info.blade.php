@@ -19,14 +19,17 @@
             <div class="row g-4">
                 <div class="col-md-12">
                     <label class="info-label">Nome da Unidade / Razão Social</label>
-                    <input type="text" name="name" id="input-company-name" class="form-control border-0 bg-light p-3 company-input" 
-                           value="{{ $company->name }}" required disabled style="border-radius: 10px;">
+                    {{-- Removida a classe company-input para não ser destravado pelo JS --}}
+                    <input type="text" name="name" id="input-company-name" class="form-control border-0 bg-light p-3" 
+                           value="{{ $company->name }}" required disabled style="border-radius: 10px; cursor: not-allowed;">
+                    <small class="text-muted" style="font-size: 0.65rem;">* Campo gerenciado pelo Administrador Master</small>
                 </div>
 
                 <div class="col-md-6">
                     <label class="info-label">CNPJ</label>
-                    <input type="text" name="cnpj" id="cnpj_edit" class="form-control border-0 bg-light p-3 company-input" 
-                           value="{{ $company->cnpj }}" required disabled style="border-radius: 10px;">
+                    {{-- Removida a classe company-input para não ser destravado pelo JS --}}
+                    <input type="text" name="cnpj" id="cnpj_edit" class="form-control border-0 bg-light p-3" 
+                           value="{{ $company->cnpj }}" required disabled style="border-radius: 10px; cursor: not-allowed;">
                 </div>
 
                 <div class="col-md-6">
@@ -35,7 +38,7 @@
                            value="#{{ str_pad($company->id, 4, '0', STR_PAD_LEFT) }}" readonly style="cursor: not-allowed;">
                 </div>
 
-                {{-- O botão de salvar só aparecerá se o usuário destravar o form (que exige permissão) --}}
+                {{-- O botão de salvar só aparecerá se o usuário destravar o form (que permite trocar a logo) --}}
                 <div class="col-12 mt-4 text-end d-none" id="save-company-container">
                     <button type="button" id="btn-cancel-edit" class="btn btn-light px-4 py-2 me-2 fw-bold" style="border-radius: 10px;">Cancelar</button>
                     <button type="submit" class="btn btn-dark px-5 py-2 fw-bold" style="border-radius: 10px; background-color: var(--coffee-brown);">
@@ -61,7 +64,7 @@
                     @endif
                 </div>
                 
-                {{-- BLOQUEIO: O input de arquivo só existe no HTML se o usuário tiver a permissão --}}
+                {{-- O input de arquivo só fica disponível ao destravar --}}
                 @if(auth()->user()->hasPermission('settings_edit'))
                     <label for="logo_input" class="btn btn-sm btn-dark rounded-circle position-absolute bottom-0 end-0 d-none m-2 shadow" 
                            id="label-logo-input" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
@@ -80,16 +83,18 @@
 </div>
 
 <script>
-    // 1. Lógica para destravar e travar a edição
+    // 1. Lógica para destravar a edição (Somente Logo, campos de texto permanecem bloqueados)
     const btnUnlock = document.getElementById('btn-unlock-company');
     if(btnUnlock) {
         btnUnlock.addEventListener('click', function() {
+            // Habilita apenas os campos que ainda possuem a classe 'company-input' (se houver algum no futuro)
             document.querySelectorAll('.company-input').forEach(input => {
                 input.disabled = false;
                 input.classList.replace('bg-light', 'bg-white');
                 input.style.border = '1px solid #dee2e6';
             });
 
+            // Mostra o container de salvar e os controles da logo
             document.getElementById('save-company-container').classList.remove('d-none');
             const labelLogo = document.getElementById('label-logo-input');
             const hintLogo = document.getElementById('logo-hint');
@@ -97,7 +102,6 @@
             if(hintLogo) hintLogo.classList.remove('d-none');
             
             this.classList.add('d-none');
-            document.getElementById('input-company-name').focus();
         });
     }
 
@@ -132,12 +136,11 @@
         });
     }
 
-    // 4. Máscara de CNPJ
+    // 4. Máscara de CNPJ (Somente Visualização)
     const cnpjInput = document.getElementById('cnpj_edit');
     if(cnpjInput) {
-        cnpjInput.addEventListener('input', function (e) {
-            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,4})(\d{0,2})/);
-            e.target.value = !x[2] ? x[1] : x[1] + '.' + x[2] + '.' + x[3] + '/' + x[4] + (x[5] ? '-' + x[5] : '');
-        });
+        let val = cnpjInput.value.replace(/\D/g, '');
+        let x = val.match(/(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,4})(\d{0,2})/);
+        cnpjInput.value = !x[2] ? x[1] : x[1] + '.' + x[2] + '.' + x[3] + '/' + x[4] + (x[5] ? '-' + x[5] : '');
     }
 </script>

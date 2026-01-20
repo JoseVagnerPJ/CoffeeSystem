@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Auth; // Namespace corrigido para a pasta Auth
+namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\MainCompany;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -27,7 +28,6 @@ class AuthenticatedSessionController extends Controller
             'cnpj' => 'required'
         ]);
         
-        // Limpa a pontuação do CNPJ antes de buscar no banco
         $cnpjLimpo = preg_replace('/\D/', '', $request->cnpj);
         
         $company = MainCompany::where('cnpj', $cnpjLimpo)->first();
@@ -36,7 +36,11 @@ class AuthenticatedSessionController extends Controller
             return back()->withErrors(['cnpj' => 'Empresa não encontrada com este CNPJ.']);
         }
 
-        // Armazena dados da empresa na sessão para o Passo 2
+        // --- AJUSTE: Verifica se a empresa está ativa antes de prosseguir ---
+        if (!$company->is_active) {
+            return back()->withErrors(['cnpj' => 'O acesso para esta empresa está suspenso. Entre em contato com o suporte.']);
+        }
+
         session([
             'login_company_id'   => $company->id,
             'login_company_name' => $company->name,
@@ -51,7 +55,6 @@ class AuthenticatedSessionController extends Controller
      */
     public function create()
     {
-        // Se não houver empresa na sessão, volta para a identificação
         if (!session()->has('login_company_id')) {
             return redirect()->route('identify');
         }
@@ -63,7 +66,21 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request)
     {
+        // 1. Tenta autenticar as credenciais (username/password)
         $request->authenticate();
+
+        // --- AJUSTE: Verifica se o usuário logado pertence à empresa da sessão ---
+        if (Auth::user()->main_company_id !== session('login_company_id')) {
+            Auth::logout();
+            
+            // Limpa a sessão para obrigar a re-identificação
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'username' => 'Este usuário não possui permissão para acessar esta unidade.',
+            ]);
+        }
 
         $request->session()->regenerate();
 

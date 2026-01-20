@@ -89,36 +89,68 @@
                         <li><a class="nav-link {{ Request::is('/') ? 'active' : '' }}" href="{{ route('inicio') }}"><i class="bi bi-house-door me-2"></i> Início</a></li>
                         
                         <li>
-                            @php $hasEstoque = auth()->user()->hasPermission('green_coffee_view') || auth()->user()->hasPermission('green_coffee_full'); @endphp
-                            <a href="{{ $hasEstoque ? route('estoque.index') : 'javascript:void(0)' }}" 
-                               class="nav-link {{ Request::is('green-coffee*') ? 'active' : '' }}" 
-                               onclick="if(!{{ $hasEstoque ? 'true' : 'false' }}) alert('Você não tem permissão para acessar esse módulo!')">
-                                <i class="bi bi-box-seam me-2"></i> Estoque Verde @if(!$hasEstoque) <i class="bi bi-lock-fill ms-auto"></i> @endif
+                            @php 
+                                $hasModule = auth()->user()->mainCompany->mod_stock ?? false;
+                                $hasPerm = auth()->user()->hasPermission('green_coffee_view') || auth()->user()->hasPermission('green_coffee_full'); 
+                            @endphp
+                            <a href="{{ ($hasModule && $hasPerm) ? route('estoque.index') : 'javascript:void(0)' }}" 
+                               class="nav-link {{ Request::is('green-coffee*') ? 'active' : '' }} d-flex align-items-center" 
+                               onclick="checkAccess(event, {{ $hasModule ? 'true' : 'false' }}, {{ $hasPerm ? 'true' : 'false' }})">
+                                <i class="bi bi-box-seam me-2"></i> Estoque Verde 
+                                @if(!$hasModule) 
+                                    <i class="bi bi-lock-fill ms-auto text-danger" title="Módulo não contratado"></i>
+                                @elseif(!$hasPerm)
+                                    <i class="bi bi-lock-fill ms-auto opacity-50" title="Sem permissão"></i> 
+                                @endif
                             </a>
                         </li>
 
                         <li>
-                            @php $hasLab = auth()->user()->hasPermission('lab_view') || auth()->user()->hasPermission('lab_full'); @endphp
-                            <a href="{{ $hasLab ? route('laboratorio') : 'javascript:void(0)' }}" 
-                               class="nav-link {{ Request::is('laboratory*') ? 'active' : '' }}" 
-                               onclick="if(!{{ $hasLab ? 'true' : 'false' }}) alert('Você não tem permissão para acessar esse módulo!')">
-                                <i class="bi bi-clipboard-pulse me-2"></i> Laboratório @if(!$hasLab) <i class="bi bi-lock-fill ms-auto"></i> @endif
+                            @php 
+                                $hasModule = auth()->user()->mainCompany->mod_lab ?? false;
+                                $hasPerm = auth()->user()->hasPermission('lab_view') || auth()->user()->hasPermission('lab_full'); 
+                            @endphp
+                            <a href="{{ ($hasModule && $hasPerm) ? route('laboratorio') : 'javascript:void(0)' }}" 
+                               class="nav-link {{ Request::is('laboratory*') ? 'active' : '' }} d-flex align-items-center" 
+                               onclick="checkAccess(event, {{ $hasModule ? 'true' : 'false' }}, {{ $hasPerm ? 'true' : 'false' }})">
+                                <i class="bi bi-clipboard-pulse me-2"></i> Laboratório
+                                @if(!$hasModule) 
+                                    <i class="bi bi-lock-fill ms-auto text-danger" title="Módulo não contratado"></i>
+                                @elseif(!$hasPerm)
+                                    <i class="bi bi-lock-fill ms-auto opacity-50" title="Sem permissão"></i> 
+                                @endif
                             </a>
                         </li>
 
                         <li>
-                            @php $hasRoast = auth()->user()->hasPermission('roast_view') || auth()->user()->hasPermission('roast_full'); @endphp
-                            <a href="javascript:void(0)" class="nav-link" 
-                               onclick="devModuleAccess(event, '{{ route('roasting.index') }}', {{ $hasRoast ? 'true' : 'false' }})">
-                                <i class="bi bi-fire me-2"></i> Torrefação <i class="bi bi-lock-fill ms-auto" style="font-size: 0.8rem; color: {{ $hasRoast ? 'inherit' : '#ff6b6b' }}"></i>
+                            @php 
+                                $hasModule = auth()->user()->mainCompany->mod_roast ?? false;
+                                $hasPerm = auth()->user()->hasPermission('roast_view') || auth()->user()->hasPermission('roast_full'); 
+                            @endphp
+                            <a href="javascript:void(0)" class="nav-link d-flex align-items-center" 
+                               onclick="devModuleAccess(event, '{{ route('roasting.index') }}', {{ $hasModule ? 'true' : 'false' }}, {{ $hasPerm ? 'true' : 'false' }})">
+                                <i class="bi bi-fire me-2"></i> Torrefação 
+                                @if(!$hasModule) 
+                                    <i class="bi bi-lock-fill ms-auto text-danger" title="Módulo não contratado"></i>
+                                @elseif(!$hasPerm)
+                                    <i class="bi bi-lock-fill ms-auto opacity-50" title="Sem permissão"></i> 
+                                @endif
                             </a>
                         </li>
 
                         <li>
-                            @php $hasProd = auth()->user()->hasPermission('production_view') || auth()->user()->hasPermission('production_full'); @endphp
-                            <a href="javascript:void(0)" class="nav-link" 
-                               onclick="devModuleAccess(event, '#', {{ $hasProd ? 'true' : 'false' }})">
-                                <i class="bi bi-boxes me-2"></i> Produção <i class="bi bi-lock-fill ms-auto" style="font-size: 0.8rem; color: {{ $hasProd ? 'inherit' : '#ff6b6b' }}"></i>
+                            @php 
+                                $hasModule = auth()->user()->mainCompany->mod_prod ?? false;
+                                $hasPerm = auth()->user()->hasPermission('production_view') || auth()->user()->hasPermission('production_full'); 
+                            @endphp
+                            <a href="javascript:void(0)" class="nav-link d-flex align-items-center" 
+                               onclick="devModuleAccess(event, '#', {{ $hasModule ? 'true' : 'false' }}, {{ $hasPerm ? 'true' : 'false' }})">
+                                <i class="bi bi-boxes me-2"></i> Produção 
+                                @if(!$hasModule) 
+                                    <i class="bi bi-lock-fill ms-auto text-danger" title="Módulo não contratado"></i>
+                                @elseif(!$hasPerm)
+                                    <i class="bi bi-lock-fill ms-auto opacity-50" title="Sem permissão"></i> 
+                                @endif
                             </a>
                         </li>
                     </ul>
@@ -137,12 +169,27 @@
                         <li>
                             @php $hasSet = auth()->user()->hasPermission('settings_edit'); @endphp
                             <a href="javascript:void(0)" class="nav-link" 
-                            onclick="devModuleAccess(event, '{{ route('settings') }}', {{ $hasSet ? 'true' : 'false' }})">
+                            onclick="devModuleAccess(event, '{{ route('settings') }}', true, {{ $hasSet ? 'true' : 'false' }})">
                                 <i class="bi bi-gear me-2"></i> Configurações 
                                 <i class="bi bi-lock-fill ms-auto" style="font-size: 0.8rem; color: {{ $hasSet ? 'inherit' : '#ff6b6b' }}"></i>
                             </a>
                         </li>
                     </ul>
+                {{-- PORTAL MASTER - MOVIDO PARA CÁ --}}
+                    @if(auth()->check() && auth()->user()->hasPermission('dev_access'))
+                        <div class="sidebar-heading" style="opacity: 0.8; padding: 1rem; color: #ffca28; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">
+                            <i class="bi bi-shield-shaded me-1"></i> Portal Master
+                        </div>
+                        <ul class="nav flex-column">
+                            <li>
+                                <a href="{{ route('master.companies.index') }}" 
+                                   class="nav-link {{ Request::is('master-panel*') ? 'active' : '' }}" 
+                                   style="color: #ffca28 !important;">
+                                    <i class="bi bi-building-gear me-2"></i> Gerenciar Empresas
+                                </a>
+                            </li>
+                        </ul>
+                    @endif
                 </div>
                 <div class="px-3 mt-auto mb-3">
                     <form method="POST" action="{{ route('logout') }}"><button type="submit" class="btn btn-outline-danger btn-sm w-100 border-0 text-start ps-3"><i class="bi bi-box-arrow-right me-2"></i> Sair</button>@csrf</form>
@@ -170,6 +217,7 @@
             </div>
         </div>
     </div>
+    
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -177,8 +225,26 @@
         let devClickTimer;
         let pendingRoute = '';
 
-        function devModuleAccess(event, route, hasPermission) {
+        function checkAccess(event, hasModule, hasPermission) {
+            if (!hasModule) {
+                event.preventDefault();
+                alert("Este módulo não faz parte do seu plano atual. Entre em contato com o suporte para habilitar.");
+                return false;
+            }
+            if (!hasPermission) {
+                event.preventDefault();
+                alert("Seu usuário não possui permissão administrativa para acessar este módulo.");
+                return false;
+            }
+            return true;
+        }
+
+        function devModuleAccess(event, route, hasModule, hasPermission) {
             event.preventDefault();
+            if (!hasModule) {
+                alert("Este módulo não faz parte do seu plano atual. Entre em contato com o suporte para habilitar.");
+                return;
+            }
             if (!hasPermission) {
                 alert("Você não tem permissão para acessar esse módulo!");
                 return;

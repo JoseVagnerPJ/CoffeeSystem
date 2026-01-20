@@ -140,47 +140,53 @@ class LaboratoryController extends Controller
         return response()->json($data);
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'items' => 'required|array|min:1',
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'title' => 'required|string|max:255',
+        'items' => 'required|array|min:1',
+    ]);
 
-        try {
-            DB::transaction(function () use ($request) {
-                $session = CuppingSession::create([
-                    'title' => $request->title,
-                    'session_date' => now(), 
-                    'created_by' => Auth::id(), 
-                    'status' => 'aberto',
-                    'started_at' => now(),
+    try {
+        DB::transaction(function () use ($request) {
+            // 1. Criar a Sessão de Cupping
+            $session = CuppingSession::create([
+                'title'        => $request->title,
+                'session_date' => now(), 
+                'created_by'   => Auth::id(), 
+                'status'       => 'aberto',
+                'started_at'   => now(),
+            ]);
+
+            // 2. Criar cada item (Xícara) vinculado à sessão
+            foreach ($request->items as $itemData) {
+                $session->items()->create([
+                    'position'       => $itemData['position'],
+                    'is_avulso'      => ($itemData['is_avulso'] == "1"),
+                    'sample_id'      => $itemData['sample_id'] ?? null,
+                    'nickname'       => $itemData['nickname'] ?? null,
+                    'variety'        => $itemData['variety'] ?? null,
+                    'drying_process' => $itemData['drying_process'] ?? null,
+                    'fermentation'   => $itemData['fermentation'] ?? null,
+                    'humidity'       => $itemData['humidity'] ?? null,
+                    'screen'         => $itemData['screen'] ?? null,
+                    'altitude'       => $itemData['altitude'] ?? null,
+                    'crop'           => $itemData['crop'] ?? null,
+                    'notes'          => $itemData['pre_roast_obs'] ?? null,
+                    
+                    // Se o seu formulário enviar origin_id e origin_type (Polimórfico), adicione aqui:
+                    // 'origin_id'   => $itemData['origin_id'] ?? null,
+                    // 'origin_type' => $itemData['origin_type'] ?? null,
                 ]);
+            }
+        });
 
-                foreach ($request->items as $itemData) {
-                    $session->items()->create([
-                        'position'       => $itemData['position'],
-                        'is_avulso'      => ($itemData['is_avulso'] == "1"),
-                        'sample_id'      => $itemData['sample_id'] ?? null,
-                        'nickname'       => $itemData['nickname'] ?? null,
-                        'variety'        => $itemData['variety'] ?? null,
-                        'drying_process' => $itemData['drying_process'] ?? null,
-                        'fermentation'   => $itemData['fermentation'] ?? null,
-                        'humidity'       => $itemData['humidity'] ?? null,
-                        'screen'         => $itemData['screen'] ?? null,
-                        'lot_id'         => $itemData['lot_id'] ?? null,
-                        'altitude'       => $itemData['altitude'] ?? null,
-                        'crop'           => $itemData['crop'] ?? null,
-                        'notes'          => $itemData['notes'] ?? null,
-                    ]);
-                }
-            });
-
-            return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
-        }
+        return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
+    } catch (\Exception $e) {
+        // Em caso de erro, desfaz tudo e retorna com a mensagem
+        return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
     }
+}
 
     public function destroy($id)
     {

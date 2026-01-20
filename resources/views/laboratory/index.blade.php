@@ -371,50 +371,66 @@
     let currentEditingIndex = null;
     let searchTimeout;
 
-    function addNewCup() {
-        if(cupCount >= 50) return;
-        const index = cupCount++;
-        const wrapper = document.getElementById('cups-wrapper');
-        const emptyState = document.getElementById('empty-state');
-        if(emptyState) emptyState.style.display = 'none';
+function addNewCup() {
+    if(cupCount >= 50) return;
+    const index = cupCount++;
+    
+    const emptyState = document.getElementById('empty-state');
+    if(emptyState) emptyState.style.display = 'none';
 
-        const html = `
-            <div class="cup-card shadow-sm" id="cup-row-${index}">
-                <div class="cup-header">
-                    <div class="cup-number">${cupCount}</div>
-                    <div class="nickname-container">
-                        <label class="nickname-label">Apelido da Xícara *</label>
-                        <input type="text" name="items[${index}][nickname]" class="nickname-input js-nickname" placeholder="Ex: Lote A..." oninput="validateForm()">
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="is-avulso-badge">AVULSA</span>
-                        <button type="button" class="btn btn-sm btn-outline-primary border-0 rounded-circle" onclick="openTechInfo(${index})"><i class="bi bi-info-circle-fill fs-5"></i></button>
-                    </div>
+    const html = `
+        <div class="cup-card shadow-sm" id="cup-row-${index}">
+            <div class="cup-header border-bottom">
+                <div class="cup-number">${cupCount}</div>
+                <div class="nickname-container">
+                    <label class="nickname-label">Apelido da Xícara *</label>
+                    <input type="text" name="items[${index}][nickname]" class="nickname-input js-nickname" placeholder="Ex: Lote A..." autocomplete="off">
                 </div>
-                <div class="p-3 pt-0">
-                    <div class="row g-2">
-                        <div class="col-md-12 position-relative">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light js-sample-search" placeholder="Associar Amostra..." onkeyup="searchSample(this, ${index})">
-                            </div>
-                            <input type="hidden" name="items[${index}][sample_id]" class="js-sample-id">
-                            <div class="sample-result-list shadow-lg" id="results-${index}"></div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="is-avulso-badge">AVULSA</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary border-0 rounded-circle" onclick="openTechInfo(${index})">
+                        <i class="bi bi-info-circle-fill fs-5"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-3 bg-white">
+                <div class="row g-2">
+                    <div class="col-12 mb-2 position-relative">
+                        <div class="input-group input-group-sm border rounded-pill overflow-hidden bg-light">
+                            <span class="input-group-text border-0 bg-transparent ps-3"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control border-0 bg-transparent js-sample-search" placeholder="Associar Amostra..." onkeyup="searchSample(this, ${index})">
+                        </div>
+                        <input type="hidden" name="items[${index}][sample_id]" class="js-sample-id">
+                        <div class="sample-result-list shadow-lg" id="results-${index}"></div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="input-group input-group-sm border rounded-pill overflow-hidden bg-light">
+                            <span class="input-group-text border-0 bg-transparent ps-3 text-muted"><i class="bi bi-chat-left-text"></i></span>
+                            <input type="text" name="items[${index}][pre_roast_obs]" class="form-control border-0 bg-transparent" placeholder="Observação Pré-Torra...">
                         </div>
                     </div>
                 </div>
-                <input type="hidden" name="items[${index}][is_avulso]" class="js-is-avulso" value="0">
-                <input type="hidden" name="items[${index}][variety]" class="js-variety"><input type="hidden" name="items[${index}][drying_process]" class="js-drying_process">
-                <input type="hidden" name="items[${index}][fermentation]" class="js-fermentation"><input type="hidden" name="items[${index}][humidity]" class="js-humidity">
-                <input type="hidden" name="items[${index}][screen]" class="js-screen"><input type="hidden" name="items[${index}][lot_id]" class="js-lot_id">
-                <input type="hidden" name="items[${index}][altitude]" class="js-altitude"><input type="hidden" name="items[${index}][crop]" class="js-crop">
-                <input type="hidden" name="items[${index}][origin]" class="js-origin"><input type="hidden" name="items[${index}][notes]" class="js-notes">
-                <input type="hidden" name="items[${index}][position]" value="${cupCount}">
-            </div>`;
-        wrapper.insertAdjacentHTML('beforeend', html);
-        updateCounter();
-        validateForm();
-    }
+            </div>
+            <input type="hidden" name="items[${index}][is_avulso]" class="js-is-avulso" value="0">
+            <input type="hidden" name="items[${index}][variety]" class="js-variety">
+            <input type="hidden" name="items[${index}][drying_process]" class="js-drying_process">
+            <input type="hidden" name="items[${index}][fermentation]" class="js-fermentation">
+            <input type="hidden" name="items[${index}][humidity]" class="js-humidity">
+            <input type="hidden" name="items[${index}][screen]" class="js-screen">
+            <input type="hidden" name="items[${index}][lot_id]" class="js-lot_id">
+            <input type="hidden" name="items[${index}][altitude]" class="js-altitude">
+            <input type="hidden" name="items[${index}][crop]" class="js-crop">
+            <input type="hidden" name="items[${index}][origin]" class="js-origin">
+            <input type="hidden" name="items[${index}][notes]" class="js-notes"> 
+            <input type="hidden" name="items[${index}][position]" value="${cupCount}">
+        </div>`;
+    
+    document.getElementById('cups-wrapper').insertAdjacentHTML('beforeend', html);
+    updateCounter();
+    toggleSubmitButton();
+}
 
     function removeLastCup() {
         if(cupCount <= 0) return;

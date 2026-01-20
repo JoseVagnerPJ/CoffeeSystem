@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,13 +12,22 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class GreenCoffeeLot extends Model
 {
-    use HasFactory;
+
+    use HasFactory, BelongsToCompany;
 
     protected $fillable = [
         'main_company_id', 'user_id', 'sensory_profile_id', 'origin_id', 'origin_type',
         'reference', 'origin', 'process', 'address_row', 'address_pos',
         'quantity_bags', 'unit_weight', 'total_weight',
     ];
+
+    /**
+     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     */
+    public function mainCompany(): BelongsTo
+    {
+        return $this->belongsTo(MainCompany::class, 'main_company_id');
+    }
 
     // Carregamento automático de relações para evitar que a View fique vazia
     // Nota: Removi 'roastingBatches' daqui para evitar que o erro trave a página 

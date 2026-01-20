@@ -10,6 +10,7 @@ public function up(): void
 {
     Schema::create('samples', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('main_company_id')->constrained('main_companies')->onDelete('cascade');
         $table->string('name');
         $table->morphs('origin'); 
         $table->date('receipt_date');

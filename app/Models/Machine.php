@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class Machine extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCompany;
 
     // Campos que podem ser preenchidos em massa
 protected $fillable = [
@@ -23,6 +24,14 @@ protected $fillable = [
     'current_roasts', 
     'is_active'
 ];
+
+    /**
+     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     */
+    public function mainCompany()
+    {
+        return $this->belongsTo(MainCompany::class, 'main_company_id');
+    }
 
     /**
      * Relacionamento: Uma máquina tem muitas manutenções.
