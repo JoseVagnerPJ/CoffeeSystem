@@ -172,7 +172,7 @@
 <script>
 async function loadAndOpenViewModal(id) {
     try {
-        // Usamos a rota do Laravel injetada no JS, trocando o placeholder pelo ID real
+        // 1. Busca os dados via JSON
         let url = "{{ route('master.companies.json', ':id') }}".replace(':id', id);
         
         const response = await fetch(url, {
@@ -182,63 +182,109 @@ async function loadAndOpenViewModal(id) {
             }
         });
 
-        if (!response.ok) {
-            throw new Error('Empresa não encontrada ou erro no servidor');
-        }
+        if (!response.ok) throw new Error('Empresa não encontrada');
 
         const data = await response.json();
+        
+        // 2. Preenche e Abre o Modal
         openViewModal(data);
 
     } catch (error) {
         console.error('Erro ao carregar:', error);
-        alert('Erro ao carregar dados da empresa. Verifique se a rota existe no web.php');
+        alert('Erro ao carregar dados da empresa.');
     }
+}
 
-    function openViewModal(data) {
-    // 1. Desabilita o modo de edição (volta para visualização)
+function openViewModal(data) {
+    // 1. Reseta o estado de edição
     disableEditMode();
 
-    // 2. CONSTRÓI A URL CORRETA PARA EVITAR O 404
-    // Usamos o helper do Laravel para pegar a base da rota e concatenamos o ID
+    // 2. Configura a rota de Update no Form
     const baseUrl = "{{ route('master.companies.update', ':id') }}";
     document.getElementById('formUpdateCompany').action = baseUrl.replace(':id', data.id);
 
-    // 3. Preenche os campos
+    // 3. Preenche os campos de texto
     document.getElementById('viewCompanyNameTitle').innerText = data.name;
     document.getElementById('viewNameInput').value = data.name;
     document.getElementById('viewId').innerText = `#${String(data.id).padStart(2, '0')}`;
     document.getElementById('viewCnpj').innerText = data.cnpj;
     document.getElementById('viewCreatedAt').innerText = data.created_at;
     
-    // Preview da Logo
-    const preview = document.getElementById('viewLogoPreview');
-    preview.src = data.logo ? `/storage/${data.logo}` : '/images/default-company.png';
+    // 4. Lógica da Logo / Ícone
+    const img = document.getElementById('viewLogoPreview');
+    const icon = document.getElementById('viewLogoIcon');
+    if (data.logo) {
+        img.src = '/storage/' + data.logo;
+        img.style.display = 'block';
+        icon.style.display = 'none';
+    } else {
+        img.style.display = 'none';
+        icon.style.display = 'block';
+    }
 
-    // Checkboxes dos módulos
+    // 5. Switches de Módulos
     const modules = ['lab', 'stock', 'roast', 'production'];
     modules.forEach(m => {
-        const el = document.getElementById(`view_mod_${m}`);
+        const el = document.getElementById('view_mod_' + m);
         if(el) el.checked = data.modules_active.includes(m);
     });
 
-    const modal = new bootstrap.Modal(document.getElementById('modalViewCompany'));
-    modal.show();
+    // 6. Histórico Financeiro
+    const historyBody = document.getElementById('viewPaymentHistory');
+    historyBody.innerHTML = '';
+    if (data.payments && data.payments.length > 0) {
+        data.payments.forEach(p => {
+            historyBody.innerHTML += `
+                <tr>
+                    <td class="ps-3 py-2 text-muted fw-medium border-0">${p.date}</td>
+                    <td class="text-end pe-3 py-2 fw-bold text-success border-0">R$ ${p.amount}</td>
+                </tr>`;
+        });
+    } else {
+        historyBody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-muted border-0">Sem registros.</td></tr>';
+    }
+
+    // --- CORREÇÃO DO ERRO DA TELA CINZA ---
+    const modalEl = document.getElementById('modalViewCompany');
+    // Em vez de 'new', pegamos a instância existente ou criamos uma única
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modalInstance.show();
 }
 
-    const modal = new bootstrap.Modal(document.getElementById('modalViewCompany'));
-    modal.show();
-}
-
-// Função para mostrar a imagem assim que o usuário seleciona o arquivo
+// Funções Auxiliares (Fora das funções principais para evitar duplicação)
 function previewImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('viewLogoPreview').src = e.target.result;
+            const img = document.getElementById('viewLogoPreview');
+            const icon = document.getElementById('viewLogoIcon');
+            img.src = e.target.result;
+            img.style.display = 'block';
+            icon.style.display = 'none';
         }
         reader.readAsDataURL(input.files[0]);
     }
 }
 
+function enableEditMode() {
+    document.getElementById('viewNameInput').readOnly = false;
+    document.getElementById('viewNameInput').classList.replace('bg-light', 'bg-white');
+    document.querySelectorAll('.module-switch').forEach(el => el.disabled = false);
+    document.getElementById('btnEditCompany').classList.add('d-none');
+    document.getElementById('btnSaveCompany').classList.remove('d-none');
+    document.querySelectorAll('.edit-field').forEach(el => el.classList.remove('d-none'));
+}
+
+function disableEditMode() {
+    const nameInput = document.getElementById('viewNameInput');
+    if(nameInput) {
+        nameInput.readOnly = true;
+        nameInput.classList.replace('bg-white', 'bg-light');
+    }
+    document.querySelectorAll('.module-switch').forEach(el => el.disabled = true);
+    document.getElementById('btnEditCompany').classList.remove('d-none');
+    document.getElementById('btnSaveCompany').classList.add('d-none');
+    document.querySelectorAll('.edit-field').forEach(el => el.classList.add('d-none'));
+}
 </script>
 @endpush
