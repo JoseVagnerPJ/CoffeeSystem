@@ -14,16 +14,14 @@
                 <div class="modal-body px-4 pb-4">
                     <div class="row g-0">
                         
-                        {{-- COLUNA DA ESQUERDA: LOGO E DADOS --}}
+                        {{-- COLUNA DA ESQUERDA --}}
                         <div class="col-md-4 text-center border-md-end pe-md-4 mb-4 mb-md-0">
                             <div class="position-relative d-inline-block mb-3">
-                                {{-- Preview da Logo --}}
                                 <div id="logoContainer" class="rounded-circle border shadow-sm d-flex align-items-center justify-content-center bg-white" style="width: 120px; height: 120px; overflow: hidden;">
                                     <img id="viewLogoPreview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
                                     <i id="viewLogoIcon" class="bi bi-building text-muted" style="font-size: 3rem;"></i>
                                 </div>
                                 
-                                {{-- Input de Logo --}}
                                 <div class="mt-2 d-none edit-field">
                                     <label class="btn btn-sm btn-outline-secondary py-1 px-3" style="font-size: 0.75rem; border-radius: 20px; cursor: pointer;">
                                         <i class="bi bi-camera me-1"></i> Alterar Logo 
@@ -48,7 +46,7 @@
                             </div>
                         </div>
 
-                        {{-- COLUNA DA DIREITA: EDIÇÃO E MÓDULOS --}}
+                        {{-- COLUNA DA DIREITA --}}
                         <div class="col-md-8 ps-md-4">
                             <div class="mb-4">
                                 <label class="form-label small fw-bold text-muted">Razão Social</label>
@@ -87,9 +85,7 @@
                                                 <th class="text-end pe-3 border-0 py-2">Valor</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="viewPaymentHistory">
-                                            {{-- Preenchido via JS --}}
-                                        </tbody>
+                                        <tbody id="viewPaymentHistory"></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -99,7 +95,6 @@
 
                 <div class="modal-footer border-0 pb-4 px-4 d-flex justify-content-between bg-light-subtle" style="border-radius: 0 0 15px 15px;">
                     <button type="button" class="btn btn-outline-dark fw-bold px-4" data-bs-dismiss="modal">Fechar</button>
-                    
                     <div id="actionButtons">
                         <button type="button" id="btnEditCompany" class="btn btn-dark fw-bold px-4 shadow-sm" 
                                 style="background-color: var(--coffee-brown); border-color: var(--coffee-gold);" onclick="enableEditMode()">
@@ -116,26 +111,31 @@
 </div>
 
 <script>
-    // Função auxiliar para adicionar 3 horas a uma string de data
+    // Função aprimorada para converter e adicionar 3 horas
     function add3Hours(dateString) {
         if (!dateString || dateString === '--/--') return dateString;
+        
         try {
-            // Tenta converter para objeto Date
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString; // Se não for data válida, retorna original
+            // Se a data vier com espaço (MySQL), substitui por T para o JS entender como ISO
+            let isoFormat = dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString;
+            let date = new Date(isoFormat);
             
+            if (isNaN(date.getTime())) return dateString;
+
+            // Adiciona as 3 horas
             date.setHours(date.getHours() + 3);
-            
-            // Formata de volta para padrão brasileiro amigável
-            return date.toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+
+            // Formatação manual para garantir o padrão DD/MM/YYYY HH:MM:SS
+            let d = String(date.getDate()).padStart(2, '0');
+            let m = String(date.getMonth() + 1).padStart(2, '0');
+            let y = date.getFullYear();
+            let h = String(date.getHours()).padStart(2, '0');
+            let min = String(date.getMinutes()).padStart(2, '0');
+            let sec = String(date.getSeconds()).padStart(2, '0');
+
+            return `${d}/${m}/${y} ${h}:${min}:${sec}`;
         } catch (e) {
+            console.error("Erro ao processar data:", e);
             return dateString;
         }
     }
@@ -148,7 +148,7 @@
         document.getElementById('viewId').innerText = `#${String(data.id).padStart(2, '0')}`;
         document.getElementById('viewCnpj').innerText = data.cnpj;
         
-        // ADICIONADO +3 HORAS NA CRIAÇÃO
+        // Aplica +3 horas na criação
         document.getElementById('viewCreatedAt').innerText = add3Hours(data.created_at);
         
         const img = document.getElementById('viewLogoPreview');
@@ -173,7 +173,7 @@
         historyBody.innerHTML = '';
         if (data.payments && data.payments.length > 0) {
             data.payments.forEach(p => {
-                // ADICIONADO +3 HORAS NO HISTÓRICO
+                // Aplica +3 horas no histórico
                 historyBody.innerHTML += `
                     <tr>
                         <td class="ps-3 py-2 text-muted fw-medium border-0">${add3Hours(p.date)}</td>

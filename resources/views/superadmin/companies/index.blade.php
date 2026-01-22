@@ -54,12 +54,10 @@
                     <tbody>
                         @foreach($companies as $company)
                         <tr>
-                            {{-- ID do Terminal --}}
                             <td class="ps-4 text-center text-muted fw-bold">
                                 #{{ str_pad($company->id, 2, '0', STR_PAD_LEFT) }}
                             </td>
 
-                            {{-- Coluna da Logo --}}
                             <td>
                                 <div class="rounded-circle border d-flex align-items-center justify-content-center shadow-sm" 
                                      style="width: 48px; height: 48px; background-color: white; overflow: hidden;">
@@ -71,16 +69,13 @@
                                 </div>
                             </td>
 
-                            {{-- Informações da Empresa com Máscara de CNPJ --}}
                             <td>
                                 <div class="fw-bold" style="color: var(--coffee-brown);">{{ $company->name }}</div>
                                 <small class="text-muted">
-                                    {{-- APLICAÇÃO DA MÁSCARA: xx.xxx.xxx/xxxx-xx --}}
                                     {{ preg_replace("/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/", "$1.$2.$3/$4-$5", $company->cnpj) }}
                                 </small>
                             </td>
 
-                            {{-- Contagem de Usuários --}}
                             <td class="text-center">
                                 <span class="badge rounded-pill bg-light text-dark border px-3 py-2">
                                     <i class="bi bi-people-fill me-1 text-primary"></i> 
@@ -88,26 +83,24 @@
                                 </span>
                             </td>
 
-                            {{-- Data e Horário de Criação (Ajustado -3h) --}}
+                            {{-- Data e Horário (AJUSTADO: Removido o addHours) --}}
                             <td class="text-center">
                                 <div class="d-flex flex-column">
                                     <span class="text-muted small fw-bold">
-                                        <i class="bi bi-calendar3 me-1"></i> {{ $company->created_at->subHours(3)->format('d/m/Y') }}
+                                        <i class="bi bi-calendar3 me-1"></i> {{ $company->created_at->format('d/m/Y') }}
                                     </span>
                                     <span class="text-muted" style="font-size: 0.75rem;">
-                                        <i class="bi bi-clock me-1"></i> {{ $company->created_at->subHours(3)->format('H:i:s') }}
+                                        <i class="bi bi-clock me-1"></i> {{ $company->created_at->format('H:i:s') }}
                                     </span>
                                 </div>
                             </td>
 
-                            {{-- Badge de Status --}}
                             <td class="text-center">
                                 <span class="badge {{ $company->is_active ? 'bg-success' : 'bg-danger' }} opacity-75 px-3">
                                     {{ $company->is_active ? 'Ativa' : 'Inativa' }}
                                 </span>
                             </td>
 
-                            {{-- Coluna Último Pagamento --}}
                             <td class="text-center">
                                 @if(isset($company->last_payment_date))
                                     <span class="text-success small fw-bold">
@@ -119,11 +112,8 @@
                                 @endif
                             </td>
 
-                            {{-- Ações Rápidas --}}
                             <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-2">
-                                    
-                                    {{-- Botão Financeiro --}}
                                     <button type="button" 
                                             class="btn btn-sm btn-success px-3 shadow-sm" 
                                             onclick="openPaymentModal('{{ route('master.companies.payment', $company->id) }}', '{{ $company->name }}')"
@@ -131,7 +121,6 @@
                                         <i class="bi bi-currency-dollar"></i>
                                     </button>
 
-                                    {{-- Botão de Ativação/Suspensão --}}
                                     <form action="{{ route('master.companies.toggle', $company->id) }}" 
                                           method="POST" 
                                           onsubmit="return confirm('Tem certeza que deseja {{ $company->is_active ? 'BLOQUEAR' : 'LIBERAR' }} o acesso da empresa {{ $company->name }}?')">
@@ -143,7 +132,6 @@
                                         </button>
                                     </form>
 
-                                    {{-- Botão Visualizar (Olhinho) --}}
                                     <button type="button" 
                                             class="btn btn-sm btn-outline-primary px-3 shadow-sm" 
                                             onclick="loadAndOpenViewModal('{{ $company->id }}')" 
@@ -161,7 +149,6 @@
     </div>
 </div>
 
-{{-- IMPORTAÇÃO DOS MODAIS --}}
 @include('superadmin.companies.partials.modal_create_main_company')
 @include('superadmin.companies.partials.modal_payment')
 @include('superadmin.companies.partials.modal_view_main_company')
@@ -170,25 +157,39 @@
 
 @push('scripts')
 <script>
+// Função auxiliar (CORRIGIDA: Removida a adição de 3 horas para baixar o tempo)
+function add3Hours(dateString) {
+    if (!dateString || dateString === '--/--') return dateString;
+    try {
+        let isoFormat = dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString;
+        let date = new Date(isoFormat);
+        if (isNaN(date.getTime())) return dateString;
+        
+        // Removida a linha: date.setHours(date.getHours() + 3);
+
+        let d = String(date.getDate()).padStart(2, '0');
+        let m = String(date.getMonth() + 1).padStart(2, '0');
+        let y = date.getFullYear();
+        let h = String(date.getHours()).padStart(2, '0');
+        let min = String(date.getMinutes()).padStart(2, '0');
+        let sec = String(date.getSeconds()).padStart(2, '0');
+
+        return `${d}/${m}/${y} ${h}:${min}:${sec}`;
+    } catch (e) { return dateString; }
+}
+
 async function loadAndOpenViewModal(id) {
     try {
-        // 1. Busca os dados via JSON
         let url = "{{ route('master.companies.json', ':id') }}".replace(':id', id);
-        
         const response = await fetch(url, {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             }
         });
-
         if (!response.ok) throw new Error('Empresa não encontrada');
-
         const data = await response.json();
-        
-        // 2. Preenche e Abre o Modal
         openViewModal(data);
-
     } catch (error) {
         console.error('Erro ao carregar:', error);
         alert('Erro ao carregar dados da empresa.');
@@ -196,21 +197,17 @@ async function loadAndOpenViewModal(id) {
 }
 
 function openViewModal(data) {
-    // 1. Reseta o estado de edição
     disableEditMode();
-
-    // 2. Configura a rota de Update no Form
     const baseUrl = "{{ route('master.companies.update', ':id') }}";
     document.getElementById('formUpdateCompany').action = baseUrl.replace(':id', data.id);
-
-    // 3. Preenche os campos de texto
     document.getElementById('viewCompanyNameTitle').innerText = data.name;
     document.getElementById('viewNameInput').value = data.name;
     document.getElementById('viewId').innerText = `#${String(data.id).padStart(2, '0')}`;
     document.getElementById('viewCnpj').innerText = data.cnpj;
-    document.getElementById('viewCreatedAt').innerText = data.created_at;
     
-    // 4. Lógica da Logo / Ícone
+    // Agora exibe o tempo original do banco formatado
+    document.getElementById('viewCreatedAt').innerText = add3Hours(data.created_at);
+    
     const img = document.getElementById('viewLogoPreview');
     const icon = document.getElementById('viewLogoIcon');
     if (data.logo) {
@@ -222,21 +219,19 @@ function openViewModal(data) {
         icon.style.display = 'block';
     }
 
-    // 5. Switches de Módulos
     const modules = ['lab', 'stock', 'roast', 'production'];
     modules.forEach(m => {
         const el = document.getElementById('view_mod_' + m);
         if(el) el.checked = data.modules_active.includes(m);
     });
 
-    // 6. Histórico Financeiro
     const historyBody = document.getElementById('viewPaymentHistory');
     historyBody.innerHTML = '';
     if (data.payments && data.payments.length > 0) {
         data.payments.forEach(p => {
             historyBody.innerHTML += `
                 <tr>
-                    <td class="ps-3 py-2 text-muted fw-medium border-0">${p.date}</td>
+                    <td class="ps-3 py-2 text-muted fw-medium border-0">${add3Hours(p.date)}</td>
                     <td class="text-end pe-3 py-2 fw-bold text-success border-0">R$ ${p.amount}</td>
                 </tr>`;
         });
@@ -244,14 +239,11 @@ function openViewModal(data) {
         historyBody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-muted border-0">Sem registros.</td></tr>';
     }
 
-    // --- CORREÇÃO DO ERRO DA TELA CINZA ---
     const modalEl = document.getElementById('modalViewCompany');
-    // Em vez de 'new', pegamos a instância existente ou criamos uma única
     const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
     modalInstance.show();
 }
 
-// Funções Auxiliares (Fora das funções principais para evitar duplicação)
 function previewImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();

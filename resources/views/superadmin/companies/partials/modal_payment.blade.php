@@ -8,8 +8,7 @@
                 <button type="button" class="btn-close me-2" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             
-            {{-- O action será preenchido pelo JavaScript --}}
-            <form id="formPayment" action="" method="POST">
+            <form id="formPayment" action="" method="POST" onsubmit="disableSubmitButton(this)">
                 @csrf
                 @method('PATCH')
                 
@@ -19,19 +18,16 @@
                     </p>
                     
                     <div class="row g-3">
-                        {{-- DATA DO PAGAMENTO --}}
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Data do Pagamento</label>
                             <input type="date" class="form-control border-0 bg-light" name="payment_date" required value="{{ date('Y-m-d') }}">
                         </div>
 
-                        {{-- VALOR / QUANTIDADE --}}
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Valor Recebido (R$)</label>
                             <input type="number" step="0.01" class="form-control border-0 bg-light" name="amount" required placeholder="0,00">
                         </div>
 
-                        {{-- FORMA DE PAGAMENTO --}}
                         <div class="col-12">
                             <label class="form-label small fw-bold">Forma de Pagamento</label>
                             <select class="form-select border-0 bg-light" name="payment_method" required>
@@ -46,7 +42,6 @@
                             </select>
                         </div>
 
-                        {{-- OBSERVAÇÕES --}}
                         <div class="col-12">
                             <label class="form-label small fw-bold">Observações Internas</label>
                             <textarea class="form-control border-0 bg-light" name="notes" rows="3" placeholder="Ex: Referente à mensalidade de Janeiro/2026..."></textarea>
@@ -56,7 +51,7 @@
 
                 <div class="modal-footer border-0 pb-4 px-4">
                     <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">
+                    <button type="submit" id="btnConfirmPayment" class="btn btn-success fw-bold px-4 shadow-sm">
                         Confirmar Recebimento
                     </button>
                 </div>
@@ -69,12 +64,24 @@
     function openPaymentModal(url, name) {
         const form = document.getElementById('formPayment');
         const nameSpan = document.getElementById('paymentCompanyName');
+        const submitBtn = document.getElementById('btnConfirmPayment');
         
-        // Agora o 'url' já vem completo do servidor (ex: http://127.0.0.1:8000/master-panel/...)
+        // Reseta o estado do botão caso o modal tenha sido aberto anteriormente
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Confirmar Recebimento';
+
         form.action = url;
         nameSpan.innerText = name;
         
         const modal = new bootstrap.Modal(document.getElementById('modalRegisterPayment'));
         modal.show();
+    }
+
+    // Função para impedir double-click
+    function disableSubmitButton(form) {
+        const btn = document.getElementById('btnConfirmPayment');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
+        return true;
     }
 </script>
