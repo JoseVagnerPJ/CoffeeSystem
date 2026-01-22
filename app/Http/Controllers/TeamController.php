@@ -46,7 +46,7 @@ class TeamController extends Controller
     // porque campos disabled não chegam no request.
     $request->validate([
         'name' => 'sometimes|string|max:255',
-        'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
     ]);
 
     // Atualizamos o nome APENAS se ele vier no request (proteção extra)
@@ -137,7 +137,7 @@ class TeamController extends Controller
             'username' => 'required|string|unique:users,username', 
             'password' => 'required|min:3',
             'profile_id' => 'required|exists:profiles,id',
-            'photo' => 'nullable|image|max:2048'
+            'photo' => 'nullable|image|max:20480'
         ]);
 
         $targetProfile = Profile::findOrFail($request->profile_id);
@@ -180,7 +180,7 @@ class TeamController extends Controller
             'name' => 'required|string|max:255',
             'profile_id' => 'required|exists:profiles,id',
             'password' => 'nullable|min:3',
-            'photo' => 'nullable|image|max:2048'
+            'photo' => 'nullable|image|max:20480'
         ]);
 
         $targetProfile = Profile::findOrFail($request->profile_id);
