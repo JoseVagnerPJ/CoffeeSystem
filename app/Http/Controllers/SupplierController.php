@@ -152,17 +152,39 @@ public function index(Request $request)
         session()->forget(['captured_producer_id', 'captured_farm_id', 'captured_name']);
     }
 
-    public function link($targetType, $targetId) {
-        if (session('captured_producer_id') && $targetType == 'farm') {
-            DB::table('origin_links')->insert(['producer_id' => session('captured_producer_id'), 'farm_id' => $targetId, 'created_at' => now(), 'updated_at' => now()]);
-            $this->clearCaptureInternal();
-            return redirect()->route('registries.suppliers.index', ['tab' => 'farms'])->with('success', 'Vinculado!');
-        }
-        if ((session('captured_producer_id') || session('captured_farm_id')) && $targetType == 'company') {
-            DB::table('origin_links')->insert(['producer_id' => session('captured_producer_id'), 'farm_id' => session('captured_farm_id'), 'company_id' => $targetId, 'created_at' => now(), 'updated_at' => now()]);
-            $this->clearCaptureInternal();
-            return redirect()->route('registries.suppliers.index', ['tab' => 'companies'])->with('success', 'Vinculado!');
-        }
-        return redirect()->back()->with('error', 'Ação inválida.');
+public function link($targetType, $targetId) {
+    // Captura o ID da empresa do usuário logado
+    $mainCompanyId = auth()->user()->main_company_id;
+
+    // Caso 1: Vinculando Produtor a uma Fazenda
+    if (session('captured_producer_id') && $targetType == 'farm') {
+        DB::table('origin_links')->insert([
+            'main_company_id' => $mainCompanyId, // Injeção obrigatória
+            'producer_id'     => session('captured_producer_id'),
+            'farm_id'         => $targetId,
+            'created_at'      => now(),
+            'updated_at'      => now()
+        ]);
+        
+        $this->clearCaptureInternal();
+        return redirect()->route('registries.suppliers.index', ['tab' => 'farms'])->with('success', 'Vinculado!');
     }
+
+    // Caso 2: Vinculando Produtor ou Fazenda a uma Empresa
+    if ((session('captured_producer_id') || session('captured_farm_id')) && $targetType == 'company') {
+        DB::table('origin_links')->insert([
+            'main_company_id' => $mainCompanyId, // Injeção obrigatória
+            'producer_id'     => session('captured_producer_id'),
+            'farm_id'         => session('captured_farm_id'),
+            'company_id'      => $targetId,
+            'created_at'      => now(),
+            'updated_at'      => now()
+        ]);
+
+        $this->clearCaptureInternal();
+        return redirect()->route('registries.suppliers.index', ['tab' => 'companies'])->with('success', 'Vinculado!');
+    }
+
+    return redirect()->back()->with('error', 'Ação inválida.');
+}
 }

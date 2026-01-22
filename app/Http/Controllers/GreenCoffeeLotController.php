@@ -16,7 +16,7 @@ class GreenCoffeeLotController extends Controller
 {
 public function index(Request $request)
 {
-    // 1. Consulta base de lotes com estoque positivo
+    // 1. Consulta base de lotes com estoque positivo - Filtrado por empresa via Trait automática
     $query = GreenCoffeeLot::with(['sensoryProfile', 'attachments', 'roastingBatches.machine', 'locations', 'movements'])
         ->where('total_weight', '>', 0);
 
@@ -72,13 +72,15 @@ public function index(Request $request)
         ->take(2)
         ->get();
 
-    // 7. Gestão de Sessão de Inventário
-    $session = InventorySession::whereIn('status', ['aberto', 'iniciado'])
+    // 7. Gestão de Sessão de Inventário - FILTRADO POR EMPRESA
+    $session = InventorySession::where('main_company_id', auth()->user()->main_company_id)
+        ->whereIn('status', ['aberto', 'iniciado'])
         ->orderBy('created_at', 'desc')
         ->first();
 
     if (!$session) {
         $session = InventorySession::create([
+            'main_company_id' => auth()->user()->main_company_id, // Injeção obrigatória
             'status' => 'aberto',
             'user_id' => Auth::id(),
             'inventory_date' => now()->setTimezone('America/Sao_Paulo')->toDateString()
@@ -91,7 +93,8 @@ public function index(Request $request)
         ->get()
         ->groupBy('green_coffee_lot_id');
 
-    $history = InventorySession::where('status', 'finalizado')
+    $history = InventorySession::where('main_company_id', auth()->user()->main_company_id)
+        ->where('status', 'finalizado')
         ->orderBy('id', 'desc') 
         ->get()
         ->toArray(); 
@@ -109,26 +112,32 @@ public function index(Request $request)
         'mapView' // Importante para o @include dinâmico na index.blade
     ));
 }
+
 public function startInventory(Request $request)
 {
-    $session = InventorySession::where('status', 'aberto')->first();
+    // Localiza a sessão aberta da empresa atual
+    $session = InventorySession::where('main_company_id', auth()->user()->main_company_id)
+        ->where('status', 'aberto')
+        ->first();
+
     if (!$session) return response()->json(['error' => 'Sessão não encontrada.'], 422);
     
     try {
         DB::transaction(function () use ($session) {
+            $mainCompanyId = auth()->user()->main_company_id;
             $lotesComEstoque = GreenCoffeeLot::with('locations')->where('total_weight', '>', 0)->get();
 
             foreach ($lotesComEstoque as $lote) {
                 if ($lote->locations->count() > 0) {
-                    // Controlamos se é a primeira linha do lote para atribuir o peso do sistema apenas uma vez
                     $primeiraLinha = true;
                     foreach ($lote->locations as $loc) {
                         $pesoNaLocalizacao = ($loc->quantity_bags * ($lote->unit_weight ?: 60)) + $loc->remainder_weight;
                         $expectativaSistema = $primeiraLinha ? $lote->total_weight : 0;
                         
                         DB::table('inventory_adjustments')->insert([
+                            'main_company_id'      => $mainCompanyId, // CORREÇÃO: Injeção manual para evitar erro 1364
                             'inventory_session_id' => $session->id,
-                            'green_coffee_lot_id' => $lote->id,
+                            'green_coffee_lot_id'  => $lote->id,
                             'new_address_row'      => strtoupper($loc->address_row),
                             'new_address_pos'      => $loc->address_pos,
                             'closed_bags'          => $loc->quantity_bags,
@@ -154,10 +163,14 @@ public function startInventory(Request $request)
 
 public function storeInventoryAdjustment(Request $request)
 {
-    $session = InventorySession::where('status', 'iniciado')->first();
+    $mainCompanyId = auth()->user()->main_company_id;
+    $session = InventorySession::where('main_company_id', $mainCompanyId)
+        ->where('status', 'iniciado')
+        ->first();
+
     if (!$session) return response()->json(['error' => 'Inicie o inventário.'], 403);
 
-    DB::transaction(function () use ($request, $session) {
+    DB::transaction(function () use ($request, $session, $mainCompanyId) {
         DB::table('inventory_adjustments')
             ->where('inventory_session_id', $session->id)
             ->where('green_coffee_lot_id', $request->lot_id)
@@ -169,19 +182,20 @@ public function storeInventoryAdjustment(Request $request)
             $sistemaLinha = $primeiraLinha ? (float)$request->system_weight : 0;
 
             DB::table('inventory_adjustments')->insert([
+                'main_company_id'      => $mainCompanyId, // CORREÇÃO: Injeção manual para evitar erro 1364
                 'inventory_session_id' => $session->id,
-                'green_coffee_lot_id' => $request->lot_id,
-                'new_address_row' => strtoupper($loc['row']),
-                'new_address_pos' => $loc['pos'],
-                'closed_bags' => $loc['closed_bags'] ?? 0,
-                'bag_weight' => $loc['bag_weight'] ?? 60,
-                'remainder_weight' => $loc['remainder_weight'] ?? 0,
-                'physical_weight' => $fisicoLinha,
-                'system_weight' => $sistemaLinha,
-                'difference_kg' => $fisicoLinha - $sistemaLinha, 
-                'reason' => $request->reason,
-                'created_at' => now(),
-                'updated_at' => now()
+                'green_coffee_lot_id'  => $request->lot_id,
+                'new_address_row'      => strtoupper($loc['row']),
+                'new_address_pos'      => $loc['pos'],
+                'closed_bags'          => $loc['closed_bags'] ?? 0,
+                'bag_weight'           => $loc['bag_weight'] ?? 60,
+                'remainder_weight'     => $loc['remainder_weight'] ?? 0,
+                'physical_weight'      => $fisicoLinha,
+                'system_weight'        => $sistemaLinha,
+                'difference_kg'        => $fisicoLinha - $sistemaLinha, 
+                'reason'               => $request->reason,
+                'created_at'           => now(),
+                'updated_at'           => now()
             ]);
             $primeiraLinha = false;
         }
@@ -198,8 +212,9 @@ public function registrarSaida(Request $request)
         // 1. Desconta o peso do lote
         $lote->decrement('total_weight', $request->weight);
 
-        // 2. CRIA O REGISTRO DE MOVIMENTAÇÃO (Isso corrige o erro do Modal)
+        // 2. CRIA O REGISTRO DE MOVIMENTAÇÃO
         $lote->movements()->create([
+            'main_company_id' => auth()->user()->main_company_id, // Garantindo o vínculo da empresa
             'user_id' => auth()->id(),
             'location_id' => $request->location_id,
             'type' => 'out',
@@ -214,7 +229,10 @@ public function registrarSaida(Request $request)
 
 public function finishInventory(Request $request)
 {
-    $session = InventorySession::where('status', 'iniciado')->first();
+    $session = InventorySession::where('main_company_id', auth()->user()->main_company_id)
+        ->where('status', 'iniciado')
+        ->first();
+
     if (!$session) return response()->json(['error' => 'Sessão não encontrada.'], 422);
 
     $adjustments = DB::table('inventory_adjustments')->where('inventory_session_id', $session->id)->get();
@@ -236,23 +254,21 @@ public function finishInventory(Request $request)
                 $lote->quantity_bags = floor($totalPhysicalLot / $unitWeight);
                 $lote->save();
 
-                // Atualiza as diferenças individuais de cada linha no banco para o relatório de histórico
                 foreach ($adjs as $adj) {
                     DB::table('inventory_adjustments')
                         ->where('id', $adj->id)
                         ->update(['difference_kg' => $adj->physical_weight - $adj->system_weight]);
                 }
 
-                // CORREÇÃO AQUI: Desvincular movimentações antes de deletar as localizações
                 $locationIds = $lote->locations->pluck('id');
                 \App\Models\StockMovement::whereIn('location_id', $locationIds)->update(['location_id' => null]);
 
-                // Agora sim, podemos deletar as localizações antigas com segurança
                 $lote->locations()->delete();
 
                 foreach ($adjs as $adj) {
                     if (!empty($adj->new_address_row) && !empty($adj->new_address_pos)) {
                         $lote->locations()->create([
+                            'main_company_id' => auth()->user()->main_company_id, // Injeção via Model
                             'address_row' => strtoupper($adj->new_address_row),
                             'address_pos' => $adj->new_address_pos,
                             'quantity_bags' => floor($adj->physical_weight / $unitWeight),
@@ -276,9 +292,10 @@ public function finishInventory(Request $request)
 
 public function getInventoryDetail($id)
 {
-    $session = InventorySession::with('user')->findOrFail($id);
+    $session = InventorySession::where('main_company_id', auth()->user()->main_company_id)
+        ->with('user')
+        ->findOrFail($id);
     
-    // CORREÇÃO VISUAL: Agrupamos os ajustes por lote para o relatório não mostrar diferenças falsas por linha
     $adjustments = DB::table('inventory_adjustments')
         ->join('green_coffee_lots', 'inventory_adjustments.green_coffee_lot_id', '=', 'green_coffee_lots.id')
         ->where('inventory_session_id', $id)
@@ -295,10 +312,39 @@ public function getInventoryDetail($id)
     return response()->json(['session' => $session, 'adjustments' => $adjustments]);
 }
 
-public function store(Request $request) { $request->validate(['reference' => 'required', 'origin' => 'required', 'sensory_profile_id' => 'required', 'unit_weight' => 'required', 'locations' => 'required', 'quantity_bags' => 'required', 'total_weight' => 'required']); $lote = new GreenCoffeeLot(); $lote->user_id = Auth::id(); $lote->reference = $request->reference; $lote->origin = $request->origin; $lote->origin_id = $request->origin_id; $lote->origin_type = $request->origin_type; $lote->sensory_profile_id = $request->sensory_profile_id; $lote->unit_weight = $request->unit_weight; $lote->quantity_bags = $request->quantity_bags; $lote->total_weight = $request->total_weight; $lote->save(); foreach ($request->locations as $loc) { if (!empty($loc['row'])) { $lote->locations()->create(['address_row' => strtoupper($loc['row']), 'address_pos' => $loc['pos'], 'quantity_bags' => (int)$loc['bags'], 'remainder_weight' => $loc['remainder'] ?? 0]); } } return redirect()->route('estoque.index')->with('success', 'Lote registrado!'); }
+public function store(Request $request) { 
+    $request->validate(['reference' => 'required', 'origin' => 'required', 'sensory_profile_id' => 'required', 'unit_weight' => 'required', 'locations' => 'required', 'quantity_bags' => 'required', 'total_weight' => 'required']); 
+    $lote = new GreenCoffeeLot(); 
+    $lote->main_company_id = auth()->user()->main_company_id; // Injeção obrigatória
+    $lote->user_id = Auth::id(); 
+    $lote->reference = $request->reference; 
+    $lote->origin = $request->origin; 
+    $lote->origin_id = $request->origin_id; 
+    $lote->origin_type = $request->origin_type; 
+    $lote->sensory_profile_id = $request->sensory_profile_id; 
+    $lote->unit_weight = $request->unit_weight; 
+    $lote->quantity_bags = $request->quantity_bags; 
+    $lote->total_weight = $request->total_weight; 
+    $lote->save(); 
+    foreach ($request->locations as $loc) { 
+        if (!empty($loc['row'])) { 
+            $lote->locations()->create([
+                'main_company_id' => auth()->user()->main_company_id, //
+                'address_row' => strtoupper($loc['row']), 
+                'address_pos' => $loc['pos'], 
+                'quantity_bags' => (int)$loc['bags'], 
+                'remainder_weight' => $loc['remainder'] ?? 0
+            ]); 
+        } 
+    } 
+    return redirect()->route('estoque.index')->with('success', 'Lote registrado!'); 
+}
+
 public function destroy($id)
 {
-    $lote = GreenCoffeeLot::with(['attachments', 'locations', 'roastDemands.batches'])->findOrFail($id);
+    $lote = GreenCoffeeLot::where('main_company_id', auth()->user()->main_company_id)
+        ->with(['attachments', 'locations', 'roastDemands.batches'])
+        ->findOrFail($id);
     try {
         DB::transaction(function () use ($lote, $id) {
             DB::table('inventory_adjustments')->where('green_coffee_lot_id', $id)->delete();
@@ -320,9 +366,38 @@ public function destroy($id)
         return redirect()->back()->with('error', 'Erro ao excluir o lote: ' . $e->getMessage());
     }
 }
-public function storeAttachment(Request $request, $id) { $request->validate(['file' => 'required|file|max:2048']); $lote = GreenCoffeeLot::findOrFail($id); if ($request->hasFile('file')) { $path = $request->file('file')->store('attachments', 'public'); $lote->attachments()->create(['file_name' => $request->file('file')->getClientOriginalName(), 'file_path' => $path]); } return back()->with('success', 'Anexo salvo!'); }
-public function destroyAttachment($id) { $attachment = LotAttachment::findOrFail($id); if (Storage::disk('public')->exists($attachment->file_path)) Storage::disk('public')->delete($attachment->file_path); $attachment->delete(); return redirect()->back()->with('success', 'Anexo removido!'); }
-public function capture($id) { $lote = GreenCoffeeLot::findOrFail($id); session(['captured_lot' => $lote->id, 'captured_lot_name' => $lote->reference]); return redirect()->back()->with('success', 'Lote capturado!'); }
-public function clearCapture() { session()->forget(['captured_lot', 'captured_lot_name']); return redirect()->back()->with('info', 'Lote solto.'); }
+
+public function storeAttachment(Request $request, $id) { 
+    $request->validate(['file' => 'required|file|max:2048']); 
+    $lote = GreenCoffeeLot::where('main_company_id', auth()->user()->main_company_id)->findOrFail($id); 
+    if ($request->hasFile('file')) { 
+        $path = $request->file('file')->store('attachments', 'public'); 
+        $lote->attachments()->create([
+            'main_company_id' => auth()->user()->main_company_id, //
+            'file_name' => $request->file('file')->getClientOriginalName(), 
+            'file_path' => $path
+        ]); 
+    } 
+    return back()->with('success', 'Anexo salvo!'); 
+}
+
+public function destroyAttachment($id) { 
+    $attachment = LotAttachment::findOrFail($id); 
+    if (Storage::disk('public')->exists($attachment->file_path)) Storage::disk('public')->delete($attachment->file_path); 
+    $attachment->delete(); 
+    return redirect()->back()->with('success', 'Anexo removido!'); 
+}
+
+public function capture($id) { 
+    $lote = GreenCoffeeLot::where('main_company_id', auth()->user()->main_company_id)->findOrFail($id); 
+    session(['captured_lot' => $lote->id, 'captured_lot_name' => $lote->reference]); 
+    return redirect()->back()->with('success', 'Lote capturado!'); 
+}
+
+public function clearCapture() { 
+    session()->forget(['captured_lot', 'captured_lot_name']); 
+    return redirect()->back()->with('info', 'Lote solto.'); 
+}
+
 public function show($id) { return back(); }
 }
