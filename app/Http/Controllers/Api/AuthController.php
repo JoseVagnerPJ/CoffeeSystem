@@ -53,13 +53,31 @@ public function login(Request $request)
 
         // 7. Geração do Token via Sanctum
         try {
-            $token = $user->createToken($request->device_name)->plainTextToken;
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Erro ao gerar token. Verifique a tabela personal_access_tokens.',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        // Geramos uma string aleatória para o token
+        $plainTextToken = \Illuminate\Support\Str::random(40);
+        
+        // Usamos o Query Builder (DB) para inserir direto na tabela. 
+        // Isso ignora proteções de model e permite passar o ID obrigatório.
+        $tokenId = \Illuminate\Support\Facades\DB::table('personal_access_tokens')->insertGetId([
+            'main_company_id' => $user->main_company_id, // O campo que estava faltando
+            'tokenable_type'  => get_class($user),
+            'tokenable_id'    => $user->id,
+            'name'            => $request->device_name,
+            'token'           => hash('sha256', $plainTextToken),
+            'abilities'       => '["*"]', // Permissão total padrão
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
+
+        // O Flutter espera o token no formato "ID|Texto"
+        $token = $tokenId . '|' . $plainTextToken;
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Erro interno ao gerar acesso.',
+            'error'   => $e->getMessage()
+        ], 500);
+    }
 
         // 8. Retorno esperado pelo Flutter
         return response()->json([
