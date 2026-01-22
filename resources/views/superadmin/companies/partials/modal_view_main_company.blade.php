@@ -116,7 +116,30 @@
 </div>
 
 <script>
-    // Função para abrir o modal e preencher dados
+    // Função auxiliar para adicionar 3 horas a uma string de data
+    function add3Hours(dateString) {
+        if (!dateString || dateString === '--/--') return dateString;
+        try {
+            // Tenta converter para objeto Date
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString; // Se não for data válida, retorna original
+            
+            date.setHours(date.getHours() + 3);
+            
+            // Formata de volta para padrão brasileiro amigável
+            return date.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        } catch (e) {
+            return dateString;
+        }
+    }
+
     function openViewModal(data) {
         disableEditMode();
         
@@ -124,9 +147,10 @@
         document.getElementById('viewNameInput').value = data.name;
         document.getElementById('viewId').innerText = `#${String(data.id).padStart(2, '0')}`;
         document.getElementById('viewCnpj').innerText = data.cnpj;
-        document.getElementById('viewCreatedAt').innerText = data.created_at;
         
-        // Lógica da Logo / Ícone
+        // ADICIONADO +3 HORAS NA CRIAÇÃO
+        document.getElementById('viewCreatedAt').innerText = add3Hours(data.created_at);
+        
         const img = document.getElementById('viewLogoPreview');
         const icon = document.getElementById('viewLogoIcon');
         
@@ -139,21 +163,20 @@
             icon.style.display = 'block';
         }
 
-        // Módulos
         const modules = ['lab', 'stock', 'roast', 'production'];
         modules.forEach(m => {
             const el = document.getElementById('view_mod_' + m);
             if(el) el.checked = data.modules_active.includes(m);
         });
 
-        // Histórico Financeiro
         const historyBody = document.getElementById('viewPaymentHistory');
         historyBody.innerHTML = '';
         if (data.payments && data.payments.length > 0) {
             data.payments.forEach(p => {
+                // ADICIONADO +3 HORAS NO HISTÓRICO
                 historyBody.innerHTML += `
                     <tr>
-                        <td class="ps-3 py-2 text-muted fw-medium border-0">${p.date}</td>
+                        <td class="ps-3 py-2 text-muted fw-medium border-0">${add3Hours(p.date)}</td>
                         <td class="text-end pe-3 py-2 fw-bold text-success border-0">R$ ${p.amount}</td>
                     </tr>`;
             });
@@ -165,7 +188,6 @@
         modal.show();
     }
 
-    // Função de preview da imagem (ESSENCIAL PARA NÃO DAR TELA BRANCA)
     function previewImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();

@@ -205,7 +205,8 @@
 
         <div class="col-lg-4">
             <div class="map-container-side shadow-sm">
-                @include('green-coffee.partials.warehouse_map', ['mapData' => $mapData])
+                {{-- ALTERAÇÃO DINÂMICA: Busca o arquivo na pasta maps baseado no mapView da empresa --}}
+                @include('green-coffee.maps.' . $mapView, ['mapData' => $mapData])
             </div>
         </div>
     </div>

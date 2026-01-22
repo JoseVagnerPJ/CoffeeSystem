@@ -94,7 +94,6 @@
                                                 <input type="number" name="locations[0][bags]" class="form-control text-center js-loc-bags" placeholder="Sacas" step="1" min="0" required>
                                             </div>
                                             <div class="col-md-3">
-                                                {{-- Sobra: Mudado para TEXT e decimal inputmode para aceitar vírgula sem bugar --}}
                                                 <input type="text" name="locations[0][remainder]" class="form-control text-center js-loc-remainder" placeholder="Sobra kg" inputmode="decimal">
                                             </div>
                                             <div class="col-md-2"></div>
@@ -118,12 +117,13 @@
                             </div>
                         </div>
 
-                        {{-- COLUNA DIREITA: MAPA --}}
+                        {{-- COLUNA DIREITA: MAPA DINÂMICO --}}
                         <div class="col-lg-5">
                             <div class="p-2 border rounded-4 bg-white h-100 d-flex flex-column align-items-center">
                                 <h6 class="small fw-bold text-muted text-uppercase mb-2">Selecione no Mapa</h6>
                                 <div style="width: 100%; aspect-ratio: 1780/1885;" id="interactive-map-container">
-                                    @include('green-coffee.partials.warehouse_map')
+                                    {{-- CORREÇÃO AQUI: Agora carrega da nova pasta 'maps' baseada na variável dinâmica --}}
+                                    @include('green-coffee.maps.' . $mapView)
                                 </div>
                             </div>
                         </div>
@@ -157,19 +157,13 @@ $(document).ready(function() {
         $('.js-loc-pos').first().prop('disabled', true);
     });
 
-    // --- BLOQUEIO DE NEGATIVOS E FORMATAÇÃO DE DECIMAIS SEM PULAR O CURSOR ---
     $(document).on('input', '.js-loc-remainder', function() {
         let cursorPosition = this.selectionStart;
         let originalValue = this.value;
-
-        // Troca vírgula por ponto e remove o que não for número ou ponto
         let cleanedValue = originalValue.replace(/,/g, '.').replace(/[^0-9.]/g, '');
-        
-        // Impede múltiplos pontos decimais
         let parts = cleanedValue.split('.');
         if (parts.length > 2) cleanedValue = parts[0] + '.' + parts.slice(1).join('');
 
-        // Se o valor mudou, atualiza e restaura o cursor
         if (originalValue !== cleanedValue) {
             this.value = cleanedValue;
             this.setSelectionRange(cursorPosition, cursorPosition);
@@ -182,7 +176,6 @@ $(document).ready(function() {
         updateMapSelection();
     });
 
-    // Adicionar Pilha
     $('#add-location-btn').on('click', function() {
         let rowHtml = `
             <div class="row g-1 mb-1 location-row align-items-end">

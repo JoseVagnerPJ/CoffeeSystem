@@ -19,6 +19,7 @@ public function up()
         $table->string('cnpj')->unique();
         $table->string('logo')->nullable();
         $table->boolean('is_active')->default(true);
+        $table->string('map_view')->default('default');
         
         // --- NOVOS CAMPOS PARA O PORTAL MASTER ---
         // Controle de Módulos (Booleanos)

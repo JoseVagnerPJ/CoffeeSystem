@@ -16,9 +16,11 @@ class GreenCoffeeLotController extends Controller
 {
 public function index(Request $request)
 {
+    // 1. Consulta base de lotes com estoque positivo
     $query = GreenCoffeeLot::with(['sensoryProfile', 'attachments', 'roastingBatches.machine', 'locations', 'movements'])
         ->where('total_weight', '>', 0);
 
+    // 2. Filtros de Busca e Perfil Sensorial
     if ($request->filled('search')) {
         $query->where(function($q) use ($request) {
             $q->where('origin', 'like', '%' . $request->search . '%')
@@ -33,6 +35,11 @@ public function index(Request $request)
     $lotes = $query->orderBy('created_at', 'desc')->get();
     $perfis = SensoryProfile::all(); 
 
+    // 3. MAPEAMENTO DINÂMICO DO ARQUIVO SVG (NOVA LÓGICA)
+    // Busca o nome do arquivo definido no banco. Se estiver vazio, usa 'default'.
+    $mapView = auth()->user()->mainCompany->map_view ?? 'default';
+
+    // 4. Processamento dos dados para preenchimento das cores no mapa
     $mapData = [];
     foreach ($lotes as $lote) {
         foreach ($lote->locations as $loc) {
@@ -45,6 +52,7 @@ public function index(Request $request)
         }
     }
 
+    // 5. Histórico de subtrações (Torras recentes)
     $lastSubtractions = RoastingBatch::with('demand.lot')
         ->orderBy('created_at', 'desc')
         ->take(3)
@@ -57,13 +65,14 @@ public function index(Request $request)
             ];
         });
 
-    // --- NOVA PARTE: BUSCA AS ÚLTIMAS SAÍDAS MANUAIS PARA O FEED ---
+    // 6. Últimas Saídas Manuais para o Feed
     $ultimasSaidas = \App\Models\StockMovement::with('lote')
         ->where('type', 'out')
         ->latest()
         ->take(2)
         ->get();
 
+    // 7. Gestão de Sessão de Inventário
     $session = InventorySession::whereIn('status', ['aberto', 'iniciado'])
         ->orderBy('created_at', 'desc')
         ->first();
@@ -76,6 +85,7 @@ public function index(Request $request)
         ]);
     }
 
+    // 8. Ajustes e Histórico de Inventários Finalizados
     $adjustments = DB::table('inventory_adjustments')
         ->where('inventory_session_id', $session->id)
         ->get()
@@ -86,11 +96,19 @@ public function index(Request $request)
         ->get()
         ->toArray(); 
 
+    // 9. Retorno da View com a variável mapView incluída
     return view('green-coffee.index', compact(
-        'lotes', 'perfis', 'mapData', 'lastSubtractions', 'session', 'adjustments', 'history', 'ultimasSaidas'
+        'lotes', 
+        'perfis', 
+        'mapData', 
+        'lastSubtractions', 
+        'session', 
+        'adjustments', 
+        'history', 
+        'ultimasSaidas',
+        'mapView' // Importante para o @include dinâmico na index.blade
     ));
 }
-
 public function startInventory(Request $request)
 {
     $session = InventorySession::where('status', 'aberto')->first();

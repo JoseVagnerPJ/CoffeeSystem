@@ -10,7 +10,7 @@ class MainCompany extends Model
     use HasFactory;
 
     protected $fillable = [
-    'name', 'cnpj', 'logo', 'is_active', 
+    'name', 'cnpj', 'logo','map_view', 'is_active', 
     'mod_lab', 'mod_stock', 'mod_roast', 'mod_prod', 
     'last_payment_date'
 ];

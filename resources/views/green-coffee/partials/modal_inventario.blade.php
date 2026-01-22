@@ -142,7 +142,6 @@
                                                 </td>
 
                                                 <td class="pe-4 align-top pt-3">
-                                                    {{-- CORREÇÃO: Adicionado autocomplete="one-time-code" para impedir o autofill do usuário --}}
                                                     <input type="text" 
                                                            class="form-control form-control-sm js-reason" 
                                                            placeholder="..." 
@@ -173,7 +172,8 @@
             </div>
             <div class="modal-body p-2 bg-white text-center">
                 <div class="warehouse-map-mini" style="background: #fdfdfd; border-radius: 8px; pointer-events: none;">
-                    @include('green-coffee.partials.warehouse_map')
+                    {{-- AJUSTE DINÂMICO AQUI --}}
+                    @include('green-coffee.maps.' . $mapView)
                 </div>
             </div>
         </div>
