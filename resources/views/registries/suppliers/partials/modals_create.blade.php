@@ -16,11 +16,11 @@
                     </div>
                     <div class="col-md-6">
                         <label class="info-label">CPF</label>
-                        <input type="text" name="cpf" class="form-control shadow-sm" placeholder="000.000.000-00">
+                        <input type="text" name="cpf" id="cpf_producer" class="form-control shadow-sm" placeholder="000.000.000-00">
                     </div>
                     <div class="col-md-6">
                         <label class="info-label">Contato / WhatsApp</label>
-                        <input type="text" name="contact" class="form-control shadow-sm" placeholder="(35) 99999-0000">
+                        <input type="text" name="contact" id="phone_producer" class="form-control shadow-sm" placeholder="(35) 99999-0000">
                     </div>
                 </div>
             </div>
@@ -135,11 +135,11 @@
                     </div>
                     <div class="col-md-6">
                         <label class="info-label">CNPJ (Opcional)</label>
-                        <input type="text" name="cnpj" class="form-control shadow-sm" placeholder="00.000.000/0000-00">
+                        <input type="text" name="cnpj" id="cnpj_company" class="form-control shadow-sm" placeholder="00.000.000/0000-00">
                     </div>
                     <div class="col-md-6">
                         <label class="info-label">Contato Principal</label>
-                        <input type="text" name="contact" class="form-control shadow-sm" placeholder="Email ou Telefone">
+                        <input type="text" name="contact" id="phone_company" class="form-control shadow-sm" placeholder="Email ou Telefone">
                     </div>
 
                     <div class="col-12"><hr class="my-2 opacity-10"></div>
@@ -185,8 +185,60 @@
 
 <script>
 /**
+ * Máscaras de Input (CPF, CNPJ e Telefone)
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Máscara CPF: 000.000.000-00
+    const maskCPF = (el) => {
+        el.addEventListener('input', e => {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 11) v = v.slice(0, 11);
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            e.target.value = v;
+        });
+    };
+
+    // Máscara CNPJ: 00.000.000/0000-00
+    const maskCNPJ = (el) => {
+        el.addEventListener('input', e => {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 14) v = v.slice(0, 14);
+            v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+            v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+            v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+            v = v.replace(/(\d{4})(\d)/, '$1-$2');
+            e.target.value = v;
+        });
+    };
+
+    // Máscara Telefone: (00) 00000-0000
+    const maskPhone = (el) => {
+        el.addEventListener('input', e => {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 11) v = v.slice(0, 11);
+            v = v.replace(/^(\d{2})(\d)/g, '($1) $2');
+            v = v.replace(/(\d{5})(\d)/, '$1-$2');
+            e.target.value = v;
+        });
+    };
+
+    // Aplicando aos IDs
+    const cpfInput = document.getElementById('cpf_producer');
+    const cnpjInput = document.getElementById('cnpj_company');
+    const phoneProd = document.getElementById('phone_producer');
+    const phoneComp = document.getElementById('phone_company');
+
+    if(cpfInput) maskCPF(cpfInput);
+    if(cnpjInput) maskCNPJ(cnpjInput);
+    if(phoneProd) maskPhone(phoneProd);
+    if(phoneComp) maskPhone(phoneComp);
+});
+
+/**
  * Alterna a visibilidade dos campos de endereço entre Nacional e Internacional.
- *
  */
 function toggleLocale(type) {
     const isChecked = document.getElementById('checkInternacional' + type).checked;
@@ -196,12 +248,10 @@ function toggleLocale(type) {
     if (isChecked) {
         camposBrasil.classList.add('d-none');
         camposExterior.classList.remove('d-none');
-        // Limpa campos nacionais para evitar dados inconsistentes
         camposBrasil.querySelectorAll('input').forEach(i => i.value = '');
     } else {
         camposBrasil.classList.remove('d-none');
         camposExterior.classList.add('d-none');
-        // Limpa campos internacionais
         camposExterior.querySelectorAll('input').forEach(i => i.value = '');
     }
 }
