@@ -138,8 +138,8 @@
                         <input type="text" name="cnpj" id="cnpj_company" class="form-control shadow-sm" placeholder="00.000.000/0000-00">
                     </div>
                     <div class="col-md-6">
-                        <label class="info-label">Contato Principal</label>
-                        <input type="text" name="contact" id="phone_company" class="form-control shadow-sm" placeholder="Email ou Telefone">
+                        <label class="info-label">Telefone Principal</label>
+                        <input type="text" name="contact" id="phone_company" class="form-control shadow-sm" placeholder="(00) 00000-0000)">
                     </div>
 
                     <div class="col-12"><hr class="my-2 opacity-10"></div>
