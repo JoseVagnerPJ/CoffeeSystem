@@ -3,40 +3,47 @@
 namespace App\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Schema;
 
 trait BelongsToCompany
 {
     protected static function bootBelongsToCompany()
     {
-        // 1. Escopo Global: Toda consulta filtrará automaticamente
         static::addGlobalScope('main_company_id', function (Builder $builder) {
             
-            // Se estiver rodando via terminal (Seeders/Migrations), não aplica o escopo
             if (app()->runningInConsole()) {
                 return;
             }
 
             $companyId = null;
 
-            // Tenta pegar o ID da empresa pela sessão (mais seguro para evitar recursão no User)
-            if (session()->has('login_company_id')) {
+            // 1. Verifica se existe sessão (Contexto Web)
+            // O request()->hasSession() evita o erro 500 na API
+            if (request()->hasSession() && session()->has('login_company_id')) {
                 $companyId = session('login_company_id');
             } 
-            // Se já estiver logado (em outras partes do sistema), pega do objeto User
+            
+            // 2. Verifica se há usuário autenticado (Contexto API/Sanctum ou Web logado)
             elseif (auth()->check()) {
                 $companyId = auth()->user()->main_company_id;
             }
 
+            // 3. Aplica o filtro apenas se encontrar um ID
             if ($companyId) {
                 $tableName = $builder->getModel()->getTable();
                 $builder->where($tableName . '.main_company_id', $companyId);
             }
         });
 
-        // 2. Evento de Criação: Injeta o ID automaticamente ao salvar
         static::creating(function ($model) {
-            $companyId = session('login_company_id') ?? (auth()->check() ? auth()->user()->main_company_id : null);
+            $companyId = null;
+
+            if (request()->hasSession()) {
+                $companyId = session('login_company_id');
+            }
+
+            if (!$companyId && auth()->check()) {
+                $companyId = auth()->user()->main_company_id;
+            }
             
             if ($companyId && !$model->main_company_id) {
                 $model->main_company_id = $companyId;
