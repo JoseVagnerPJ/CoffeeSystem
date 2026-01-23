@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h6 class="fw-bold mb-0 text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Colaboradores da Unidade</h6>
-    {{-- Qualquer um com permissão de time pode ver o botão de "Novo" --}}
+    {{-- Verifica permissão do usuário LOGADO usando auth()->user() --}}
     @if(auth()->user()->hasPermission('team_full') || auth()->user()->hasPermission('team_user_only'))
         <button class="btn btn-sm text-white fw-bold rounded-pill px-3" style="background-color: var(--coffee-brown);" data-bs-toggle="modal" data-bs-target="#modalCreateUser">
             <i class="bi bi-person-plus-fill me-1"></i> Novo Colaborador
@@ -26,23 +26,16 @@
                     $isDev = $authUser->hasPermission('dev_access');
                     $canManageTeam = $authUser->hasPermission('team_full');
                     
-                    // Identifica o usuário da linha
+                    // Identifica se o usuário da linha é Desenvolvedor ou Admin
                     $rowUserIsDev = ($user->profile && ($user->profile->name === 'Desenvolvedor' || (isset($user->profile->permissions['dev_access']) && $user->profile->permissions['dev_access'])));
-                    $rowUserIsAdmin = $user->hasPermission('all_access');
+                    $rowUserIsAdmin = ($user->profile && isset($user->profile->permissions['all_access']) && $user->profile->permissions['all_access']);
 
-                    $canSeeUser = false;
-                    if ($user->id === $authUser->id) { $canSeeUser = true; }
-                    elseif ($rowUserIsDev && !$isDev) { $canSeeUser = false; }
-                    elseif ($isMaster) { $canSeeUser = true; }
-                    else {
-                        $hasSuperiorPermission = false;
-                        if ($user->profile && $user->profile->permissions) {
-                            foreach ($user->profile->permissions as $permKey => $enabled) {
-                                if ($enabled && !$authUser->hasPermission($permKey)) { $hasSuperiorPermission = true; break; }
-                            }
-                        }
-                        if (!$hasSuperiorPermission) { $canSeeUser = true; }
-                    }
+                    // REGRA DE VISIBILIDADE: Agora todos podem ver o Desenvolvedor
+                    $canSeeUser = true; 
+
+                    // REGRA DE EDIÇÃO: Só pode editar se for Dev ou se o alvo não for Dev. 
+                    // Além da regra de Administrador Mestre que você já possuía.
+                    $canEditUser = ($canManageTeam && ($isDev || !$rowUserIsDev) && ($isMaster || !$rowUserIsAdmin));
                 @endphp
 
                 @if($canSeeUser)
@@ -58,7 +51,9 @@
                                 @endif
                             </div>
                             <div>
-                                <div class="fw-bold {{ !$user->is_active ? 'text-muted text-decoration-line-through' : 'text-dark' }}">{{ $user->name }}</div>
+                                <div class="fw-bold {{ !$user->is_active ? 'text-muted text-decoration-line-through' : 'text-dark' }}">
+                                    {{ $user->name }}
+                                </div>
                                 <small class="text-muted">@<span>{{ $user->username }}</span></small>
                             </div>
                         </div>
@@ -76,23 +71,23 @@
                     <td class="text-end px-3">
                         <div class="d-flex justify-content-end gap-2">
                             
-                            {{-- LÓGICA DE GESTÃO (EDIÇÃO/VISUALIZAÇÃO) --}}
-                            @if($canManageTeam && !$rowUserIsDev && (!$rowUserIsAdmin || $isMaster))
-                                {{-- Pode editar: Lápis azul --}}
+                            {{-- LÓGICA DE GESTÃO ALTERADA --}}
+                            @if($canEditUser)
+                                {{-- Modo Edição (Lápis) --}}
                                 <button class="btn btn-sm btn-light rounded-circle shadow-sm" data-bs-toggle="modal" data-bs-target="#modalViewUser{{ $user->id }}" title="Editar Colaborador">
                                     <i class="bi bi-pencil-fill text-primary"></i>
                                 </button>
                             @else
-                                {{-- Apenas visualiza: Olho cinza (Para Devs, Admins editados por não-admins ou usuários sem permissão de gestão) --}}
+                                {{-- Modo Visualização (Olho) - Aparece para Desenvolvedores se quem logou não for Dev --}}
                                 <button class="btn btn-sm btn-light rounded-circle shadow-sm" data-bs-toggle="modal" data-bs-target="#modalViewUser{{ $user->id }}" title="Visualizar Ficha">
                                     <i class="bi bi-eye-fill text-muted"></i>
                                 </button>
                             @endif
 
                             @if($user->id !== $authUser->id)
-                                {{-- BLOQUEIO DE STATUS PARA DESENVOLVEDOR E ADMIN --}}
-                                @if($rowUserIsDev || ($rowUserIsAdmin && !$isMaster))
-                                    <span class="badge bg-light text-muted border fw-normal d-flex align-items-center px-3" title="Usuário Vitalício ou Superior">
+                                {{-- Se for um Dev e eu não for Dev, ou se for Admin e eu não for Master, fica "Protegido" --}}
+                                @if(($rowUserIsDev && !$isDev) || ($rowUserIsAdmin && !$isMaster))
+                                    <span class="badge bg-light text-muted border fw-normal d-flex align-items-center px-3" title="Usuário Protegido">
                                         <i class="bi bi-shield-fill-check text-warning me-1"></i> Protegido
                                     </span>
                                 @elseif($canManageTeam)
@@ -109,9 +104,12 @@
                         </div>
                     </td>
                 </tr>
+
+                {{-- MODAL INCLUÍDO DENTRO DO LOOP PARA CADA USUÁRIO --}}
                 @include('registries.team.partials.view_user', ['user' => $user])
-                @endif
-            @endforeach
+
+                @endif {{-- Fim do canSeeUser --}}
+            @endforeach {{-- Fim do loop principal --}}
         </tbody>
     </table>
 </div>

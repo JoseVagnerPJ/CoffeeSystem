@@ -180,8 +180,15 @@ class TeamController extends Controller
         $authUser = auth()->user();
         $userToEdit = User::where('main_company_id', $authUser->main_company_id)->findOrFail($id);
 
-        // 1. BLOQUEIO DE PERMISSÃO: Apenas quem tem 'team_full' pode editar. 
-        // Quem tem apenas 'team_user_only' só pode criar.
+        // --- TRAVA DE IMUTABILIDADE: PROTEÇÃO DE USUÁRIOS DESENVOLVEDORES ---
+        // Verifica se o usuário que está SENDO EDITADO já é um Desenvolvedor
+        $userIsAlreadyDev = ($userToEdit->profile && ($userToEdit->profile->name === 'Desenvolvedor' || (isset($userToEdit->profile->permissions['dev_access']) && $userToEdit->profile->permissions['dev_access'])));
+
+        if ($userIsAlreadyDev && !$authUser->hasPermission('dev_access')) {
+            return redirect()->back()->with('error', 'Segurança: A ficha de um Desenvolvedor só pode ser alterada por outro Desenvolvedor.');
+        }
+
+        // 1. BLOQUEIO DE PERMISSÃO: Apenas quem tem 'team_full' pode editar.
         if (!$authUser->hasPermission('team_full')) {
             return redirect()->back()->with('error', 'Sua conta possui permissão apenas para criação de usuários, não para edição.');
         }

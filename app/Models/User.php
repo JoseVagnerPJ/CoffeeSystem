@@ -47,20 +47,34 @@ class User extends Authenticatable
     public function cups() { return $this->hasMany(Cup::class); }
     public function cleaningLogs() { return $this->hasMany(MachineCleaningLog::class); }
 
-    public function hasPermission($permission)
-    {
-        if (!$this->profile || !$this->is_active) {
-            return false;
-        }
-
-        $permissions = $this->profile->permissions;
-
-        // Chave Mestra: Se tiver all_access ou for Dev, retorna true para tudo
-        if ((isset($permissions['all_access']) && $permissions['all_access']) || 
-            (isset($permissions['dev_access']) && $permissions['dev_access'])) {
-            return true;
-        }
-
-        return isset($permissions[$permission]) && $permissions[$permission];
+public function hasPermission($permission)
+{
+    // 1. Segurança básica: se não houver perfil ou o usuário estiver inativo, nega tudo.
+    if (!$this->profile || !$this->is_active) {
+        return false;
     }
+
+    $permissions = $this->profile->permissions ?? [];
+
+    // 2. REGRA PARA O PORTAL MASTER:
+    // Se a pergunta for especificamente sobre 'dev_access', 
+    // respondemos TRUE apenas se o usuário REALMENTE tiver a chave dev_access.
+    if ($permission === 'dev_access') {
+        return isset($permissions['dev_access']) && ($permissions['dev_access'] == true || $permissions['dev_access'] == "1");
+    }
+
+    // 3. REGRA PARA ADMINISTRADORES (Mestra):
+    // Se o usuário for um Desenvolvedor OU um Administrador (all_access),
+    // ele tem permissão para qualquer OUTRA função do sistema automaticamente.
+    $isDev = isset($permissions['dev_access']) && ($permissions['dev_access'] == true || $permissions['dev_access'] == "1");
+    $isMaster = isset($permissions['all_access']) && ($permissions['all_access'] == true || $permissions['all_access'] == "1");
+
+    if ($isDev || $isMaster) {
+        return true;
+    }
+
+    // 4. CHECAGEM INDIVIDUAL:
+    // Se não for admin/dev, verifica se a chave específica existe e é verdadeira.
+    return isset($permissions[$permission]) && ($permissions[$permission] == true || $permissions[$permission] == "1");
+}
 }

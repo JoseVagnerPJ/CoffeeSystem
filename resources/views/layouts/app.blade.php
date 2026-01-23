@@ -65,7 +65,6 @@
                     <small style="color: #cfd8dc !important;">{{ Auth::user()->profile->name ?? '' }}</small>
                 </div>
 
-                {{-- LÓGICA DA FOTO AJUSTADA --}}
                 @if(Auth::check() && Auth::user()->photo)
                     <div class="rounded-circle shadow-sm border border-2 border-white user-avatar-nav" style="overflow: hidden; background-color: white;">
                         <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="User" class="w-100 h-100" style="object-fit: cover;">
@@ -162,20 +161,21 @@
                                 $u = auth()->user();
                                 $canReg = $u->hasPermission('supplier_view') || $u->hasPermission('supplier_full') || $u->hasPermission('sample_view') || $u->hasPermission('sample_full') || $u->hasPermission('machine_view') || $u->hasPermission('machine_full') || $u->hasPermission('sensory_view') || $u->hasPermission('sensory_full');
                             @endphp
-                            <a href="{{ $canReg ? route('registries.index') : 'javascript:void(0)' }}" class="nav-link {{ Request::is('registries') ? 'active' : '' }}" onclick="if(!{{ $canReg ? 'true' : 'false' }}) alert('Você não tem permissão!')">
+                            <a href="{{ $canReg ? route('registries.index') : 'javascript:void(0)' }}" class="nav-link {{ Request::is('registries*') ? 'active' : '' }}" onclick="if(!{{ $canReg ? 'true' : 'false' }}) alert('Você não tem permissão!')">
                                 <i class="bi bi-people me-2"></i> Cadastros @if(!$canReg) <i class="bi bi-lock-fill ms-auto"></i> @endif
                             </a>
                         </li>
                         <li>
                             @php $hasSet = auth()->user()->hasPermission('settings_edit'); @endphp
-                            <a href="javascript:void(0)" class="nav-link" 
+                            <a href="javascript:void(0)" class="nav-link {{ Request::is('settings*') ? 'active' : '' }}" 
                             onclick="devModuleAccess(event, '{{ route('settings') }}', true, {{ $hasSet ? 'true' : 'false' }})">
                                 <i class="bi bi-gear me-2"></i> Configurações 
                                 <i class="bi bi-lock-fill ms-auto" style="font-size: 0.8rem; color: {{ $hasSet ? 'inherit' : '#ff6b6b' }}"></i>
                             </a>
                         </li>
                     </ul>
-                {{-- PORTAL MASTER - MOVIDO PARA CÁ --}}
+
+                    {{-- PORTAL MASTER - EXCLUSIVO PARA DESENVOLVEDORES --}}
                     @if(auth()->check() && auth()->user()->hasPermission('dev_access'))
                         <div class="sidebar-heading" style="opacity: 0.8; padding: 1rem; color: #ffca28; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">
                             <i class="bi bi-shield-shaded me-1"></i> Portal Master
@@ -191,13 +191,17 @@
                         </ul>
                     @endif
                 </div>
+
                 <div class="px-3 mt-auto mb-3">
-                    <form method="POST" action="{{ route('logout') }}"><button type="submit" class="btn btn-outline-danger btn-sm w-100 border-0 text-start ps-3"><i class="bi bi-box-arrow-right me-2"></i> Sair</button>@csrf</form>
-                    <div class="text-center"><a href="{{ route('privacy') }}" class="bi bi-shield-lock btn-privacy-link">Privacidade</a></div>
+                    <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="btn btn-outline-danger btn-sm w-100 border-0 text-start ps-3"><i class="bi bi-box-arrow-right me-2"></i> Sair</button></form>
+                    <div class="text-center"><a href="{{ route('privacy') }}" class="bi bi-shield-lock btn-privacy-link"> Privacidade</a></div>
                 </div>
             </nav>
             @endauth
-            <main class="{{ Auth::check() ? 'col-md-9 ms-sm-auto col-lg-10' : 'col-12' }} px-md-4 main-content">@yield('content')</main>
+
+            <main class="{{ Auth::check() ? 'col-md-9 ms-sm-auto col-lg-10' : 'col-12' }} px-md-4 main-content">
+                @yield('content')
+            </main>
         </div>
     </div>
 
@@ -217,7 +221,6 @@
             </div>
         </div>
     </div>
-    
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -268,18 +271,12 @@
         }
 
         document.addEventListener("DOMContentLoaded", function() {
-        // Seleciona todos os formulários e define autocomplete off
-        const forms = document.querySelectorAll('form');
-        forms.forEach(form => {
-            form.setAttribute('autocomplete', 'off');
-        });
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => form.setAttribute('autocomplete', 'off'));
 
-        // Seleciona todos os inputs e define autocomplete off
-        const inputs = document.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.setAttribute('autocomplete', 'off');
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => input.setAttribute('autocomplete', 'off'));
         });
-    });
 
         function validateDevPass() {
             if (document.getElementById('devInputPass').value === "1572") {

@@ -99,7 +99,7 @@
     </div>
 </div>
 
-{{-- Modais de Criação --}}
+{{-- Modais de Criação (Ficam fora do loop e das abas por segurança de z-index) --}}
 @include('registries.team.partials.modal_create_user')
 @include('registries.team.partials.modal_create_profile')
 
