@@ -60,9 +60,36 @@
                                     <label class="info-label">Nível de Acesso (Perfil)</label>
                                     <select name="profile_id" class="form-select border-0 bg-light p-3 input-field-{{ $user->id }}" disabled required style="border-radius: 10px;">
                                         @foreach($profiles as $profile)
-                                            <option value="{{ $profile->id }}" {{ $user->profile_id == $profile->id ? 'selected' : '' }}>
-                                                {{ $profile->name }}
-                                            </option>
+                                            @php
+                                                // 1. Identifica se o perfil é "Desenvolvedor"
+                                                $isDevProfile = ($profile->name === 'Desenvolvedor' || (isset($profile->permissions['dev_access']) && $profile->permissions['dev_access']));
+                                                
+                                                // 2. Validação de Hierarquia
+                                                $canAssign = true;
+                                                if (!$isDevProfile && !auth()->user()->hasPermission('all_access')) {
+                                                    if ($profile->permissions) {
+                                                        foreach ($profile->permissions as $permissionKey => $isEnabled) {
+                                                            if ($isEnabled && !auth()->user()->hasPermission($permissionKey)) {
+                                                                $canAssign = false;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                // 3. Verifica se é o perfil atual do usuário sendo visualizado
+                                                $isCurrentProfile = ($user->profile_id == $profile->id);
+                                            @endphp
+
+                                            {{-- LÓGICA DE EXIBIÇÃO: 
+                                                 Exibe se: 
+                                                 a) O perfil já é o do usuário (mesmo que seja Dev, para não quebrar o select) 
+                                                 b) OU se não for perfil Dev e o admin logado tiver hierarquia para tal --}}
+                                            @if($isCurrentProfile || (!$isDevProfile && $canAssign))
+                                                <option value="{{ $profile->id }}" {{ $isCurrentProfile ? 'selected' : '' }}>
+                                                    {{ $profile->name }}
+                                                </option>
+                                            @endif
                                         @endforeach
                                     </select>
                                 </div>
@@ -120,8 +147,10 @@
                 reader.onload = function(e) {
                     const img = document.getElementById('preview_' + userId);
                     const icon = document.getElementById('icon_' + userId);
-                    img.src = e.target.result;
-                    img.classList.remove('d-none');
+                    if(img) {
+                        img.src = e.target.result;
+                        img.classList.remove('d-none');
+                    }
                     if (icon) icon.classList.add('d-none');
                 }
                 reader.readAsDataURL(input.files[0]);

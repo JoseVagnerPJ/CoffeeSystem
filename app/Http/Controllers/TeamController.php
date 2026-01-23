@@ -20,7 +20,6 @@ class TeamController extends Controller
         $user = Auth::user();
         $company = $user->mainCompany;
 
-        // Bloqueio de segurança: Se não tem nenhuma das permissões de time, não acessa a tela
         if (!$user->hasPermission('team_full') && !$user->hasPermission('team_user_only')) {
             abort(403, 'Acesso Negado. Você não tem permissão para gerenciar a equipe.');
         }
@@ -38,45 +37,35 @@ class TeamController extends Controller
      * Atualiza os dados da empresa e processa o upload da Logo.
      */
     public function updateCompany(Request $request)
-{
-    // Buscamos a empresa do usuário logado
-    $company = auth()->user()->mainCompany;
+    {
+        $company = auth()->user()->mainCompany;
 
-    // Ajustamos a validação: name e cnpj agora são 'sometimes' 
-    // porque campos disabled não chegam no request.
-    $request->validate([
-        'name' => 'sometimes|string|max:255',
-        'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
-    ]);
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:20480',
+        ]);
 
-    // Atualizamos o nome APENAS se ele vier no request (proteção extra)
-    if ($request->filled('name')) {
-        $company->name = $request->name;
-    }
-
-    // Lógica da LOGO (O que realmente importa agora)
-    if ($request->hasFile('logo')) {
-        // Remove a logo antiga se existir para economizar espaço
-        if ($company->logo) {
-            \Storage::disk('public')->delete($company->logo);
+        if ($request->filled('name')) {
+            $company->name = $request->name;
         }
 
-        // Salva a nova imagem
-        $path = $request->file('logo')->store('logos', 'public');
-        $company->logo = $path;
+        if ($request->hasFile('logo')) {
+            if ($company->logo) {
+                Storage::disk('public')->delete($company->logo);
+            }
+            $path = $request->file('logo')->store('logos', 'public');
+            $company->logo = $path;
+        }
+
+        $company->save();
+        return back()->with('success', 'Logotipo atualizado com sucesso!');
     }
-
-    $company->save();
-
-    return back()->with('success', 'Logotipo atualizado com sucesso!');
-}
 
     /**
      * Cadastra um novo perfil de acesso com trava de hierarquia.
      */
     public function storeProfile(Request $request)
     {
-        // VALIDAÇÃO DE PERMISSÃO
         if (!auth()->user()->hasPermission('team_full')) {
             return redirect()->back()->with('error', 'Você não tem permissão para gerenciar perfis de acesso.');
         }
@@ -88,7 +77,6 @@ class TeamController extends Controller
         $requestedPermissions = $request->permissions ?? [];
         $allowedPermissions = [];
 
-        // TRAVA DE HIERARQUIA: Só permite salvar permissões que o criador já possui
         foreach ($requestedPermissions as $key => $value) {
             if (auth()->user()->hasPermission($key)) {
                 $allowedPermissions[$key] = $value;
@@ -111,14 +99,12 @@ class TeamController extends Controller
     {
         $profile = Profile::where('main_company_id', Auth::user()->main_company_id)->findOrFail($id);
 
-        // IMUNIDADE: Perfil Desenvolvedor ou All Access não podem ser apagados
         $isDevProfile = ($profile->name === 'Desenvolvedor' || (isset($profile->permissions['dev_access']) && $profile->permissions['dev_access']));
         
         if ($isDevProfile) {
             return redirect()->back()->with('error', 'O perfil mestre do sistema é vitalício e não pode ser removido.');
         }
 
-        // Apenas Admin Total ou Dev podem excluir perfis
         if (!auth()->user()->hasPermission('all_access') && !auth()->user()->hasPermission('dev_access')) {
             return redirect()->back()->with('error', 'Apenas administradores totais podem remover perfis de acesso.');
         }
@@ -128,7 +114,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Cria um novo usuário com validação de hierarquia.
+     * Cria um novo usuário com validação de hierarquia e bloqueio de Dev.
      */
     public function storeUser(Request $request)
     {
@@ -142,7 +128,13 @@ class TeamController extends Controller
 
         $targetProfile = Profile::findOrFail($request->profile_id);
 
-        // TRAVA DE HIERARQUIA: Não permite criar usuário com cargo superior ao seu
+        // --- TRAVA DE SEGURANÇA: BLOQUEIO DE CRIAÇÃO DE DESENVOLVEDOR ---
+        $isTargetDev = ($targetProfile->name === 'Desenvolvedor' || (isset($targetProfile->permissions['dev_access']) && $targetProfile->permissions['dev_access']));
+
+        if ($isTargetDev && !auth()->user()->hasPermission('dev_access')) {
+            return redirect()->back()->with('error', 'Não é permitido criar usuários com nível "Desenvolvedor".');
+        }
+
         if (!auth()->user()->hasPermission('all_access')) {
             foreach ($targetProfile->permissions as $perm => $isActive) {
                 if ($isActive && !auth()->user()->hasPermission($perm)) {
@@ -170,7 +162,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Atualiza dados do colaborador com validação de hierarquia.
+     * Atualiza dados do colaborador com validação de hierarquia e bloqueio de Dev.
      */
     public function updateUser(Request $request, $id)
     {
@@ -185,7 +177,14 @@ class TeamController extends Controller
 
         $targetProfile = Profile::findOrFail($request->profile_id);
 
-        // TRAVA DE HIERARQUIA: Impede promover alguém para um nível que você não alcança
+        // --- TRAVA DE SEGURANÇA: BLOQUEIO DE PROMOÇÃO PARA DESENVOLVEDOR ---
+        $isTargetDev = ($targetProfile->name === 'Desenvolvedor' || (isset($targetProfile->permissions['dev_access']) && $targetProfile->permissions['dev_access']));
+
+        // Impede que um não-dev promova alguém para Dev
+        if ($isTargetDev && !auth()->user()->hasPermission('dev_access')) {
+            return redirect()->back()->with('error', 'O nível de acesso "Desenvolvedor" é restrito e não pode ser atribuído.');
+        }
+
         if (!auth()->user()->hasPermission('all_access')) {
             foreach ($targetProfile->permissions as $perm => $isActive) {
                 if ($isActive && !auth()->user()->hasPermission($perm)) {
@@ -207,7 +206,8 @@ class TeamController extends Controller
             if ($user->photo) {
                 Storage::disk('public')->delete($user->photo);
             }
-            $data['photo'] = $request->file('photo')->store('users-photos', 'public');
+            $path = $request->file('photo')->store('users-photos', 'public');
+            $data['photo'] = $path;
         }
 
         $user->update($data);
@@ -226,7 +226,6 @@ class TeamController extends Controller
             return redirect()->back()->with('error', 'Você não pode alterar seu próprio status.');
         }
 
-        // IMUNIDADE: Desenvolvedor ou Admin Total não podem ser inativados por terceiros
         if ($user->hasPermission('dev_access') || $user->hasPermission('all_access')) {
             return redirect()->back()->with('error', 'Este usuário possui acesso vitalício de segurança e não pode ser alterado.');
         }
