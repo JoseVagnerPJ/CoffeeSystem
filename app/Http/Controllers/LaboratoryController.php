@@ -140,7 +140,7 @@ class LaboratoryController extends Controller
         return response()->json($data);
     }
 
-    public function store(Request $request)
+public function store(Request $request)
 {
     $request->validate([
         'title' => 'required|string|max:255',
@@ -148,21 +148,24 @@ class LaboratoryController extends Controller
     ]);
 
     try {
-        return DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request) {
+            $companyId = Auth::user()->main_company_id;
+
             $session = CuppingSession::create([
-                'main_company_id' => Auth::user()->main_company_id, // Segurança extra
-                'title' => $request->title,
-                'session_date' => now(), 
-                'created_by' => Auth::id(), 
-                'status' => 'aberto',
-                'started_at' => now(),
+                'main_company_id' => $companyId,
+                'title'           => $request->title,
+                'session_date'    => now(), 
+                'created_by'      => Auth::id(), 
+                'status'          => 'aberto',
+                'started_at'      => now(),
+                'notes'           => $request->notes ?? null, // Notas gerais da mesa
             ]);
 
             foreach ($request->items as $itemData) {
                 $session->items()->create([
-                    'main_company_id' => Auth::user()->main_company_id, // Importante para multi-empresa
+                    'main_company_id' => $companyId,
                     'position'       => $itemData['position'],
-                    'is_avulso'      => ($itemData['is_avulso'] == "1" || $itemData['is_avulso'] === true),
+                    'is_avulso'      => ($itemData['is_avulso'] == "1"),
                     'sample_id'      => $itemData['sample_id'] ?? null,
                     'nickname'       => $itemData['nickname'] ?? null,
                     'variety'        => $itemData['variety'] ?? null,
@@ -173,14 +176,17 @@ class LaboratoryController extends Controller
                     'lot_id'         => $itemData['lot_id'] ?? null,
                     'altitude'       => $itemData['altitude'] ?? null,
                     'crop'           => $itemData['crop'] ?? null,
-                    // Garante que se vier vazio no formulário, salve como null
+                    'origin_id'      => $itemData['origin_id'] ?? null,
+                    'origin_type'    => $itemData['origin_type'] ?? null,
+                    // Captura a observação da xícara e remove espaços vazios
                     'notes'          => !empty($itemData['notes']) ? trim($itemData['notes']) : null,
                 ]);
             }
-
-            return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
         });
+
+        return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
     } catch (\Exception $e) {
+        \Log::error("Erro ao criar mesa Web: " . $e->getMessage());
         return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
     }
 }
