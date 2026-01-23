@@ -10,21 +10,23 @@ use App\Models\Sample;
 use App\Models\Tag; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // Adicionado para rastreamento de erros
-use Carbon\Carbon; // Importação essencial para o fuso horário
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class CuppingController extends Controller
 {
-public function index()
-{
-    return response()->json(
-        CuppingSession::withCount('users as users_count') // Conta todos na tabela cupping_session_user
-            ->withCount('items') 
-            ->with(['items.sample', 'items.evaluations.user'])
-            ->orderBy('id', 'desc') 
-            ->get()
-    );
-}
+    public function index()
+    {
+        // O Global Scope da Trait BelongsToCompany filtrará as sessões por empresa automaticamente
+        return response()->json(
+            CuppingSession::withCount('users as users_count')
+                ->withCount('items') 
+                ->with(['items.sample', 'items.evaluations.user'])
+                ->orderBy('id', 'desc') 
+                ->get()
+        );
+    }
+
     public function show($id)
     {
         $session = CuppingSession::with(['items.sample', 'items.evaluations.user', 'items.evaluations.tags'])
@@ -60,22 +62,23 @@ public function index()
         ]);
 
         $session = DB::transaction(function () use ($data, $request) {
-            // Define o horário de agora com fuso horário de São Paulo
             $agoraSp = Carbon::now('America/Sao_Paulo');
+            $user = $request->user();
 
             $session = CuppingSession::create([
+                'main_company_id' => $user->main_company_id, // Injeção manual de segurança
                 'title' => $data['title'],
                 'session_date' => $agoraSp->toDateString(),
-                'started_at' => $agoraSp, // REGISTRA INÍCIO COM FUSO SP
-                'created_by' => $request->user()->id,
+                'started_at' => $agoraSp,
+                'created_by' => $user->id,
                 'status' => 'aberto',
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            // O criador entra automaticamente na mesa para o controle de fechamento
+            // Registro de vínculo do usuário na mesa
             DB::table('cupping_session_user')->insert([
                 'cupping_session_id' => $session->id,
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
                 'has_finished' => false,
                 'created_at' => $agoraSp,
                 'updated_at' => $agoraSp,
@@ -83,6 +86,7 @@ public function index()
 
             foreach ($data['items'] as $itemData) {
                 $attributes = [
+                    'main_company_id' => $user->main_company_id, // Itens também precisam do ID da empresa
                     'position' => $itemData['position'],
                     'is_avulso' => $itemData['is_avulso'],
                     'nickname' => $itemData['nickname'] ?? null,
@@ -144,102 +148,116 @@ public function index()
     }
 
     /**
-     * Salva a avaliação e verifica se encerra a mesa (Fuso SP).
+     * Salva a avaliação e encerra a mesa se todos concluíram.
      */
     public function finishEvaluations(Request $request)
-{
-    try {
-        $data = $request->validate([
-            'evaluations' => 'required|array',
-            'evaluations.*.cupping_item_id' => 'required|exists:cupping_items,id',
-            'evaluations.*.acidity' => 'required|numeric|min:0|max:10',
-            'evaluations.*.body' => 'required|numeric|min:0|max:10',
-            'evaluations.*.sweetness' => 'required|numeric|min:0|max:10',
-            'evaluations.*.aftertaste' => 'required|numeric|min:0|max:10',
-            'evaluations.*.observations' => 'nullable|string',
-            'evaluations.*.tags' => 'nullable|string',
-        ]);
+    {
+        try {
+            $data = $request->validate([
+                'evaluations' => 'required|array',
+                'evaluations.*.cupping_item_id' => 'required|exists:cupping_items,id',
+                'evaluations.*.acidity' => 'required|numeric|min:0|max:10',
+                'evaluations.*.body' => 'required|numeric|min:0|max:10',
+                'evaluations.*.sweetness' => 'required|numeric|min:0|max:10',
+                'evaluations.*.aftertaste' => 'required|numeric|min:0|max:10',
+                'evaluations.*.observations' => 'nullable|string',
+                'evaluations.*.tags' => 'nullable|string',
+            ]);
 
-        DB::transaction(function () use ($data, $request) {
-            $agoraSp = Carbon::now('America/Sao_Paulo');
-            $user = $request->user();
+            DB::transaction(function () use ($data, $request) {
+                $agoraSp = Carbon::now('America/Sao_Paulo');
+                $user = $request->user();
 
-            foreach ($data['evaluations'] as $eval) {
-                // Injetamos explicitamente o main_company_id para evitar falhas na Trait
-                $cup = Cup::create([
-                    'main_company_id' => $user->main_company_id, //
-                    'cupping_item_id' => $eval['cupping_item_id'],
-                    'user_id'         => $user->id,
-                    'acidity'         => $eval['acidity'],
-                    'body'            => $eval['body'],
-                    'sweetness'       => $eval['sweetness'],
-                    'aftertaste'      => $eval['aftertaste'],
-                    'observations'    => $eval['observations'] ?? null,
-                ]);
+                foreach ($data['evaluations'] as $eval) {
+                    // 1. Criamos a avaliação vinculada à empresa
+                    $cup = Cup::create([
+                        'main_company_id' => $user->main_company_id,
+                        'cupping_item_id' => $eval['cupping_item_id'],
+                        'user_id'         => $user->id,
+                        'acidity'         => $eval['acidity'],
+                        'body'            => $eval['body'],
+                        'sweetness'       => $eval['sweetness'],
+                        'aftertaste'      => $eval['aftertaste'],
+                        'observations'    => $eval['observations'] ?? null,
+                    ]);
 
-                if (!empty($eval['tags'])) {
-                    $tagNames = explode(',', $eval['tags']);
-                    $tagIds = [];
+                    // 2. Lógica de Tags (Notas Sensoriais)
+                    if (!empty($eval['tags'])) {
+                        $tagNames = explode(',', $eval['tags']);
+                        $tagIds = [];
 
-                    foreach ($tagNames as $name) {
-                        $trimmedName = trim(mb_strtolower($name));
-                        if ($trimmedName !== '') {
-                            // BUSCA SEGURA: Verifica se a tag existe apenas para ESTA empresa
-                            $tag = Tag::where('name', $trimmedName)
-                                      ->where('main_company_id', $user->main_company_id)
-                                      ->first();
+                        foreach ($tagNames as $name) {
+                            $trimmedName = trim(mb_strtolower($name));
+                            if ($trimmedName !== '') {
+                                // Busca segura considerando a empresa atual
+                                $tag = Tag::where('name', $trimmedName)
+                                          ->where('main_company_id', $user->main_company_id)
+                                          ->first();
 
-                            if (!$tag) {
-                                $tag = Tag::create([
-                                    'name' => $trimmedName,
-                                    'main_company_id' => $user->main_company_id //
-                                ]);
+                                if (!$tag) {
+                                    $tag = Tag::create([
+                                        'name' => $trimmedName,
+                                        'main_company_id' => $user->main_company_id
+                                    ]);
+                                }
+                                $tagIds[] = $tag->id;
                             }
-                            $tagIds[] = $tag->id;
+                        }
+
+                        if (!empty($tagIds)) {
+                            // CORREÇÃO CRÍTICA: Injetando main_company_id na tabela pivô cup_tag
+                            $syncData = [];
+                            foreach ($tagIds as $id) {
+                                $syncData[$id] = ['main_company_id' => $user->main_company_id];
+                            }
+                            $cup->tags()->sync($syncData);
                         }
                     }
-                    if (!empty($tagIds)) {
-                        $cup->tags()->sync($tagIds);
-                    }
                 }
-            }
 
-            // ... restante da lógica de encerramento de sessão (mantida igual)
-            $firstItemId = $data['evaluations'][0]['cupping_item_id'];
-            $sessionId = DB::table('cupping_items')->where('id', $firstItemId)->value('cupping_session_id');
+                // 3. Identifica a sessão e marca conclusão do usuário
+                $firstItemId = $data['evaluations'][0]['cupping_item_id'];
+                $sessionId = DB::table('cupping_items')->where('id', $firstItemId)->value('cupping_session_id');
 
-            DB::table('cupping_session_user')
-                ->where('cupping_session_id', $sessionId)
-                ->where('user_id', $user->id)
-                ->update(['has_finished' => true, 'updated_at' => $agoraSp]);
+                DB::table('cupping_session_user')
+                    ->where('cupping_session_id', $sessionId)
+                    ->where('user_id', $user->id)
+                    ->update(['has_finished' => true, 'updated_at' => $agoraSp]);
 
-            // Lógica de fechamento automático (mantida igual)
-            $participantes = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->count();
-            $finalizados = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->where('has_finished', true)->count();
+                // Lógica de fechamento automático da mesa
+                $participantes = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->count();
+                $finalizados = DB::table('cupping_session_user')->where('cupping_session_id', $sessionId)->where('has_finished', true)->count();
 
-            if ($participantes > 0 && $participantes === $finalizados) {
-                CuppingSession::where('id', $sessionId)->update([
-                    'status' => 'finalizado',
-                    'finished_at' => $agoraSp
-                ]);
-            }
-        });
+                if ($participantes > 0 && $participantes === $finalizados) {
+                    CuppingSession::where('id', $sessionId)->update([
+                        'status' => 'finalizado',
+                        'finished_at' => $agoraSp
+                    ]);
+                }
+            });
 
-        return response()->json(['message' => 'Avaliações salvas com sucesso!'], 201);
-        
-    } catch (\Exception $e) {
-        Log::error('Erro ao finalizar prova: ' . $e->getMessage());
-        return response()->json(['message' => 'Erro interno.', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Avaliações salvas com sucesso!'], 201);
+            
+        } catch (\Exception $e) {
+            Log::error('Erro ao finalizar prova no Q-App: ' . $e->getMessage());
+            return response()->json(['message' => 'Erro interno ao processar avaliações.', 'error' => $e->getMessage()], 500);
+        }
     }
-}
 
     public function closeSession($id)
     {
         $session = CuppingSession::findOrFail($id);
+        
+        // Verifica se a sessão pertence à empresa do usuário
+        if ($session->main_company_id !== auth()->user()->main_company_id) {
+            return response()->json(['message' => 'Não autorizado.'], 403);
+        }
+
         $session->update([
             'status' => 'finalizado',
             'finished_at' => Carbon::now('America/Sao_Paulo')
         ]);
+
         return response()->json(['message' => 'Mesa finalizada com sucesso!']);
     }
 }

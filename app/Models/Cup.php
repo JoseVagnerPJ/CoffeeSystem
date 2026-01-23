@@ -27,29 +27,39 @@ class Cup extends Model
     ];
 
     /**
-     * Relacionamento: Pertence a uma empresa principal (Multi-empresa).
+     * Garantia de precisão numérica para o Flutter e para o Banco.
      */
+    protected $casts = [
+        'acidity'     => 'float',
+        'body'        => 'float',
+        'sweetness'   => 'float',
+        'aftertaste'  => 'float',
+        'final_score' => 'float',
+        'is_invalid'  => 'boolean',
+    ];
+
     public function mainCompany(): BelongsTo
     {
         return $this->belongsTo(MainCompany::class, 'main_company_id');
     }
 
     /**
-     * Lógica de cálculo automático da nota final: 60 + 4 pilares.
+     * Lógica de cálculo automático da nota final.
      * $$FinalScore = 60 + Acidez + Corpo + Doçura + Retrogosto$$
      */
     protected static function booted()
     {
         static::saving(function ($cup) {
             if (!$cup->is_invalid) {
-                // Soma os valores decimais à base 60
-                $cup->final_score = 60 + 
+                // Somamos os valores e arredondamos para 2 casas decimais
+                $total = 60 + 
                     (float)$cup->acidity + 
                     (float)$cup->body + 
                     (float)$cup->sweetness + 
                     (float)$cup->aftertaste;
+                
+                $cup->final_score = round($total, 2);
             } else {
-                // Se for inválida, a nota é zerada para não afetar médias
                 $cup->final_score = 0;
             }
         });
@@ -65,9 +75,12 @@ class Cup extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Relacionamento Many-to-Many com a tabela cup_tag
+    /**
+     * Relacionamento Many-to-Many configurado para Multi-empresa.
+     */
     public function tags(): BelongsToMany
     {
-        return $this->belongsToMany(Tag::class, 'cup_tag');
+        return $this->belongsToMany(Tag::class, 'cup_tag')
+                    ->withPivot('main_company_id'); // Essencial para rastrear a empresa na tabela pivô
     }
 }
