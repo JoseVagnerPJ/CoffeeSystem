@@ -141,46 +141,49 @@ class LaboratoryController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'items' => 'required|array|min:1',
-        ]);
+{
+    $request->validate([
+        'title' => 'required|string|max:255',
+        'items' => 'required|array|min:1',
+    ]);
 
-        try {
-            DB::transaction(function () use ($request) {
-                $session = CuppingSession::create([
-                    'title' => $request->title,
-                    'session_date' => now(), 
-                    'created_by' => Auth::id(), 
-                    'status' => 'aberto',
-                    'started_at' => now(),
+    try {
+        return DB::transaction(function () use ($request) {
+            $session = CuppingSession::create([
+                'main_company_id' => Auth::user()->main_company_id, // Segurança extra
+                'title' => $request->title,
+                'session_date' => now(), 
+                'created_by' => Auth::id(), 
+                'status' => 'aberto',
+                'started_at' => now(),
+            ]);
+
+            foreach ($request->items as $itemData) {
+                $session->items()->create([
+                    'main_company_id' => Auth::user()->main_company_id, // Importante para multi-empresa
+                    'position'       => $itemData['position'],
+                    'is_avulso'      => ($itemData['is_avulso'] == "1" || $itemData['is_avulso'] === true),
+                    'sample_id'      => $itemData['sample_id'] ?? null,
+                    'nickname'       => $itemData['nickname'] ?? null,
+                    'variety'        => $itemData['variety'] ?? null,
+                    'drying_process' => $itemData['drying_process'] ?? null,
+                    'fermentation'   => $itemData['fermentation'] ?? null,
+                    'humidity'       => $itemData['humidity'] ?? null,
+                    'screen'         => $itemData['screen'] ?? null,
+                    'lot_id'         => $itemData['lot_id'] ?? null,
+                    'altitude'       => $itemData['altitude'] ?? null,
+                    'crop'           => $itemData['crop'] ?? null,
+                    // Garante que se vier vazio no formulário, salve como null
+                    'notes'          => !empty($itemData['notes']) ? trim($itemData['notes']) : null,
                 ]);
-
-                foreach ($request->items as $itemData) {
-                    $session->items()->create([
-                        'position'       => $itemData['position'],
-                        'is_avulso'      => ($itemData['is_avulso'] == "1"),
-                        'sample_id'      => $itemData['sample_id'] ?? null,
-                        'nickname'       => $itemData['nickname'] ?? null,
-                        'variety'        => $itemData['variety'] ?? null,
-                        'drying_process' => $itemData['drying_process'] ?? null,
-                        'fermentation'   => $itemData['fermentation'] ?? null,
-                        'humidity'       => $itemData['humidity'] ?? null,
-                        'screen'         => $itemData['screen'] ?? null,
-                        'lot_id'         => $itemData['lot_id'] ?? null,
-                        'altitude'       => $itemData['altitude'] ?? null,
-                        'crop'           => $itemData['crop'] ?? null,
-                        'notes'          => $itemData['notes'] ?? null,
-                    ]);
-                }
-            });
+            }
 
             return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
-        }
+        });
+    } catch (\Exception $e) {
+        return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
     }
+}
 
     public function destroy($id)
     {

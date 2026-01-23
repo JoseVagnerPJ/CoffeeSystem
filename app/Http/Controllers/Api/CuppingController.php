@@ -16,16 +16,22 @@ use Carbon\Carbon;
 class CuppingController extends Controller
 {
     public function index()
-    {
-        // O Global Scope da Trait BelongsToCompany filtrará as sessões por empresa automaticamente
-        return response()->json(
-            CuppingSession::withCount('users as users_count')
-                ->withCount('items') 
-                ->with(['items.sample', 'items.evaluations.user'])
-                ->orderBy('id', 'desc') 
-                ->get()
-        );
-    }
+{
+    // Usamos select('*') dentro do eager loading para não haver dúvida
+    return response()->json(
+        CuppingSession::withCount('users as users_count')
+            ->withCount('items') 
+            ->with([
+                'items' => function($query) {
+                    $query->select('*'); // Força carregar notes, nickname, etc.
+                },
+                'items.sample', 
+                'items.evaluations.user'
+            ])
+            ->orderBy('id', 'desc') 
+            ->get()
+    );
+}
 
     public function show($id)
     {
