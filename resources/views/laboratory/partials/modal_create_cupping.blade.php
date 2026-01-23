@@ -94,59 +94,60 @@
 </div>
 
 <script>
-    let cupCount = 0;
+let cupCount = 0;
 
-function addNewCup() {
-    if(cupCount >= 50) return;
-    const index = cupCount++;
-    
-    const emptyState = document.getElementById('empty-state');
-    if(emptyState) emptyState.style.display = 'none';
+    function addNewCup() {
+        if(cupCount >= 50) return;
+        const index = cupCount++;
+        
+        const emptyState = document.getElementById('empty-state');
+        if(emptyState) emptyState.style.display = 'none';
 
-    const html = `
-        <div class="cup-card shadow-sm" id="cup-row-${index}">
-            <div class="cup-header">
-                <div class="cup-number">${cupCount}</div>
-                <div class="nickname-container">
-                    <label class="nickname-label">Apelido da Xícara *</label>
-                    <input type="text" name="items[${index}][nickname]" class="nickname-input js-nickname" placeholder="Ex: Xícara A..." autocomplete="off">
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="is-avulso-badge">AVULSA</span>
-                    <button type="button" class="btn btn-sm btn-outline-primary border-0 rounded-circle" onclick="openTechInfo(${index})">
-                        <i class="bi bi-info-circle-fill fs-5"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="p-3 pt-0">
-                <div class="row g-2">
-                    <div class="col-md-6 position-relative">
-                        <input type="text" class="form-control form-control-sm border-0 bg-light js-sample-search" placeholder="Associar Amostra..." onkeyup="searchSample(this, ${index})">
-                        <input type="hidden" name="items[${index}][sample_id]" class="js-sample-id">
-                        <div class="sample-result-list shadow-lg" id="results-${index}"></div>
+        const html = `
+            <div class="cup-card shadow-sm" id="cup-row-${index}">
+                <div class="cup-header">
+                    <div class="cup-number">${cupCount}</div>
+                    <div class="nickname-container">
+                        <label class="nickname-label">Apelido da Xícara *</label>
+                        <input type="text" name="items[${index}][nickname]" class="nickname-input js-nickname" placeholder="Ex: Xícara A..." autocomplete="off">
                     </div>
-                    <div class="col-md-6">
-                        <input type="text" name="items[${index}][notes]" class="form-control form-control-sm border-0 bg-light js-notes" placeholder="Obs...">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="is-avulso-badge">AVULSA</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary border-0 rounded-circle" onclick="openTechInfo(${index})">
+                            <i class="bi bi-info-circle-fill fs-5"></i>
+                        </button>
                     </div>
                 </div>
-            </div>
-            <input type="hidden" name="items[${index}][is_avulso]" class="js-is-avulso" value="0">
-            <input type="hidden" name="items[${index}][variety]" class="js-variety">
-            <input type="hidden" name="items[${index}][drying_process]" class="js-drying_process">
-            <input type="hidden" name="items[${index}][fermentation]" class="js-fermentation">
-            <input type="hidden" name="items[${index}][humidity]" class="js-humidity">
-            <input type="hidden" name="items[${index}][screen]" class="js-screen">
-            <input type="hidden" name="items[${index}][lot_id]" class="js-lot_id">
-            <input type="hidden" name="items[${index}][altitude]" class="js-altitude">
-            <input type="hidden" name="items[${index}][crop]" class="js-crop">
-            <input type="hidden" name="items[${index}][origin_id]" class="js-origin_id">
-            <input type="hidden" name="items[${index}][origin_type]" class="js-origin_type">
-            <input type="hidden" name="items[${index}][position]" value="${cupCount}">
-        </div>`;
-    
-    document.getElementById('cups-wrapper').insertAdjacentHTML('beforeend', html);
-    updateCounter();
-}
+                <div class="p-3 pt-0">
+                    <div class="row g-2">
+                        <div class="col-md-6 position-relative">
+                            <input type="text" class="form-control form-control-sm border-0 bg-light js-sample-search" placeholder="Associar Amostra..." onkeyup="searchSample(this, ${index})">
+                            <input type="hidden" name="items[${index}][sample_id]" class="js-sample-id">
+                            <div class="sample-result-list shadow-lg" id="results-${index}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" name="items[${index}][notes]" class="form-control form-control-sm border-0 bg-light js-notes" placeholder="Obs..." autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="items[${index}][is_avulso]" class="js-is-avulso" value="0">
+                <input type="hidden" name="items[${index}][variety]" class="js-variety">
+                <input type="hidden" name="items[${index}][drying_process]" class="js-drying_process">
+                <input type="hidden" name="items[${index}][fermentation]" class="js-fermentation">
+                <input type="hidden" name="items[${index}][humidity]" class="js-humidity">
+                <input type="hidden" name="items[${index}][screen]" class="js-screen">
+                <input type="hidden" name="items[${index}][lot_id]" class="js-lot_id">
+                <input type="hidden" name="items[${index}][altitude]" class="js-altitude">
+                <input type="hidden" name="items[${index}][crop]" class="js-crop">
+                <input type="hidden" name="items[${index}][origin_id]" class="js-origin_id">
+                <input type="hidden" name="items[${index}][origin_type]" class="js-origin_type">
+                <input type="hidden" name="items[${index}][origin]" class="js-origin">
+                <input type="hidden" name="items[${index}][position]" value="${cupCount}">
+            </div>`;
+        
+        document.getElementById('cups-wrapper').insertAdjacentHTML('beforeend', html);
+        updateCounter();
+    }
 
     function removeLastCup() {
         if(cupCount <= 0) return;

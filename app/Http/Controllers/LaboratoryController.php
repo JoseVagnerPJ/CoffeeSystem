@@ -142,8 +142,6 @@ class LaboratoryController extends Controller
 
 public function store(Request $request)
 {
-    dd($request->all());
-    
     $request->validate([
         'title' => 'required|string|max:255',
         'items' => 'required|array|min:1',
@@ -163,6 +161,9 @@ public function store(Request $request)
             ]);
 
             foreach ($request->items as $itemData) {
+                // Lógica de captura de notas com Fallback
+                $cupNotes = !empty($itemData['notes']) ? $itemData['notes'] : ($itemData['pre_roast_obs'] ?? null);
+
                 $session->items()->create([
                     'main_company_id' => $companyId,
                     'position'       => $itemData['position'],
@@ -174,23 +175,21 @@ public function store(Request $request)
                     'fermentation'   => $itemData['fermentation'] ?? null,
                     'humidity'       => $itemData['humidity'] ?? null,
                     'screen'         => $itemData['screen'] ?? null,
+                    'lot_id'         => $itemData['lot_id'] ?? null,
                     'altitude'       => $itemData['altitude'] ?? null,
                     'crop'           => $itemData['crop'] ?? null,
                     'origin_id'      => $itemData['origin_id'] ?? null,
                     'origin_type'    => $itemData['origin_type'] ?? null,
-                    // O trim remove espaços vazios e garante que salve null se nada for digitado
-                    'notes'          => !empty($itemData['notes']) ? trim($itemData['notes']) : null,
+                    'notes'          => !empty($cupNotes) ? trim($cupNotes) : null,
                 ]);
             }
         });
 
         return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
     } catch (\Exception $e) {
-        \Log::error("Erro ao salvar mesa Web: " . $e->getMessage());
         return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
     }
 }
-
     public function destroy($id)
     {
         DB::transaction(function () use ($id) {

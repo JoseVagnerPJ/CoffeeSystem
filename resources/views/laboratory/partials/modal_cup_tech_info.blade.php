@@ -96,6 +96,14 @@
                     <i class="bi bi-lock-fill input-lock-icon"></i>
                 </div>
             </div>
+            <hr class="my-2 opacity-25">
+
+            <div class="col-12">
+                <label class="small fw-bold text-muted text-uppercase">Observações Pré-Prova</label>
+                <div class="position-relative">
+                    <textarea class="form-control tech-field" data-field="notes" rows="2" placeholder="Notas sobre a torra ou lote..."></textarea>
+                </div>
+            </div>
         </div>
     </div>
 
