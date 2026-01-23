@@ -75,19 +75,22 @@
                     </td>
                     <td class="text-end px-3">
                         <div class="d-flex justify-content-end gap-2">
-                            {{-- BOTÃO DE EDIÇÃO: Só aparece se tiver 'team_full' E (não for admin ou o logado for admin) --}}
-                            @if($canManageTeam && (!$rowUserIsAdmin || $isMaster))
+                            
+                            {{-- LÓGICA DE GESTÃO (EDIÇÃO/VISUALIZAÇÃO) --}}
+                            @if($canManageTeam && !$rowUserIsDev && (!$rowUserIsAdmin || $isMaster))
+                                {{-- Pode editar: Lápis azul --}}
                                 <button class="btn btn-sm btn-light rounded-circle shadow-sm" data-bs-toggle="modal" data-bs-target="#modalViewUser{{ $user->id }}" title="Editar Colaborador">
                                     <i class="bi bi-pencil-fill text-primary"></i>
                                 </button>
                             @else
-                                {{-- Se não puder editar, mostra apenas um botão de info visual se for o próprio usuário --}}
+                                {{-- Apenas visualiza: Olho cinza (Para Devs, Admins editados por não-admins ou usuários sem permissão de gestão) --}}
                                 <button class="btn btn-sm btn-light rounded-circle shadow-sm" data-bs-toggle="modal" data-bs-target="#modalViewUser{{ $user->id }}" title="Visualizar Ficha">
                                     <i class="bi bi-eye-fill text-muted"></i>
                                 </button>
                             @endif
 
                             @if($user->id !== $authUser->id)
+                                {{-- BLOQUEIO DE STATUS PARA DESENVOLVEDOR E ADMIN --}}
                                 @if($rowUserIsDev || ($rowUserIsAdmin && !$isMaster))
                                     <span class="badge bg-light text-muted border fw-normal d-flex align-items-center px-3" title="Usuário Vitalício ou Superior">
                                         <i class="bi bi-shield-fill-check text-warning me-1"></i> Protegido
