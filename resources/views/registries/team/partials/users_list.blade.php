@@ -1,5 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h6 class="fw-bold mb-0 text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Colaboradores da Unidade</h6>
+    {{-- Qualquer um com permissão de time pode ver o botão de "Novo" --}}
     @if(auth()->user()->hasPermission('team_full') || auth()->user()->hasPermission('team_user_only'))
         <button class="btn btn-sm text-white fw-bold rounded-pill px-3" style="background-color: var(--coffee-brown);" data-bs-toggle="modal" data-bs-target="#modalCreateUser">
             <i class="bi bi-person-plus-fill me-1"></i> Novo Colaborador
@@ -23,8 +24,12 @@
                     $authUser = auth()->user();
                     $isMaster = $authUser->hasPermission('all_access');
                     $isDev = $authUser->hasPermission('dev_access');
-                    $rowUserIsDev = ($user->profile && ($user->profile->name === 'Desenvolvedor' || (isset($user->profile->permissions['dev_access']) && $user->profile->permissions['dev_access'])));
+                    $canManageTeam = $authUser->hasPermission('team_full');
                     
+                    // Identifica o usuário da linha
+                    $rowUserIsDev = ($user->profile && ($user->profile->name === 'Desenvolvedor' || (isset($user->profile->permissions['dev_access']) && $user->profile->permissions['dev_access'])));
+                    $rowUserIsAdmin = $user->hasPermission('all_access');
+
                     $canSeeUser = false;
                     if ($user->id === $authUser->id) { $canSeeUser = true; }
                     elseif ($rowUserIsDev && !$isDev) { $canSeeUser = false; }
@@ -64,23 +69,30 @@
                         </span>
                     </td>
                     <td class="text-center">
-                        @if($user->is_active)
-                            <span class="badge bg-success rounded-pill px-3" style="font-size: 0.65rem;">ATIVO</span>
-                        @else
-                            <span class="badge bg-danger rounded-pill px-3" style="font-size: 0.65rem;">INATIVO</span>
-                        @endif
+                        <span class="badge {{ $user->is_active ? 'bg-success' : 'bg-danger' }} rounded-pill px-3" style="font-size: 0.65rem;">
+                            {{ $user->is_active ? 'ATIVO' : 'INATIVO' }}
+                        </span>
                     </td>
                     <td class="text-end px-3">
                         <div class="d-flex justify-content-end gap-2">
-                            <button class="btn btn-sm btn-light rounded-circle shadow-sm" data-bs-toggle="modal" data-bs-target="#modalViewUser{{ $user->id }}"><i class="bi bi-info-circle-fill text-primary"></i></button>
+                            {{-- BOTÃO DE EDIÇÃO: Só aparece se tiver 'team_full' E (não for admin ou o logado for admin) --}}
+                            @if($canManageTeam && (!$rowUserIsAdmin || $isMaster))
+                                <button class="btn btn-sm btn-light rounded-circle shadow-sm" data-bs-toggle="modal" data-bs-target="#modalViewUser{{ $user->id }}" title="Editar Colaborador">
+                                    <i class="bi bi-pencil-fill text-primary"></i>
+                                </button>
+                            @else
+                                {{-- Se não puder editar, mostra apenas um botão de info visual se for o próprio usuário --}}
+                                <button class="btn btn-sm btn-light rounded-circle shadow-sm" data-bs-toggle="modal" data-bs-target="#modalViewUser{{ $user->id }}" title="Visualizar Ficha">
+                                    <i class="bi bi-eye-fill text-muted"></i>
+                                </button>
+                            @endif
 
-                            @if($user->id !== Auth::id())
-                                {{-- TRAVA DE SEGURANÇA: Se o usuário da linha for um Dev, ninguém pode inativar --}}
-                                @if($rowUserIsDev)
-                                    <span class="badge bg-light text-muted border fw-normal d-flex align-items-center px-3" title="Usuário Vitalício do Sistema">
+                            @if($user->id !== $authUser->id)
+                                @if($rowUserIsDev || ($rowUserIsAdmin && !$isMaster))
+                                    <span class="badge bg-light text-muted border fw-normal d-flex align-items-center px-3" title="Usuário Vitalício ou Superior">
                                         <i class="bi bi-shield-fill-check text-warning me-1"></i> Protegido
                                     </span>
-                                @else
+                                @elseif($canManageTeam)
                                     <form action="{{ route('registries.team.inactivateUser', $user->id) }}" method="POST" class="d-inline">
                                         @csrf @method('PATCH')
                                         <button type="submit" class="btn btn-sm btn-light rounded-circle shadow-sm" onclick="return confirm('Confirmar alteração de status?')">
