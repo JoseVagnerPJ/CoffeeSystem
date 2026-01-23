@@ -1,6 +1,17 @@
 <div class="modal fade" id="modalViewUser{{ $user->id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            @php
+                $authUser = auth()->user();
+                $isAuthDev = $authUser->hasPermission('dev_access');
+                
+                // Identifica se o usuário desta ficha é um Desenvolvedor
+                $targetIsDev = ($user->profile && ($user->profile->name === 'Desenvolvedor' || (isset($user->profile->permissions['dev_access']) && $user->profile->permissions['dev_access'])));
+                
+                // REGRA SOLICITADA: Se eu sou dev, altero qualquer um. Se não sou dev, não altero um dev.
+                $canEditThisUser = $isAuthDev || !$targetIsDev;
+            @endphp
+
             <div class="modal-header border-0 bg-light rounded-top p-4">
                 <h5 class="modal-title fw-bold" style="color: var(--coffee-brown);">
                     <i class="bi bi-person-badge me-2"></i>Ficha do Colaborador
@@ -26,10 +37,13 @@
                                     @endif
                                 </div>
                                 
-                                <label for="photo_input_{{ $user->id }}" class="btn btn-sm btn-dark rounded-circle position-absolute bottom-0 end-0 d-none edit-mode-{{ $user->id }}" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
-                                    <i class="bi bi-camera-fill"></i>
-                                    <input type="file" name="photo" id="photo_input_{{ $user->id }}" class="d-none" accept="image/*" onchange="previewUserPhoto(this, '{{ $user->id }}')">
-                                </label>
+                                {{-- Só mostra o botão de trocar foto se tiver permissão de editar --}}
+                                @if($canEditThisUser)
+                                    <label for="photo_input_{{ $user->id }}" class="btn btn-sm btn-dark rounded-circle position-absolute bottom-0 end-0 d-none edit-mode-{{ $user->id }}" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
+                                        <i class="bi bi-camera-fill"></i>
+                                        <input type="file" name="photo" id="photo_input_{{ $user->id }}" class="d-none" accept="image/*" onchange="previewUserPhoto(this, '{{ $user->id }}')">
+                                    </label>
+                                @endif
                             </div>
                             
                             <div class="mb-2">
@@ -44,9 +58,16 @@
                         <div class="col-md-8">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="info-label mb-0">Configurações de Acesso</h6>
-                                <button type="button" class="btn btn-sm btn-outline-warning border-0 fw-bold unlock-btn" onclick="enableUserEdit('{{ $user->id }}', this)">
-                                    <i class="bi bi-pencil-square me-1"></i> Alterar Dados
-                                </button>
+                                
+                                @if($canEditThisUser)
+                                    <button type="button" class="btn btn-sm btn-outline-warning border-0 fw-bold unlock-btn" onclick="enableUserEdit('{{ $user->id }}', this)">
+                                        <i class="bi bi-pencil-square me-1"></i> Alterar Dados
+                                    </button>
+                                @else
+                                    <span class="badge bg-light text-muted border py-2 px-3 fw-normal">
+                                        <i class="bi bi-shield-lock-fill text-warning me-1"></i> Perfil Protegido
+                                    </span>
+                                @endif
                             </div>
 
                             <div class="row g-3">
@@ -61,15 +82,18 @@
                                     <select name="profile_id" class="form-select border-0 bg-light p-3 input-field-{{ $user->id }}" disabled required style="border-radius: 10px;">
                                         @foreach($profiles as $profile)
                                             @php
-                                                // 1. Identifica se o perfil é "Desenvolvedor"
-                                                $isDevProfile = ($profile->name === 'Desenvolvedor' || (isset($profile->permissions['dev_access']) && $profile->permissions['dev_access']));
+                                                $loopProfileIsDev = ($profile->name === 'Desenvolvedor' || (isset($profile->permissions['dev_access']) && $profile->permissions['dev_access']));
                                                 
-                                                // 2. Validação de Hierarquia
                                                 $canAssign = true;
-                                                if (!$isDevProfile && !auth()->user()->hasPermission('all_access')) {
+                                                // Se não sou dev e o perfil do loop for dev, não posso atribuir
+                                                if (!$isAuthDev && $loopProfileIsDev) {
+                                                    $canAssign = false;
+                                                }
+                                                // Validação de Hierarquia padrão
+                                                elseif (!$isAuthDev && !$authUser->hasPermission('all_access')) {
                                                     if ($profile->permissions) {
                                                         foreach ($profile->permissions as $permissionKey => $isEnabled) {
-                                                            if ($isEnabled && !auth()->user()->hasPermission($permissionKey)) {
+                                                            if ($isEnabled && !$authUser->hasPermission($permissionKey)) {
                                                                 $canAssign = false;
                                                                 break;
                                                             }
@@ -77,15 +101,10 @@
                                                     }
                                                 }
 
-                                                // 3. Verifica se é o perfil atual do usuário sendo visualizado
                                                 $isCurrentProfile = ($user->profile_id == $profile->id);
                                             @endphp
 
-                                            {{-- LÓGICA DE EXIBIÇÃO: 
-                                                 Exibe se: 
-                                                 a) O perfil já é o do usuário (mesmo que seja Dev, para não quebrar o select) 
-                                                 b) OU se não for perfil Dev e o admin logado tiver hierarquia para tal --}}
-                                            @if($isCurrentProfile || (!$isDevProfile && $canAssign))
+                                            @if($isCurrentProfile || $canAssign)
                                                 <option value="{{ $profile->id }}" {{ $isCurrentProfile ? 'selected' : '' }}>
                                                     {{ $profile->name }}
                                                 </option>
@@ -110,12 +129,15 @@
                     </div>
                 </div>
 
-                <div class="modal-footer border-0 p-4 pt-0 d-none edit-mode-{{ $user->id }}">
-                    <button type="button" class="btn btn-light fw-bold px-4" onclick="location.reload()">Cancelar</button>
-                    <button type="submit" class="btn text-white fw-bold px-5 shadow-sm" style="background-color: var(--coffee-brown); border-radius: 10px;">
-                        <i class="bi bi-check-lg me-2"></i>Salvar Alterações
-                    </button>
-                </div>
+                {{-- O rodapé com o botão salvar só existe se o usuário tiver permissão de editar --}}
+                @if($canEditThisUser)
+                    <div class="modal-footer border-0 p-4 pt-0 d-none edit-mode-{{ $user->id }}">
+                        <button type="button" class="btn btn-light fw-bold px-4" onclick="location.reload()">Cancelar</button>
+                        <button type="submit" class="btn text-white fw-bold px-5 shadow-sm" style="background-color: var(--coffee-brown); border-radius: 10px;">
+                            <i class="bi bi-check-lg me-2"></i>Salvar Alterações
+                        </button>
+                    </div>
+                @endif
             </form>
         </div>
     </div>
