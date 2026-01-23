@@ -142,6 +142,8 @@ class LaboratoryController extends Controller
 
 public function store(Request $request)
 {
+    dd($request->all());
+    
     $request->validate([
         'title' => 'required|string|max:255',
         'items' => 'required|array|min:1',
