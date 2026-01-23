@@ -158,7 +158,6 @@ public function store(Request $request)
                 'created_by'      => Auth::id(), 
                 'status'          => 'aberto',
                 'started_at'      => now(),
-                'notes'           => $request->notes ?? null, // Notas gerais da mesa
             ]);
 
             foreach ($request->items as $itemData) {
@@ -173,12 +172,11 @@ public function store(Request $request)
                     'fermentation'   => $itemData['fermentation'] ?? null,
                     'humidity'       => $itemData['humidity'] ?? null,
                     'screen'         => $itemData['screen'] ?? null,
-                    'lot_id'         => $itemData['lot_id'] ?? null,
                     'altitude'       => $itemData['altitude'] ?? null,
                     'crop'           => $itemData['crop'] ?? null,
                     'origin_id'      => $itemData['origin_id'] ?? null,
                     'origin_type'    => $itemData['origin_type'] ?? null,
-                    // Captura a observação da xícara e remove espaços vazios
+                    // O trim remove espaços vazios e garante que salve null se nada for digitado
                     'notes'          => !empty($itemData['notes']) ? trim($itemData['notes']) : null,
                 ]);
             }
@@ -186,7 +184,7 @@ public function store(Request $request)
 
         return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
     } catch (\Exception $e) {
-        \Log::error("Erro ao criar mesa Web: " . $e->getMessage());
+        \Log::error("Erro ao salvar mesa Web: " . $e->getMessage());
         return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
     }
 }
