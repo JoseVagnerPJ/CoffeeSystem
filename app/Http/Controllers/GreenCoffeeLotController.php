@@ -188,7 +188,7 @@ public function storeInventoryAdjustment(Request $request)
                 'inventory_session_id' => $session->id,
                 'green_coffee_lot_id'  => $request->lot_id,
                 'new_address_row'      => strtoupper($loc['row']),
-                'new_address_pos'      => $loc['pos'], // CORREÇÃO: Removido o caractere '0' que causava Syntax Error
+                'new_address_pos'      => $loc['pos'],
                 'closed_bags'          => $loc['closed_bags'] ?? 0,
                 'bag_weight'           => $loc['bag_weight'] ?? 60,
                 'remainder_weight'     => $loc['remainder_weight'] ?? 0,
@@ -343,7 +343,7 @@ public function store(Request $request) {
 }
 
 /**
- * MÉTODO DE HISTÓRICO DE MOVIMENTAÇÃO (PARA O MODAL)
+ * LÓGICA DO HISTÓRICO DE MOVIMENTAÇÃO (PARA O MODAL)
  */
 public function getHistoryData(Request $request)
 {
