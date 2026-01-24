@@ -38,6 +38,7 @@ class GreenCoffeeLotController extends Controller
         $perfis = SensoryProfile::all(); 
 
         // 3. MAPEAMENTO DINÂMICO DO ARQUIVO SVG (NOVA LÓGICA)
+        // Busca o nome do arquivo definido no banco. Se estiver vazio, usa 'default'.
         $mapView = auth()->user()->mainCompany->map_view ?? 'default';
 
         // 4. Processamento dos dados para preenchimento das cores no mapa
@@ -81,7 +82,7 @@ class GreenCoffeeLotController extends Controller
 
         if (!$session) {
             $session = InventorySession::create([
-                'main_company_id' => auth()->user()->main_company_id,
+                'main_company_id' => auth()->user()->main_company_id, // Injeção obrigatória
                 'status' => 'aberto',
                 'user_id' => Auth::id(),
                 'inventory_date' => now()->setTimezone('America/Sao_Paulo')->toDateString()
@@ -100,7 +101,7 @@ class GreenCoffeeLotController extends Controller
             ->get()
             ->toArray(); 
 
-        // 9. Retorno da View
+        // 9. Retorno da View com a variável mapView incluída
         return view('green-coffee.index', compact(
             'lotes', 
             'perfis', 
@@ -110,12 +111,13 @@ class GreenCoffeeLotController extends Controller
             'adjustments', 
             'history', 
             'ultimasSaidas',
-            'mapView'
+            'mapView' // Importante para o @include dinâmico na index.blade
         ));
     }
 
     public function startInventory(Request $request)
     {
+        // Localiza a sessão aberta da empresa atual
         $session = InventorySession::where('main_company_id', auth()->user()->main_company_id)
             ->where('status', 'aberto')
             ->first();
@@ -135,7 +137,7 @@ class GreenCoffeeLotController extends Controller
                             $expectativaSistema = $primeiraLinha ? $lote->total_weight : 0;
                             
                             DB::table('inventory_adjustments')->insert([
-                                'main_company_id'      => $mainCompanyId,
+                                'main_company_id'      => $mainCompanyId, // CORREÇÃO: Injeção manual para evitar erro 1364
                                 'inventory_session_id' => $session->id,
                                 'green_coffee_lot_id'  => $lote->id,
                                 'new_address_row'      => strtoupper($loc->address_row),
@@ -182,7 +184,7 @@ class GreenCoffeeLotController extends Controller
                 $sistemaLinha = $primeiraLinha ? (float)$request->system_weight : 0;
 
                 DB::table('inventory_adjustments')->insert([
-                    'main_company_id'      => $mainCompanyId,
+                    'main_company_id'      => $mainCompanyId, // CORREÇÃO: Injeção manual para evitar erro 1364
                     'inventory_session_id' => $session->id,
                     'green_coffee_lot_id'  => $request->lot_id,
                     'new_address_row'      => strtoupper($loc['row']),
@@ -214,7 +216,7 @@ class GreenCoffeeLotController extends Controller
 
             // 2. CRIA O REGISTRO DE MOVIMENTAÇÃO
             $lote->movements()->create([
-                'main_company_id' => auth()->user()->main_company_id,
+                'main_company_id' => auth()->user()->main_company_id, // Garantindo o vínculo da empresa
                 'user_id' => auth()->id(),
                 'location_id' => $request->location_id,
                 'type' => 'out',
@@ -260,12 +262,15 @@ class GreenCoffeeLotController extends Controller
                             ->update(['difference_kg' => $adj->physical_weight - $adj->system_weight]);
                     }
 
+                    $locationIds = $lote->locations->pluck('id');
+                    \App\Models\StockMovement::whereIn('location_id', $locationIds)->update(['location_id' => null]);
+
                     $lote->locations()->delete();
 
                     foreach ($adjs as $adj) {
                         if (!empty($adj->new_address_row) && !empty($adj->new_address_pos)) {
                             $lote->locations()->create([
-                                'main_company_id' => auth()->user()->main_company_id,
+                                'main_company_id' => auth()->user()->main_company_id, // Injeção via Model
                                 'address_row' => strtoupper($adj->new_address_row),
                                 'address_pos' => $adj->new_address_pos,
                                 'quantity_bags' => floor($adj->physical_weight / $unitWeight),
@@ -312,7 +317,7 @@ class GreenCoffeeLotController extends Controller
     public function store(Request $request) { 
         $request->validate(['reference' => 'required', 'origin' => 'required', 'sensory_profile_id' => 'required', 'unit_weight' => 'required', 'locations' => 'required', 'quantity_bags' => 'required', 'total_weight' => 'required']); 
         $lote = new GreenCoffeeLot(); 
-        $lote->main_company_id = auth()->user()->main_company_id;
+        $lote->main_company_id = auth()->user()->main_company_id; // Injeção obrigatória
         $lote->user_id = Auth::id(); 
         $lote->reference = $request->reference; 
         $lote->origin = $request->origin; 
@@ -326,7 +331,7 @@ class GreenCoffeeLotController extends Controller
         foreach ($request->locations as $loc) { 
             if (!empty($loc['row'])) { 
                 $lote->locations()->create([
-                    'main_company_id' => auth()->user()->main_company_id,
+                    'main_company_id' => auth()->user()->main_company_id, //
                     'address_row' => strtoupper($loc['row']), 
                     'address_pos' => $loc['pos'], 
                     'quantity_bags' => (int)$loc['bags'], 
@@ -337,67 +342,52 @@ class GreenCoffeeLotController extends Controller
         return redirect()->route('estoque.index')->with('success', 'Lote registrado!'); 
     }
 
-    /* LÓGICA DO HISTÓRICO DE MOVIMENTAÇÃO AJAX */
+    /* LÓGICA DO HISTÓRICO DE MOVIMENTAÇÃO (AJUSTADA PARA EVITAR ERROS) */
     public function getHistoryData(Request $request)
-{
-    // Forçamos o retorno a ser JSON para evitar o erro de token '<'
-    try {
-        $tipo = $request->get('tipo', 'entrada');
-        $start = $request->get('start_date');
-        $end = $request->get('end_date');
+    {
+        try {
+            $tipo = $request->get('tipo', 'entrada');
+            $start = $request->get('start_date');
+            $end = $request->get('end_date');
 
-        if ($tipo == 'entrada') {
-            $query = GreenCoffeeLot::with(['sensoryProfile', 'locations']);
-            
-            if ($start && $end) {
-                $query->whereBetween('created_at', [
-                    Carbon::parse($start)->startOfDay(), 
-                    Carbon::parse($end)->endOfDay()
-                ]);
+            if ($tipo == 'entrada') {
+                $query = GreenCoffeeLot::with(['sensoryProfile', 'locations']);
+                if ($start && $end) {
+                    $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
+                }
+                $dados = $query->latest()->get()->map(function($lote) {
+                    return [
+                        'data' => $lote->created_at->subHours(3)->format('d/m/Y H:i'),
+                        'perfil' => $lote->sensoryProfile->name ?? 'N/A',
+                        'cor' => $lote->sensoryProfile->color_hex ?? '#ccc',
+                        'endereco' => $lote->locations->map(fn($l) => $l->address_row . $l->address_pos)->join(', '),
+                        'peso' => (float)$lote->total_weight,
+                        'ref' => $lote->reference,
+                        'tipo' => 'entrada'
+                    ];
+                });
+            } else {
+                $query = StockMovement::with(['lote.sensoryProfile', 'location']);
+                if ($start && $end) {
+                    $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
+                }
+                $dados = $query->where('type', 'out')->latest()->get()->map(function($mov) {
+                    return [
+                        'data' => $mov->created_at->subHours(3)->format('d/m/Y H:i'),
+                        'perfil' => $mov->lote->sensoryProfile->name ?? 'N/A',
+                        'cor' => $mov->lote->sensoryProfile->color_hex ?? '#ccc',
+                        'endereco' => $mov->location ? ($mov->location->address_row . $mov->location->address_pos) : 'N/A',
+                        'peso' => (float)$mov->weight,
+                        'ref' => $mov->lote->reference ?? 'Lote N/A',
+                        'tipo' => 'saida'
+                    ];
+                });
             }
-
-            $dados = $query->latest()->get()->map(function($lote) {
-                return [
-                    'data' => $lote->created_at->subHours(3)->format('d/m/Y H:i'),
-                    'perfil' => $lote->sensoryProfile->name ?? 'N/A',
-                    'cor' => $lote->sensoryProfile->color_hex ?? '#ccc',
-                    'endereco' => $lote->locations->map(fn($l) => $l->address_row . $l->address_pos)->join(', '),
-                    'peso' => (float)$lote->total_weight,
-                    'ref' => $lote->reference,
-                    'tipo' => 'entrada'
-                ];
-            });
-        } else {
-            // SAÍDAS: Usamos \App\Models\StockMovement caso o import lá no topo falhe
-            $query = \App\Models\StockMovement::with(['lote.sensoryProfile', 'location']);
-
-            if ($start && $end) {
-                $query->whereBetween('created_at', [
-                    Carbon::parse($start)->startOfDay(), 
-                    Carbon::parse($end)->endOfDay()
-                ]);
-            }
-
-            $dados = $query->where('type', 'out')->latest()->get()->map(function($mov) {
-                return [
-                    'data' => $mov->created_at->subHours(3)->format('d/m/Y H:i'),
-                    'perfil' => $mov->lote->sensoryProfile->name ?? 'N/A',
-                    'cor' => $mov->lote->sensoryProfile->color_hex ?? '#ccc',
-                    'endereco' => $mov->location ? ($mov->location->address_row . $mov->location->address_pos) : 'N/A',
-                    'peso' => (float)$mov->weight,
-                    'ref' => $mov->lote->reference ?? 'Lote N/A',
-                    'tipo' => 'saida'
-                ];
-            });
+            return response()->json($dados);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        return response()->json($dados);
-
-    } catch (\Exception $e) {
-        // Se der erro no PHP, ele envia o erro como JSON e o JavaScript não trava mais
-        return response()->json(['error' => $e->getMessage()], 500);
     }
-}
 
     public function destroy($id)
     {
@@ -432,7 +422,7 @@ class GreenCoffeeLotController extends Controller
         if ($request->hasFile('file')) { 
             $path = $request->file('file')->store('attachments', 'public'); 
             $lote->attachments()->create([
-                'main_company_id' => auth()->user()->main_company_id,
+                'main_company_id' => auth()->user()->main_company_id, //
                 'file_name' => $request->file('file')->getClientOriginalName(), 
                 'file_path' => $path
             ]); 
