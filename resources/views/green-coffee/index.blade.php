@@ -55,9 +55,6 @@
     .table-no-hover tbody tr:hover { background-color: rgba(191, 163, 126, 0.05) !important; }
     .pallet-highlight { stroke: #ffc107 !important; stroke-width: 15 !important; filter: drop-shadow(0 0 15px gold); }
 
-    .active-filter { box-shadow: 0 0 0 4px #3d2b1f !important; transform: scale(1.02); z-index: 5; }
-    .inactive-filter { opacity: 0.4; filter: grayscale(0.7); }
-
     /* REGRAS DE IMPRESSÃO */
     @media print {
         .no-print, .btn-close, .modal-header .btn { display: none !important; }
@@ -140,8 +137,7 @@
             <div class="row g-2 mb-2">
                 <div class="col-md-6">
                     <div class="op-block shadow-sm h-100" style="min-height: 90px;">
-                        {{-- TRIGGER PARA O NOVO MODAL --}}
-                        <div class="feed-title" onclick="openMovimentacaoHistorico('entrada')" style="cursor: pointer;"><i class="bi bi-arrow-down-circle-fill text-success"></i> Últimos Recebimentos (Ver tudo)</div>
+                        <div class="feed-title"><i class="bi bi-arrow-down-circle-fill text-success"></i> Últimos Recebimentos</div>
                         {{-- LOOP DE RECEBIMENTOS AJUSTADO --}}
                         @foreach($lotes->sortByDesc('created_at')->take(2) as $recente)
                             <div class="feed-item">
@@ -156,8 +152,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="op-block shadow-sm h-100" style="min-height: 90px;">
-                        {{-- TRIGGER PARA O NOVO MODAL --}}
-                        <div class="feed-title" onclick="openMovimentacaoHistorico('saida')" style="cursor: pointer;"><i class="bi bi-arrow-up-circle-fill text-danger"></i> Últimas Saídas (Ver tudo)</div>
+                        <div class="feed-title"><i class="bi bi-arrow-up-circle-fill text-danger"></i> Últimas Saídas</div>
                         {{-- LOOP DE SAÍDAS AJUSTADO --}}
                         @isset($ultimasSaidas)
                             @foreach($ultimasSaidas as $saida)
@@ -282,13 +277,6 @@
 </div>
 
 <script>
-    // SETUP GLOBAL CSRF PARA AJAX (CORREÇÃO ERRO 403)
-    $.ajaxSetup({
-    headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-    }
-});
-
     function highlightOnMap(coords) {
         coords.forEach(c => {
             const slot = document.querySelector(`#pallet-${c} .pallet-rect`);
@@ -331,118 +319,6 @@
             }
         });
     };
-
-    /* LÓGICA DO MODAL DE HISTÓRICO AJAX */
-    let currentHistType = 'entrada';
-
-    function openMovimentacaoHistorico(type) {
-        currentHistType = type;
-        applyQuickFilterHist('last_week'); 
-        var myModal = new bootstrap.Modal(document.getElementById('modalHistoricoMovimentacao'));
-        myModal.show();
-        refreshHistorico();
-    }
-
-    function changeHistType(type) {
-        currentHistType = type;
-        const btnE = $('#btn-hist-entrada');
-        const btnS = $('#btn-hist-saida');
-        if(type === 'entrada') {
-            btnE.removeClass('btn-outline-success').addClass('btn-success');
-            btnS.removeClass('btn-danger').addClass('btn-outline-danger');
-        } else {
-            btnE.removeClass('btn-success').addClass('btn-outline-success');
-            btnS.removeClass('btn-outline-danger').addClass('btn-danger');
-        }
-        refreshHistorico();
-    }
-
-    function applyQuickFilterHist(value) {
-        const startInput = document.getElementById('hist_start_date');
-        const endInput = document.getElementById('hist_end_date');
-        const now = new Date();
-        let start = new Date(), end = new Date();
-
-        switch(value) {
-            case 'last_week': start.setDate(now.getDate() - 7); break;
-            case 'curr_month': start = new Date(now.getFullYear(), now.getMonth(), 1); break;
-            case 'last_month': start = new Date(now.getFullYear(), now.getMonth() - 1, 1); end = new Date(now.getFullYear(), now.getMonth(), 0); break;
-            case 'all': start = new Date(2025, 0, 1); break;
-        }
-        startInput.value = start.toISOString().split('T')[0];
-        endInput.value = end.toISOString().split('T')[0];
-    }
-
-    async function refreshHistorico() {
-    const start = $('#hist_start_date').val();
-    const end = $('#hist_end_date').val();
-    const body = $('#hist-body');
-    
-    body.html('<tr><td colspan="4" class="text-center py-5"><div class="spinner-border spinner-border-sm text-secondary"></div></td></tr>');
-
-    try {
-        // Geramos a URL dinamicamente
-        const url = "{{ route('estoque.green-coffee.history') }}?tipo=" + currentHistType + "&start_date=" + start + "&end_date=" + end;
-        
-        const response = await fetch(url);
-        
-        // Se o servidor retornar erro (500, 404, etc)
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Erro interno no servidor.");
-        }
-
-        const data = await response.json();
-
-        let html = '';
-        if(!data || data.length === 0) {
-            html = '<tr><td colspan="4" class="text-center py-5 text-muted small">Nenhuma movimentação encontrada.</td></tr>';
-        } else {
-            data.forEach(item => {
-                const isSaida = item.tipo === 'saida';
-                html += `
-                    <tr style="border-bottom: 1px solid #f8f9fa;">
-                        <td><div class="fw-bold" style="font-size: 0.75rem;">${item.data}</div></td>
-                        <td>
-                            <div class="fw-bold small">${item.ref}</div>
-                            <span class="badge rounded-pill" style="font-size: 0.6rem; background-color: ${item.cor}15; color: ${item.cor}; border: 1px solid ${item.cor};">${item.perfil}</span>
-                        </td>
-                        <td><span class="badge bg-light text-dark border" style="font-size: 0.65rem;">${item.endereco}</span></td>
-                        <td class="text-end fw-bold ${isSaida ? 'text-danger' : 'text-success'}" style="font-size: 0.85rem;">
-                            ${isSaida ? '-' : '+'}${parseFloat(item.peso).toLocaleString('pt-BR', {minimumFractionDigits: 1})}kg
-                        </td>
-                    </tr>`;
-            });
-        }
-        body.html(html);
-
-    } catch(e) { 
-        console.error("Erro detalhado:", e.message);
-        body.html(`<tr><td colspan="4" class="text-center py-5 text-danger small">
-            <i class="bi bi-exclamation-triangle-fill"></i><br>
-            ${e.message}
-        </td></tr>`); 
-    }
-}
-
-    /**
-     * Habilita a rolagem horizontal com o scroll vertical do mouse nos perfis
-     */
-    function enableHorizontalScroll() {
-        const container = document.querySelector('.sensory-scroll-container');
-        if (container) {
-            container.addEventListener('wheel', (evt) => {
-                if (evt.deltaY !== 0) {
-                    evt.preventDefault();
-                    container.scrollLeft += evt.deltaY;
-                }
-            }, { passive: false });
-        }
-    }
-
-    window.onload = () => {
-        enableHorizontalScroll();
-    };
 </script>
 
 @include('green-coffee.partials.modal_create_lote')
@@ -455,6 +331,5 @@
 @include('green-coffee.partials.modal_inventario')
 @include('green-coffee.partials.modal_detalhe_inventario')
 @include('green-coffee.partials.modal_saidas')
-@include('green-coffee.partials.modal_movimentos')
 
 @endsection

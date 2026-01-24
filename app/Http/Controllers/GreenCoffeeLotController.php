@@ -7,8 +7,6 @@ use App\Models\GreenCoffeeLot;
 use App\Models\SensoryProfile;
 use App\Models\LotAttachment;
 use App\Models\RoastingBatch; 
-use App\Models\StockMovement;
-use Carbon\Carbon;
 use App\Models\InventorySession;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -340,56 +338,6 @@ public function store(Request $request) {
         } 
     } 
     return redirect()->route('estoque.index')->with('success', 'Lote registrado!'); 
-}
-
-/**
- * LÓGICA DO HISTÓRICO DE MOVIMENTAÇÃO (PARA O MODAL)
- */
-public function getHistoryData(Request $request)
-{
-    try {
-        $tipo = $request->get('tipo', 'entrada');
-        $start = $request->get('start_date');
-        $end = $request->get('end_date');
-
-        if ($tipo == 'entrada') {
-            $query = GreenCoffeeLot::with(['sensoryProfile', 'locations']);
-            if ($start && $end) {
-                $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
-            }
-            $dados = $query->latest()->get()->map(function($lote) {
-                return [
-                    'data' => $lote->created_at->subHours(3)->format('d/m/Y H:i'),
-                    'perfil' => $lote->sensoryProfile->name ?? 'N/A',
-                    'cor' => $lote->sensoryProfile->color_hex ?? '#ccc',
-                    'endereco' => $lote->locations->map(fn($l) => $l->address_row . $l->address_pos)->join(', '),
-                    'peso' => (float)$lote->total_weight,
-                    'ref' => $lote->reference,
-                    'tipo' => 'entrada'
-                ];
-            });
-        } else {
-            $query = StockMovement::with(['lote.sensoryProfile', 'location']);
-            if ($start && $end) {
-                $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
-            }
-            $dados = $query->where('type', 'out')->latest()->get()->map(function($mov) {
-                return [
-                    'data' => $mov->created_at->subHours(3)->format('d/m/Y H:i'),
-                    'perfil' => $mov->lote->sensoryProfile->name ?? 'N/A',
-                    'cor' => $mov->lote->sensoryProfile->color_hex ?? '#ccc',
-                    'endereco' => $mov->location ? ($mov->location->address_row . $mov->location->address_pos) : 'N/A',
-                    'peso' => (float)$mov->weight,
-                    'ref' => $mov->lote->reference ?? 'Lote N/A',
-                    'tipo' => 'saida'
-                ];
-            });
-        }
-    return response()->json($dados);
-    } catch (\Exception $e) {
-        // Retorna o erro em formato JSON para o JS não quebrar
-        return response()->json(['error' => $e->getMessage()], 500);
-    }
 }
 
 public function destroy($id)

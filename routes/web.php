@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GreenCoffeeLotController;
-use App\Models\StockMovement;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\SampleController;
@@ -49,7 +48,6 @@ Route::middleware(['auth', 'company.active'])->group(function () {
         Route::post('/{id}/attach', [GreenCoffeeLotController::class, 'storeAttachment'])->name('attach');
         Route::delete('/attachment/{id}', [GreenCoffeeLotController::class, 'destroyAttachment'])->name('attachment.destroy');
         Route::post('/registrar-saida', [GreenCoffeeLotController::class, 'registrarSaida'])->name('registrar-saida');
-        Route::get('/movimentacao-historico', [GreenCoffeeLotController::class, 'getHistoryData'])->name('green-coffee.history');
 
         // GRUPO DE INVENTÁRIO (AUDITORIA MENSAL)
         Route::prefix('inventory')->name('inventory.')->group(function () {
