@@ -168,48 +168,45 @@
      * Gera os labels do gráfico e preenche com zero onde não há dados
      */
     function processChartData(apiData, type) {
-        const start = new Date(document.getElementById('filter_start_date').value + 'T00:00:00');
-        const end = new Date(document.getElementById('filter_end_date').value + 'T23:59:59');
+        // --- SE FOR 'TODOS': MOSTRA TUDO PONTO A PONTO ---
+        if (selectedRangeType === 'all') {
+            return {
+                labels: apiData.map(d => d.tempo || d.data),
+                mesas: apiData.map(d => d.total_mesas || 0),
+                xicaras: apiData.map(d => d.total_xicaras || 0),
+                mov: apiData.map(d => d.peso || 0)
+            };
+        }
+
+        // --- SE FOR INTERVALO DEFINIDO: LÓGICA DE "LINHA NO CHÃO" ---
+        const startInput = document.getElementById('filter_start_date').value;
+        const endInput = document.getElementById('filter_end_date').value;
+        
+        const start = new Date(startInput + 'T00:00:00');
+        const end = new Date(endInput + 'T23:59:59');
         
         let labels = [];
         let valuesMesas = [];
         let valuesXicaras = [];
         let valuesMov = [];
 
-        // Para o filtro "Todos/Geral", usamos os pontos crus da API
-        if (selectedRangeType === 'all') {
-            return {
-                labels: apiData.map(d => d.data),
-                mesas: apiData.map(d => d.mesas || 0),
-                xicaras: apiData.map(d => d.xicaras || 0),
-                mov: apiData.map(d => d.peso || 0)
-            };
-        }
-
-        // Para os outros filtros, iteramos dia a dia para garantir a "linha no chão"
         let current = new Date(start);
         const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
         while (current <= end) {
-            let labelStr = "";
-            let dataKey = ""; // Chave para buscar no JSON da API
-
             const dd = String(current.getDate()).padStart(2, '0');
             const mm = String(current.getMonth() + 1).padStart(2, '0');
+            const dataChave = `${dd}/${mm}`;
             
+            // Define o formato do label do Eixo X
             if (selectedRangeType === 'last_week') {
-                // Top: Dia da semana | Bottom: Data
-                labelStr = [diasSemana[current.getDay()], `${dd}/${mm}`];
-                dataKey = `${dd}/${mm}`;
+                labels.push([diasSemana[current.getDay()], dataChave]);
             } else {
-                labelStr = dd; // Apenas o dia para meses/anos
-                dataKey = dd;
+                labels.push(dd);
             }
 
-            labels.push(labelStr);
-
-            // Busca o valor correspondente no retorno da API (comparando com o campo 'tempo' ou 'data')
-            const match = apiData.find(d => (d.tempo || d.data).includes(dd + '/' + mm) || (d.tempo || d.data) == dd);
+            // Busca no JSON da API se existe valor para este dia
+            const match = apiData.find(d => (d.tempo || d.data) === dataChave);
             
             if (type === 'lab') {
                 valuesMesas.push(match ? match.total_mesas : 0);

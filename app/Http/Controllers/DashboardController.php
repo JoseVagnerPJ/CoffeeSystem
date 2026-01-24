@@ -18,7 +18,6 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         
-        // Mapa de Estoque por Perfil (KPIs do topo)
         $estoquePorPerfil = GreenCoffeeLot::with('sensoryProfile')
             ->select('sensory_profile_id', 'reference',
                 DB::raw('SUM(total_weight) as total_kg'),
@@ -26,7 +25,7 @@ class DashboardController extends Controller
             ->groupBy('sensory_profile_id', 'reference')
             ->get();
 
-        // Dados iniciais (dummy para não quebrar a view no primeiro load)
+        // Variáveis vazias para o primeiro boot da página (o AJAX preencherá)
         $ultimosRecebimentos = collect();
         $mesasData = collect();
         $xicarasData = collect();
@@ -35,9 +34,6 @@ class DashboardController extends Controller
         return view('dashboard.index', compact('user', 'estoquePorPerfil', 'ultimosRecebimentos', 'mesasData', 'xicarasData', 'periodo'));
     }
 
-    /**
-     * AJAX: Dados de Movimentação (Recebimentos ou Saídas)
-     */
     public function getMovimentacaoData(Request $request) 
     {
         $tipo = $request->get('tipo', 'entrada');
@@ -50,16 +46,20 @@ class DashboardController extends Controller
             ? GreenCoffeeLot::query() 
             : StockMovement::where('type', 'out');
 
+        // --- FILTRO SENSORIAL ---
         if ($perfilId) {
             if ($tipo == 'entrada') {
+                // Certifique-se que o nome da coluna na tabela green_coffee_lots é este:
                 $query->where('sensory_profile_id', $perfilId);
             } else {
+                // Certifique-se que na Model StockMovement o relacionamento se chama 'lote'
                 $query->whereHas('lote', function($q) use ($perfilId) {
                     $q->where('sensory_profile_id', $perfilId);
                 });
             }
         }
 
+        // --- FILTRO DE DATA ---
         if ($startDate && $endDate) {
             $query->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(), 
@@ -68,13 +68,15 @@ class DashboardController extends Controller
         }
 
         if ($rangeType === 'all') {
-            // Retorno Bruto (Geral)
-            $dados = $query->orderBy('created_at', 'ASC')->get()->map(fn($item) => [
-                'peso' => ($tipo == 'entrada') ? $item->total_weight : $item->weight,
-                'data' => $item->created_at->subHours(3)->format('d/m H:i')
-            ]);
+            // LÓGICA "TODOS": Mostra cada registro individual (como os antigos últimos 6)
+            $dados = $query->orderBy('created_at', 'ASC')->get()->map(function($item) use ($tipo) {
+                return [
+                    'peso' => ($tipo == 'entrada') ? $item->total_weight : $item->weight,
+                    'data' => $item->created_at->subHours(3)->format('d/m H:i')
+                ];
+            });
         } else {
-            // Agrupado por Dia (Semana/Mês)
+            // LÓGICA AGRUPADA: Soma por dia para a "linha no chão"
             $colPeso = ($tipo == 'entrada') ? 'total_weight' : 'weight';
             $dados = $query->select(
                 DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '%d/%m') as data"),
@@ -93,9 +95,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * AJAX: Dados do Laboratório
-     */
     public function getLaboratorioData(Request $request)
     {
         $startDate = $request->get('start_date');
@@ -112,6 +111,7 @@ class DashboardController extends Controller
         }
 
         if ($rangeType === 'all') {
+            // Laboratório "TODOS": Pontos individuais
             $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
                 ->select(
                     DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m %H:%i') as tempo"),
@@ -122,6 +122,7 @@ class DashboardController extends Controller
                 ->orderBy('cupping_sessions.created_at', 'ASC')
                 ->get();
         } else {
+            // Laboratório "AGRUPADO"
             $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
                 ->select(
                     DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
@@ -137,6 +138,7 @@ class DashboardController extends Controller
         return response()->json(['raw_data' => $dados]);
     }
 
+    // --- MANTIDAS AS OUTRAS FUNÇÕES ---
     public function cadastros() { return view('registries.index'); }
     public function laboratorio() { return view('laboratory.index'); }
     public function torrefacao() { return view('roasting.index'); }
