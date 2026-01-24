@@ -139,55 +139,73 @@
             };
         }
 
-        const start = new Date(document.getElementById('filter_start_date').value + 'T00:00:00');
-        const end = new Date(document.getElementById('filter_end_date').value + 'T23:59:59');
-        let labels = [], vMesas = [], vXicaras = [], vMov = [];
+        const startVal = document.getElementById('filter_start_date').value;
+        const endVal = document.getElementById('filter_end_date').value;
+        
+        // Proteção caso as datas estejam vazias
+        if(!startVal || !endVal) return { labels: [], mesas: [], xicaras: [], mov: [] };
+
+        const start = new Date(startVal + 'T00:00:00');
+        const end = new Date(endVal + 'T23:59:59');
+        
+        let labels = [], valuesMesas = [], valuesXicaras = [], valuesMov = [];
         let current = new Date(start);
         const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
         while (current <= end) {
             const dd = String(current.getDate()).padStart(2, '0');
             const mm = String(current.getMonth() + 1).padStart(2, '0');
-            const chave = `${dd}/${mm}`;
-            labels.push(selectedRangeType === 'last_week' ? [diasSemana[current.getDay()], chave] : dd);
-            const match = apiData.find(d => (d.tempo || d.data) === chave);
+            const dataChave = `${dd}/${mm}`; // Formato igual ao SQL: 24/01
+            
+            labels.push(selectedRangeType === 'last_week' ? [diasSemana[current.getDay()], dataChave] : dd);
+
+            // Busca no JSON retornado pelo Laravel
+            const match = apiData.find(d => (d.tempo || d.data) === dataChave);
+            
             if (type === 'lab') {
-                vMesas.push(match ? match.total_mesas : 0);
-                vXicaras.push(match ? match.total_xicaras : 0);
+                valuesMesas.push(match ? match.total_mesas : 0);
+                valuesXicaras.push(match ? match.total_xicaras : 0);
             } else {
-                vMov.push(match ? match.peso : 0);
+                valuesMov.push(match ? match.peso : 0);
             }
             current.setDate(current.getDate() + 1);
         }
-        return { labels, mesas: vMesas, xicaras: vXicaras, mov: vMov };
+        return { labels, mesas: valuesMesas, xicaras: valuesXicaras, mov: valuesMov };
     }
 
     async function refreshAllData() {
         const start = document.getElementById('filter_start_date').value;
         const end = document.getElementById('filter_end_date').value;
-        
-        // Lab
+        const perfil = activeProfileId;
+
+        if(!start || !end) return;
+
+        // 1. Laboratório
         try {
-            const res = await fetch(`/dashboard/laboratorio-data?start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`);
+            const url = `/dashboard/laboratorio-data?start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`;
+            const res = await fetch(url);
             const json = await res.json();
             const proc = processChartData(json.raw_data, 'lab');
+            
             chartLab.data.labels = proc.labels;
             chartLab.data.datasets[0].data = proc.mesas;
             chartLab.data.datasets[1].data = proc.xicaras;
             chartLab.update();
-        } catch(e) {}
+        } catch(e) { console.error("Erro Lab:", e); }
 
-        // Movimentação
+        // 2. Movimentação
         try {
-            const res = await fetch(`/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${activeProfileId || ''}&start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`);
+            const url = `/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`;
+            const res = await fetch(url);
             const json = await res.json();
             const proc = processChartData(json.dados, 'mov');
+
             document.getElementById('tituloMovimentacao').innerText = json.titulo;
             chartUltimos.data.labels = proc.labels;
             chartUltimos.data.datasets[0].data = proc.mov;
             chartUltimos.data.datasets[0].label = json.label;
             chartUltimos.update();
-        } catch(e) {}
+        } catch(e) { console.error("Erro Mov:", e); }
     }
 
     function toggleMovimentacao(tipo) {
@@ -233,7 +251,6 @@
         const container = document.querySelector('.sensory-scroll-container');
         if (container) {
             container.addEventListener('wheel', (evt) => {
-                // Se o usuário estiver usando o scroll do mouse (vertical), rola o container horizontalmente
                 if (evt.deltaY !== 0) {
                     evt.preventDefault();
                     container.scrollLeft += evt.deltaY;
