@@ -33,14 +33,21 @@ class CuppingController extends Controller
     );
 }
 
-    public function show($id)
-    {
-        $session = CuppingSession::with(['items.sample', 'items.evaluations.user', 'items.evaluations.tags'])
-            ->withCount('items')
-            ->findOrFail($id);
-            
-        return response()->json($session);
-    }
+public function show($id)
+{
+    $session = CuppingSession::with(['items.sample', 'items.evaluations.user', 'items.evaluations.tags'])
+        ->withCount([
+            'items',
+            'users', // Total de provadores que entraram na mesa
+            //Conta apenas quem já terminou (has_finished = true)
+            'users as finished_users_count' => function ($query) {
+                $query->where('cupping_session_user.has_finished', true);
+            }
+        ])
+        ->findOrFail($id);
+        
+    return response()->json($session);
+}
 
     /**
      * Inicia uma nova mesa. Registra o momento exato de início (Fuso SP).
