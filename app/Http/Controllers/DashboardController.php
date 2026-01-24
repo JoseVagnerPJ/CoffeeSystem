@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\GreenCoffeeLot;
 use App\Models\CuppingSession;
-use App\Models\CuppingItem;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +12,7 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request) 
+    public function index() 
     {
         $user = Auth::user();
         
@@ -25,7 +23,7 @@ class DashboardController extends Controller
             ->groupBy('sensory_profile_id', 'reference')
             ->get();
 
-        // Variáveis vazias para o primeiro boot da página (o AJAX preencherá)
+        // Variáveis vazias para o primeiro carregamento (o AJAX preencherá os gráficos)
         $ultimosRecebimentos = collect();
         $mesasData = collect();
         $xicarasData = collect();
@@ -42,25 +40,21 @@ class DashboardController extends Controller
         $endDate = $request->get('end_date');
         $rangeType = $request->get('range_type');
 
-        $query = ($tipo == 'entrada') 
-            ? GreenCoffeeLot::query() 
-            : StockMovement::where('type', 'out');
+        $query = ($tipo == 'entrada') ? GreenCoffeeLot::query() : StockMovement::where('type', 'out');
 
-        // --- FILTRO SENSORIAL ---
+        // Filtro Sensorial
         if ($perfilId) {
             if ($tipo == 'entrada') {
-                // Certifique-se que o nome da coluna na tabela green_coffee_lots é este:
                 $query->where('sensory_profile_id', $perfilId);
             } else {
-                // Certifique-se que na Model StockMovement o relacionamento se chama 'lote'
                 $query->whereHas('lote', function($q) use ($perfilId) {
                     $q->where('sensory_profile_id', $perfilId);
                 });
             }
         }
 
-        // --- FILTRO DE DATA ---
-        if ($startDate && $endDate) {
+        // Filtro de Data (ignorado se for "all")
+        if ($rangeType !== 'all' && $startDate && $endDate) {
             $query->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(), 
                 Carbon::parse($endDate)->endOfDay()
@@ -68,15 +62,13 @@ class DashboardController extends Controller
         }
 
         if ($rangeType === 'all') {
-            // LÓGICA "TODOS": Mostra cada registro individual (como os antigos últimos 6)
-            $dados = $query->orderBy('created_at', 'ASC')->get()->map(function($item) use ($tipo) {
-                return [
-                    'peso' => ($tipo == 'entrada') ? $item->total_weight : $item->weight,
-                    'data' => $item->created_at->subHours(3)->format('d/m H:i')
-                ];
-            });
+            // TODOS: Retorna cada registro individualmente com data e hora
+            $dados = $query->orderBy('created_at', 'ASC')->get()->map(fn($item) => [
+                'peso' => ($tipo == 'entrada') ? $item->total_weight : $item->weight,
+                'data' => $item->created_at->subHours(3)->format('d/m/y - H:i:s')
+            ]);
         } else {
-            // LÓGICA AGRUPADA: Soma por dia para a "linha no chão"
+            // AGRUPADO: Soma por dia para gerar a "linha no chão"
             $colPeso = ($tipo == 'entrada') ? 'total_weight' : 'weight';
             $dados = $query->select(
                 DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '%d/%m') as data"),
@@ -90,8 +82,8 @@ class DashboardController extends Controller
 
         return response()->json([
             'dados' => $dados,
-            'titulo' => ($tipo == 'entrada') ? "RECEBIMENTOS" : "SAÍDAS",
-            'label' => ($tipo == 'entrada') ? "kg Recebido" : "kg Torrado"
+            'titulo' => ($tipo == 'entrada') ? "RECEBIMENTOS" : "SAÍDAS (TORRA)",
+            'label' => "kg"
         ]);
     }
 
@@ -101,28 +93,22 @@ class DashboardController extends Controller
         $endDate = $request->get('end_date');
         $rangeType = $request->get('range_type');
 
-        $query = CuppingSession::query();
+        $query = CuppingSession::withCount('items');
 
-        if ($startDate && $endDate) {
-            $query->whereBetween('cupping_sessions.created_at', [
+        if ($rangeType !== 'all' && $startDate && $endDate) {
+            $query->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(), 
                 Carbon::parse($endDate)->endOfDay()
             ]);
         }
 
         if ($rangeType === 'all') {
-            // Laboratório "TODOS": Pontos individuais
-            $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
-                ->select(
-                    DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m %H:%i') as tempo"),
-                    DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
-                    DB::raw('COUNT(cupping_items.id) as total_xicaras')
-                )
-                ->groupBy('tempo', 'cupping_sessions.created_at')
-                ->orderBy('cupping_sessions.created_at', 'ASC')
-                ->get();
+            $dados = $query->orderBy('created_at', 'ASC')->get()->map(fn($s) => [
+                'tempo' => $s->created_at->subHours(3)->format('d/m/y - H:i:s'),
+                'total_mesas' => 1,
+                'total_xicaras' => $s->items_count
+            ]);
         } else {
-            // Laboratório "AGRUPADO"
             $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
                 ->select(
                     DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
@@ -138,7 +124,6 @@ class DashboardController extends Controller
         return response()->json(['raw_data' => $dados]);
     }
 
-    // --- MANTIDAS AS OUTRAS FUNÇÕES ---
     public function cadastros() { return view('registries.index'); }
     public function laboratorio() { return view('laboratory.index'); }
     public function torrefacao() { return view('roasting.index'); }
