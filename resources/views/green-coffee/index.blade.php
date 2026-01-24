@@ -55,6 +55,9 @@
     .table-no-hover tbody tr:hover { background-color: rgba(191, 163, 126, 0.05) !important; }
     .pallet-highlight { stroke: #ffc107 !important; stroke-width: 15 !important; filter: drop-shadow(0 0 15px gold); }
 
+    .active-filter { box-shadow: 0 0 0 4px #3d2b1f !important; transform: scale(1.02); z-index: 5; }
+    .inactive-filter { opacity: 0.4; filter: grayscale(0.7); }
+
     /* REGRAS DE IMPRESSÃO */
     @media print {
         .no-print, .btn-close, .modal-header .btn { display: none !important; }
@@ -334,6 +337,13 @@
 </div>
 
 <script>
+    // CORREÇÃO PARA O ERRO 403: Setup global do CSRF Token para AJAX
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
     function highlightOnMap(coords) {
         coords.forEach(c => {
             const slot = document.querySelector(`#pallet-${c} .pallet-rect`);
@@ -412,7 +422,7 @@
             case 'last_week': start.setDate(now.getDate() - 7); break;
             case 'curr_month': start = new Date(now.getFullYear(), now.getMonth(), 1); break;
             case 'last_month': start = new Date(now.getFullYear(), now.getMonth() - 1, 1); end = new Date(now.getFullYear(), now.getMonth(), 0); break;
-            case 'all': start = new Date(2020, 0, 1); break;
+            case 'all': start = new Date(2025, 0, 1); break;
         }
         startInput.value = start.toISOString().split('T')[0];
         endInput.value = end.toISOString().split('T')[0];
@@ -449,6 +459,25 @@
             body.html(html);
         } catch(e) { body.html('<tr><td colspan="4" class="text-center py-5 text-danger small">Erro ao carregar dados.</td></tr>'); }
     }
+
+    /**
+     * Habilita a rolagem horizontal com o scroll vertical do mouse nos perfis
+     */
+    function enableHorizontalScroll() {
+        const container = document.querySelector('.sensory-scroll-container');
+        if (container) {
+            container.addEventListener('wheel', (evt) => {
+                if (evt.deltaY !== 0) {
+                    evt.preventDefault();
+                    container.scrollLeft += evt.deltaY;
+                }
+            }, { passive: false });
+        }
+    }
+
+    window.onload = () => {
+        enableHorizontalScroll();
+    };
 </script>
 
 @include('green-coffee.partials.modal_create_lote')
