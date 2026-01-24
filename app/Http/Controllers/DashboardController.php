@@ -90,7 +90,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'dados' => $dados,
-            'titulo' => ($tipo == 'entrada') ? "RECEBIMENTOS" : "SAÍDAS (TORRA)",
+            'titulo' => ($tipo == 'entrada') ? "RECEBIMENTOS" : "SAÍDAS",
             'label' => ($tipo == 'entrada') ? "kg Recebido" : "kg Torrado"
         ]);
     }
