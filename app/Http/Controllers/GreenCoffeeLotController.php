@@ -7,6 +7,7 @@ use App\Models\GreenCoffeeLot;
 use App\Models\SensoryProfile;
 use App\Models\LotAttachment;
 use App\Models\RoastingBatch; 
+// Importações essenciais para o funcionamento do histórico e fuso horário
 use App\Models\StockMovement;
 use Carbon\Carbon;
 use App\Models\InventorySession;
@@ -342,6 +343,9 @@ public function store(Request $request) {
     return redirect()->route('estoque.index')->with('success', 'Lote registrado!'); 
 }
 
+/**
+ * LÓGICA DO HISTÓRICO DE MOVIMENTAÇÃO (AJUSTADA)
+ */
 public function getHistoryData(Request $request)
 {
     try {
@@ -351,14 +355,9 @@ public function getHistoryData(Request $request)
 
         if ($tipo == 'entrada') {
             $query = GreenCoffeeLot::with(['sensoryProfile', 'locations']);
-            
             if ($start && $end) {
-                $query->whereBetween('created_at', [
-                    Carbon::parse($start)->startOfDay(), 
-                    Carbon::parse($end)->endOfDay()
-                ]);
+                $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
             }
-
             $dados = $query->latest()->get()->map(function($lote) {
                 return [
                     'data' => $lote->created_at->subHours(3)->format('d/m/Y H:i'),
@@ -371,16 +370,11 @@ public function getHistoryData(Request $request)
                 ];
             });
         } else {
-            // BUSCA DE SAÍDAS (STOCKMOVEMENTS)
-            $query = \App\Models\StockMovement::with(['lote.sensoryProfile', 'location']);
-
+            // Busca de Saídas em StockMovement
+            $query = StockMovement::with(['lote.sensoryProfile', 'location']);
             if ($start && $end) {
-                $query->whereBetween('created_at', [
-                    Carbon::parse($start)->startOfDay(), 
-                    Carbon::parse($end)->endOfDay()
-                ]);
+                $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
             }
-
             $dados = $query->where('type', 'out')->latest()->get()->map(function($mov) {
                 return [
                     'data' => $mov->created_at->subHours(3)->format('d/m/Y H:i'),
@@ -393,11 +387,8 @@ public function getHistoryData(Request $request)
                 ];
             });
         }
-
         return response()->json($dados);
-
     } catch (\Exception $e) {
-        // Retorna o erro em JSON para o JS não quebrar com HTML
         return response()->json(['error' => $e->getMessage()], 500);
     }
 }
