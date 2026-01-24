@@ -284,10 +284,10 @@
 <script>
     // SETUP GLOBAL CSRF PARA AJAX (CORREÇÃO ERRO 403)
     $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
-    });
+    headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    }
+});
 
     function highlightOnMap(coords) {
         coords.forEach(c => {
