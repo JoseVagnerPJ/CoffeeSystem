@@ -53,23 +53,24 @@ class DashboardController extends Controller
         }
 
         if ($startDate && $endDate) {
+            // Ajuste de +3h nos limites da busca para alinhar local -> banco
             $query->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(), 
-                Carbon::parse($endDate)->endOfDay()
+                Carbon::parse($startDate)->startOfDay()->addHours(3), 
+                Carbon::parse($endDate)->endOfDay()->addHours(3)
             ]);
         }
 
-        // Se for "Todos", retorna pontos individuais (Data e Hora)
+        // Se for "Todos", retorna pontos individuais (Ajustado +3h)
         if ($rangeType === 'all') {
             $dados = $query->orderBy('created_at', 'ASC')->get()->map(fn($item) => [
                 'peso' => ($tipo == 'entrada') ? $item->total_weight : $item->weight,
-                'data' => $item->created_at->subHours(3)->format('d/m/y - H:i:s')
+                'data' => $item->created_at->addHours(3)->format('d/m/y - H:i:s')
             ]);
         } else {
-            // Agrupado por Dia (Padrão para manual ou períodos fixos)
+            // Agrupado por Dia (Ajustado +3h via SQL DATE_ADD)
             $colPeso = ($tipo == 'entrada') ? 'total_weight' : 'weight';
             $dados = $query->select(
-                DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '%d/%m') as data"),
+                DB::raw("DATE_FORMAT(DATE_ADD(created_at, INTERVAL 3 HOUR), '%d/%m') as data"),
                 DB::raw("SUM($colPeso) as peso"),
                 DB::raw("MAX(created_at) as sort_date")
             )
@@ -94,22 +95,24 @@ class DashboardController extends Controller
         $query = CuppingSession::query();
 
         if ($startDate && $endDate) {
+            // Ajuste de +3h nos limites da busca para alinhar local -> banco
             $query->whereBetween('cupping_sessions.created_at', [
-                Carbon::parse($startDate)->startOfDay(), 
-                Carbon::parse($endDate)->endOfDay()
+                Carbon::parse($startDate)->startOfDay()->addHours(3), 
+                Carbon::parse($endDate)->endOfDay()->addHours(3)
             ]);
         }
 
         if ($rangeType === 'all') {
             $dados = $query->withCount('items')->orderBy('created_at', 'ASC')->get()->map(fn($s) => [
-                'tempo' => $s->created_at->subHours(3)->format('d/m/y - H:i:s'),
+                'tempo' => $s->created_at->addHours(3)->format('d/m/y - H:i:s'),
                 'total_mesas' => 1,
                 'total_xicaras' => $s->items_count
             ]);
         } else {
+            // Agrupado por Dia (Ajustado +3h via SQL DATE_ADD)
             $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
                 ->select(
-                    DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
+                    DB::raw("DATE_FORMAT(DATE_ADD(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
                     DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
                     DB::raw('COUNT(cupping_items.id) as total_xicaras'),
                     DB::raw('MAX(cupping_sessions.created_at) as sort_date')

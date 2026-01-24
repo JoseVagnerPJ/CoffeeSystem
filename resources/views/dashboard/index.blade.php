@@ -50,6 +50,7 @@
     <div class="row g-3 align-items-end">
         <div class="col-md-3">
             <label class="fw-bold text-muted mb-1 small">DATA INICIAL</label>
+            {{-- Adicionado oninput para detectar mudança manual --}}
             <input type="date" id="filter_start_date" class="form-control border-0 bg-light" oninput="setCustomRange()">
         </div>
         <div class="col-md-3">
@@ -112,18 +113,13 @@
 <script>
     let activeProfileId = null, currentTipo = 'entrada', chartLab, chartUltimos, chartEstoque;
     let selectedRangeType = 'last_week';
-    const OFFSET_3H = 3 * 60 * 60 * 1000; // Constante de 3 horas em ms
 
     function applyQuickFilter(value) {
         selectedRangeType = value;
         const startInput = document.getElementById('filter_start_date');
         const endInput = document.getElementById('filter_end_date');
-        
-        // Data atual com +3h
-        let now = new Date();
-        now.setTime(now.getTime() + OFFSET_3H);
-        
-        let start = new Date(now.getTime()), end = new Date(now.getTime());
+        const now = new Date();
+        let start = new Date(), end = new Date();
 
         switch(value) {
             case 'last_week': start.setDate(now.getDate() - 6); break;
@@ -133,11 +129,6 @@
             case 'last_year': start = new Date(now.getFullYear() - 1, 0, 1); end = new Date(now.getFullYear() - 1, 11, 31); break;
             case 'all': start = new Date(2025, 0, 1); break;
         }
-
-        // Garante que start e end também tenham o offset antes de formatar para o input
-        start.setTime(start.getTime() + OFFSET_3H);
-        end.setTime(end.getTime() + OFFSET_3H);
-
         startInput.value = start.toISOString().split('T')[0];
         endInput.value = end.toISOString().split('T')[0];
     }
@@ -148,6 +139,7 @@
     }
 
     function processChartData(apiData, type) {
+        // Se for "Todos", plota cada ponto sem criar lacunas
         if (selectedRangeType === 'all') {
             return {
                 labels: apiData.map(d => d.tempo || d.data),
@@ -161,16 +153,14 @@
         const endVal = document.getElementById('filter_end_date').value;
         if(!startVal || !endVal) return { labels: [], mesas: [], xicaras: [], mov: [] };
 
-        // Cria datas dos inputs e adiciona 3 horas
         const start = new Date(startVal + 'T00:00:00');
-        start.setTime(start.getTime() + OFFSET_3H);
         const end = new Date(endVal + 'T23:59:59');
-        end.setTime(end.getTime() + OFFSET_3H);
         
         let labels = [], valuesMesas = [], valuesXicaras = [], valuesMov = [];
-        let current = new Date(start.getTime());
+        let current = new Date(start);
         const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+        // Diferença em dias para decidir o formato do label
         const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
         while (current <= end) {
@@ -178,6 +168,7 @@
             const mm = String(current.getMonth() + 1).padStart(2, '0');
             const dataChave = `${dd}/${mm}`;
             
+            // Se o intervalo for curto, mostra o dia da semana. Se for longo, só o número do dia.
             if (diffDays <= 7) {
                 labels.push([diasSemana[current.getDay()], dataChave]);
             } else {
@@ -204,12 +195,14 @@
 
         if(!start || !end) return;
 
+        // Feedback visual simples
         const btn = document.querySelector('button[onclick="refreshAllData()"]');
         const originalText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> CARREGANDO...';
 
         try {
+            // Busca Lab
             const resLab = await fetch(`/dashboard/laboratorio-data?start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`);
             const dataLab = await resLab.json();
             const procLab = processChartData(dataLab.raw_data, 'lab');
@@ -218,6 +211,7 @@
             chartLab.data.datasets[1].data = procLab.xicaras;
             chartLab.update();
 
+            // Busca Movimentação
             const resMov = await fetch(`/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`);
             const dataMov = await resMov.json();
             const procMov = processChartData(dataMov.dados, 'mov');
@@ -274,7 +268,6 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } }}
         });
     }
-
     function enableHorizontalScroll() {
         const container = document.querySelector('.sensory-scroll-container');
         if (container) {
@@ -288,9 +281,16 @@
     }
 
     window.onload = () => {
+        // 1. Inicia os objetos dos gráficos (Chart.js)
         initCharts();
+        
+        // 2. Ativa o scroll horizontal nos perfis sensoriais
         enableHorizontalScroll();
+        
+        // 3. Define o filtro inicial como "Última Semana"
         applyQuickFilter('last_week');
+        
+        // 4. Busca os dados iniciais do servidor
         refreshAllData();
     };
 </script>
