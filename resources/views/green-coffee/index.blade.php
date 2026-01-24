@@ -374,44 +374,56 @@
     }
 
     async function refreshHistorico() {
-        const start = $('#hist_start_date').val();
-        const end = $('#hist_end_date').val();
-        const body = $('#hist-body');
-        body.html('<tr><td colspan="4" class="text-center py-5"><div class="spinner-border spinner-border-sm text-secondary"></div></td></tr>');
-        try {
-            // Rota nomeada para garantir o caminho
-            const url = "{{ route('estoque.green-coffee.history') }}?tipo=" + currentHistType + "&start_date=" + start + "&end_date=" + end;
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (data.error) throw new Error(data.error);
+    const start = $('#hist_start_date').val();
+    const end = $('#hist_end_date').val();
+    const body = $('#hist-body');
+    
+    body.html('<tr><td colspan="4" class="text-center py-5"><div class="spinner-border spinner-border-sm text-secondary"></div></td></tr>');
 
-            let html = '';
-            if(!data || data.length === 0) {
-                html = '<tr><td colspan="4" class="text-center py-5 text-muted small">Nenhuma movimentação encontrada.</td></tr>';
-            } else {
-                data.forEach(item => {
-                    const isSaida = item.tipo === 'saida';
-                    html += `
-                        <tr style="border-bottom: 1px solid #f8f9fa;">
-                            <td><div class="fw-bold" style="font-size: 0.75rem;">${item.data}</div></td>
-                            <td>
-                                <div class="fw-bold small">${item.ref}</div>
-                                <span class="badge rounded-pill" style="font-size: 0.6rem; background-color: ${item.cor}15; color: ${item.cor}; border: 1px solid ${item.cor};">${item.perfil}</span>
-                            </td>
-                            <td><span class="badge bg-light text-dark border" style="font-size: 0.65rem;">${item.endereco}</span></td>
-                            <td class="text-end fw-bold ${isSaida ? 'text-danger' : 'text-success'}" style="font-size: 0.85rem;">
-                                ${isSaida ? '-' : '+'}${parseFloat(item.peso).toLocaleString('pt-BR', {minimumFractionDigits: 1})}kg
-                            </td>
-                        </tr>`;
-                });
-            }
-            body.html(html);
-        } catch(e) { 
-            console.error("Falha no AJAX:", e);
-            body.html('<tr><td colspan="4" class="text-center py-5 text-danger small">Erro ao carregar dados. Verifique o console (F12) para detalhes.</td></tr>'); 
+    try {
+        // Geramos a URL dinamicamente
+        const url = "{{ route('estoque.green-coffee.history') }}?tipo=" + currentHistType + "&start_date=" + start + "&end_date=" + end;
+        
+        const response = await fetch(url);
+        
+        // Se o servidor retornar erro (500, 404, etc)
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Erro interno no servidor.");
         }
+
+        const data = await response.json();
+
+        let html = '';
+        if(!data || data.length === 0) {
+            html = '<tr><td colspan="4" class="text-center py-5 text-muted small">Nenhuma movimentação encontrada.</td></tr>';
+        } else {
+            data.forEach(item => {
+                const isSaida = item.tipo === 'saida';
+                html += `
+                    <tr style="border-bottom: 1px solid #f8f9fa;">
+                        <td><div class="fw-bold" style="font-size: 0.75rem;">${item.data}</div></td>
+                        <td>
+                            <div class="fw-bold small">${item.ref}</div>
+                            <span class="badge rounded-pill" style="font-size: 0.6rem; background-color: ${item.cor}15; color: ${item.cor}; border: 1px solid ${item.cor};">${item.perfil}</span>
+                        </td>
+                        <td><span class="badge bg-light text-dark border" style="font-size: 0.65rem;">${item.endereco}</span></td>
+                        <td class="text-end fw-bold ${isSaida ? 'text-danger' : 'text-success'}" style="font-size: 0.85rem;">
+                            ${isSaida ? '-' : '+'}${parseFloat(item.peso).toLocaleString('pt-BR', {minimumFractionDigits: 1})}kg
+                        </td>
+                    </tr>`;
+            });
+        }
+        body.html(html);
+
+    } catch(e) { 
+        console.error("Erro detalhado:", e.message);
+        body.html(`<tr><td colspan="4" class="text-center py-5 text-danger small">
+            <i class="bi bi-exclamation-triangle-fill"></i><br>
+            ${e.message}
+        </td></tr>`); 
     }
+}
 
     /**
      * Habilita a rolagem horizontal com o scroll vertical do mouse nos perfis
