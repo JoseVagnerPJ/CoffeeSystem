@@ -18,10 +18,14 @@ class LaboratoryController extends Controller
     {
         // 1. Iniciamos a Query básica
         $query = CuppingSession::query()
-            ->with(['items.sample', 'items.evaluations'])
-            ->withCount(['items', 'evaluations as participants_count' => function ($query) {
+        ->with(['items.sample', 'items.evaluations'])
+        ->withCount([
+            'items', 
+            'users', // <--- ADICIONADO: Isso traz o 'users_count' (total que entrou na mesa)
+            'evaluations as participants_count' => function ($query) {
                 $query->select(DB::raw('count(distinct(user_id))'));
-            }]);
+            }
+        ]);
 
         // --- APLICAÇÃO DE FILTROS ---
         if ($request->filled('title')) {

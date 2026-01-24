@@ -255,7 +255,8 @@
                         <td class="fw-bold">{{ $session->title }}</td>
                         <td class="text-center fw-bold text-dark">{{ $session->items_count }}</td>
                         <td class="text-center fw-bold {{ $session->status == 'aberto' ? 'text-success' : '' }}">
-                            {{ $session->status == 'aberto' ? '-' : $session->participants_count }}
+                            {{-- Se estiver aberto, mostra users_count (total que entrou). Se não, mostra quem finalizou. --}}
+                            {{ $session->status == 'aberto' ? ($session->users_count ?? 0) : $session->participants_count }}
                         </td>
                         <td class="small">{{ date('d/m/Y H:i', strtotime($session->started_at ?? $session->created_at)) }}</td>
                         <td><span class="badge {{ $session->status == 'finalizado' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} fw-bold" style="font-size: 0.6rem;">{{ strtoupper($session->status) }}</span></td>
