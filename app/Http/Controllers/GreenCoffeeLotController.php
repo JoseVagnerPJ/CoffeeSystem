@@ -342,47 +342,62 @@ public function store(Request $request) {
 
 public function getHistoryData(Request $request)
 {
-    $tipo = $request->get('tipo', 'entrada');
-    $start = $request->get('start_date');
-    $end = $request->get('end_date');
+    try {
+        $tipo = $request->get('tipo', 'entrada');
+        $start = $request->get('start_date');
+        $end = $request->get('end_date');
 
-    if ($tipo == 'entrada') {
-        // Recebimentos (Novos Lotes)
-        $query = GreenCoffeeLot::with(['sensoryProfile', 'locations']);
-        if ($start && $end) {
-            $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
+        if ($tipo == 'entrada') {
+            $query = GreenCoffeeLot::with(['sensoryProfile', 'locations']);
+            
+            if ($start && $end) {
+                $query->whereBetween('created_at', [
+                    Carbon::parse($start)->startOfDay(), 
+                    Carbon::parse($end)->endOfDay()
+                ]);
+            }
+
+            $dados = $query->latest()->get()->map(function($lote) {
+                return [
+                    'data' => $lote->created_at->subHours(3)->format('d/m/Y H:i'),
+                    'perfil' => $lote->sensoryProfile->name ?? 'N/A',
+                    'cor' => $lote->sensoryProfile->color_hex ?? '#ccc',
+                    'endereco' => $lote->locations->map(fn($l) => $l->address_row . $l->address_pos)->join(', '),
+                    'peso' => (float)$lote->total_weight,
+                    'ref' => $lote->reference,
+                    'tipo' => 'entrada'
+                ];
+            });
+        } else {
+            // BUSCA DE SAÍDAS (STOCKMOVEMENTS)
+            $query = \App\Models\StockMovement::with(['lote.sensoryProfile', 'location']);
+
+            if ($start && $end) {
+                $query->whereBetween('created_at', [
+                    Carbon::parse($start)->startOfDay(), 
+                    Carbon::parse($end)->endOfDay()
+                ]);
+            }
+
+            $dados = $query->where('type', 'out')->latest()->get()->map(function($mov) {
+                return [
+                    'data' => $mov->created_at->subHours(3)->format('d/m/Y H:i'),
+                    'perfil' => $mov->lote->sensoryProfile->name ?? 'N/A',
+                    'cor' => $mov->lote->sensoryProfile->color_hex ?? '#ccc',
+                    'endereco' => $mov->location ? ($mov->location->address_row . $mov->location->address_pos) : 'N/A',
+                    'peso' => (float)$mov->weight,
+                    'ref' => $mov->lote->reference ?? 'Lote N/A',
+                    'tipo' => 'saida'
+                ];
+            });
         }
-        $dados = $query->latest()->get()->map(function($lote) {
-            return [
-                'data' => $lote->created_at->subHours(3)->format('d/m/Y H:i'),
-                'perfil' => $lote->sensoryProfile->name ?? 'N/A',
-                'cor' => $lote->sensoryProfile->color_hex ?? '#ccc',
-                'endereco' => $lote->locations->map(fn($l) => $l->address_row . $l->address_pos)->join(', '),
-                'peso' => $lote->total_weight,
-                'ref' => $lote->reference,
-                'tipo' => 'entrada'
-            ];
-        });
-    } else {
-        // Saídas (Movimentações do tipo OUT)
-        $query = \App\Models\StockMovement::with(['lote.sensoryProfile', 'location']);
-        if ($start && $end) {
-            $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
-        }
-        $dados = $query->where('type', 'out')->latest()->get()->map(function($mov) {
-            return [
-                'data' => $mov->created_at->subHours(3)->format('d/m/Y H:i'),
-                'perfil' => $mov->lote->sensoryProfile->name ?? 'N/A',
-                'cor' => $mov->lote->sensoryProfile->color_hex ?? '#ccc',
-                'endereco' => $mov->location ? ($mov->location->address_row . $mov->location->address_pos) : 'N/A',
-                'peso' => $mov->weight,
-                'ref' => $mov->lote->reference ?? 'N/A',
-                'tipo' => 'saida'
-            ];
-        });
+
+        return response()->json($dados);
+
+    } catch (\Exception $e) {
+        // Retorna o erro em JSON para o JS não quebrar com HTML
+        return response()->json(['error' => $e->getMessage()], 500);
     }
-
-    return response()->json($dados);
 }
 
 public function destroy($id)
