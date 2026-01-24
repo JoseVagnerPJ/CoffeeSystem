@@ -74,40 +74,62 @@ class DashboardController extends Controller
     }
 
     public function getMovimentacaoData(Request $request) 
-    {
-        $tipo = $request->get('tipo', 'entrada');
-        if ($tipo == 'entrada') {
-            $dados = \App\Models\GreenCoffeeLot::orderBy('created_at', 'DESC')
-                ->limit(6)->get()->reverse()->values()
-                ->map(function($lote) {
-                    return [
-                        'peso' => $lote->total_weight,
-                        'data' => $lote->created_at->subHours(3)->format('d/m H:i:s')
-                    ];
-                });
-            $titulo = "ÚLTIMOS RECEBIMENTOS";
-        } else {
-            $dados = \App\Models\StockMovement::with('lote')
-    ->where('type', 'out')
-    ->latest()
-    ->limit(6)
-    ->get()
-    ->reverse()
-    ->values()
-    ->map(function($movimentacao) {
-        return [
-            // perfil_id extraído através do relacionamento 'lote'
-            'perfil_id' => $movimentacao->lote->sensory_profile_id ?? null,
-            // Peso retirado no modal
-            'peso' => $movimentacao->weight,
-            // Data formatada com ajuste de fuso horário
-            'data' => $movimentacao->created_at->subHours(3)->format('d/m H:i:s')
-        ];
-    });
-            $titulo = "ÚLTIMAS SAÍDAS";
-        }
-        return response()->json(['dados' => $dados, 'titulo' => $titulo]);
+{
+    $tipo = $request->get('tipo', 'entrada');
+    $perfilId = $request->get('perfil_id');
+    $startDate = $request->get('start_date');
+    $endDate = $request->get('end_date');
+
+    // Define período padrão (última semana) caso não venha data
+    if (!$startDate || !$endDate) {
+        $startDate = Carbon::now()->subDays(7)->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+    } else {
+        $startDate = Carbon::parse($startDate)->startOfDay();
+        $endDate = Carbon::parse($endDate)->endOfDay();
     }
+
+    if ($tipo == 'entrada') {
+        $query = \App\Models\GreenCoffeeLot::query();
+        $titulo = "RECEBIMENTOS";
+        $label = "kg Recebido";
+        $colunaPeso = 'total_weight';
+    } else {
+        $query = \App\Models\StockMovement::where('type', 'out');
+        $titulo = "SAÍDAS (TORRA)";
+        $label = "kg Torrado";
+        $colunaPeso = 'weight';
+    }
+
+    // Filtro por Perfil Sensorial
+    if ($perfilId) {
+        if ($tipo == 'entrada') {
+            $query->where('sensory_profile_id', $perfilId);
+        } else {
+            $query->whereHas('lote', function($q) use ($perfilId) {
+                $q->where('sensory_profile_id', $perfilId);
+            });
+        }
+    }
+
+    // Filtro por Data
+    $query->whereBetween('created_at', [$startDate, $endDate]);
+
+    $dados = $query->orderBy('created_at', 'ASC')
+        ->get()
+        ->map(function($item) use ($tipo, $colunaPeso) {
+            return [
+                'peso' => $item->$colunaPeso,
+                'data' => $item->created_at->subHours(3)->format('d/m H:i')
+            ];
+        });
+
+    return response()->json([
+        'dados' => $dados, 
+        'titulo' => $titulo,
+        'label' => $label
+    ]);
+}
 
     public function getLaboratorioData(Request $request)
     {

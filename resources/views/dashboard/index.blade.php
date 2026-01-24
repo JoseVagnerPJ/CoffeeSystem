@@ -91,29 +91,48 @@
     </div>
 
     {{-- Coluna de Movimentação (5/12 avos da tela) --}}
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold mb-0 text-dark" id="tituloMovimentacao">ÚLTIMOS RECEBIMENTOS</h6>
-                
-                <div class="btn-group shadow-sm">
-                    <button onclick="toggleMovimentacao('entrada')" class="btn btn-sm btn-outline-success" title="Ver Recebimentos">
-                        📈 Entradas
-                    </button>
-                    <button onclick="toggleMovimentacao('saida')" class="btn btn-sm btn-outline-danger" title="Ver Saídas">
-                        📉 Saídas
-                    </button>
-                </div>
+    {{-- Coluna de Movimentação --}}
+<div class="col-lg-6">
+    <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0 text-dark" id="tituloMovimentacao">RECEBIMENTOS</h6>
+            
+            <div class="btn-group shadow-sm">
+                <button onclick="toggleMovimentacao('entrada')" id="btn-mov-entrada" class="btn btn-sm btn-success text-white">📈 Entradas</button>
+                <button onclick="toggleMovimentacao('saida')" id="btn-mov-saida" class="btn btn-sm btn-outline-danger">📉 Saídas</button>
             </div>
-            <div style="height: 250px;">
-                @if($ultimosRecebimentos->isEmpty())
-                    <div class="h-100 d-flex align-items-center justify-content-center text-muted">Não existem dados a exibir</div>
-                @else
-                    <canvas id="chartUltimos"></canvas>
-                @endif
+        </div>
+
+        <div style="height: 200px;">
+            <canvas id="chartUltimos"></canvas>
+        </div>
+
+        {{-- FILTROS DE DATA --}}
+        <div class="mt-3 pt-3 border-top">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="small fw-bold text-muted">DATA INICIAL</label>
+                    <input type="date" id="filter_start_date" class="form-control form-control-sm border-0 bg-light" onchange="refreshMovimentacao()">
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold text-muted">DATA FINAL</label>
+                    <input type="date" id="filter_end_date" class="form-control form-control-sm border-0 bg-light" onchange="refreshMovimentacao()">
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold text-muted">FILTRO RÁPIDO</label>
+                    <select id="quick_filter" class="form-select form-select-sm border-0 bg-light fw-bold" onchange="applyQuickFilter(this.value)">
+                        <option value="last_week">Última Semana</option>
+                        <option value="curr_month">Mês Atual</option>
+                        <option value="last_month">Último Mês</option>
+                        <option value="this_year">Este Ano</option>
+                        <option value="last_year">Último Ano</option>
+                        <option value="all">Geral</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
+</div>
     
 </div>
 
@@ -156,6 +175,45 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    let currentTipo = 'entrada';
+    let activeProfileId = null;
+    let chartLab, chartUltimos, chartEstoque;
+
+    function applyQuickFilter(value) {
+        const startInput = document.getElementById('filter_start_date');
+        const endInput = document.getElementById('filter_end_date');
+        const now = new Date();
+        let start = new Date();
+        let end = new Date();
+
+        switch(value) {
+            case 'last_week':
+                start.setDate(now.getDate() - 7);
+                break;
+            case 'curr_month':
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+            case 'last_month':
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                end = new Date(now.getFullYear(), now.getMonth(), 0);
+                break;
+            case 'this_year':
+                start = new Date(now.getFullYear(), 0, 1);
+                break;
+            case 'last_year':
+                start = new Date(now.getFullYear() - 1, 0, 1);
+                end = new Date(now.getFullYear() - 1, 11, 31);
+                break;
+            case 'all':
+                start = new Date(2020, 0, 1); 
+                break;
+        }
+
+        startInput.value = start.toISOString().split('T')[0];
+        endInput.value = end.toISOString().split('T')[0];
+        
+        refreshMovimentacao();
+    }
     // Função auxiliar para somar 3 horas aos rótulos de tempo
     function add3Hours(label) {
         if (!label || typeof label !== 'string' || !label.includes(':')) return label;
@@ -173,31 +231,54 @@
     let activeProfileId = null;
     let chartLab, chartUltimos, chartEstoque;
 
-    /**
-     * AJAX: Alternar entre Entradas (Recebimentos) e Saídas (Torras)
-     */
-    async function toggleMovimentacao(tipo) {
+    async function refreshMovimentacao() {
+        const start = document.getElementById('filter_start_date').value;
+        const end = document.getElementById('filter_end_date').value;
+        const perfil = activeProfileId;
+
         try {
-            const response = await fetch(`/dashboard/movimentacao-data?tipo=${tipo}`);
+            const url = `/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}`;
+            const response = await fetch(url);
             const result = await response.json();
 
-            const tituloElem = document.getElementById('tituloMovimentacao');
-            if(tituloElem) tituloElem.innerText = result.titulo;
-
             if (chartUltimos) {
-                const color = tipo === 'entrada' ? '#c0a16b' : '#dc3545';
-                const bgColor = tipo === 'entrada' ? 'rgba(192, 161, 107, 0.1)' : 'rgba(220, 53, 69, 0.1)';
+                const isEntrada = currentTipo === 'entrada';
+                const color = isEntrada ? '#c0a16b' : '#dc3545';
+                const bgColor = isEntrada ? 'rgba(192, 161, 107, 0.1)' : 'rgba(220, 53, 69, 0.1)';
                 
-                chartUltimos.data.labels = result.dados.map(d => add3Hours(d.data));
+                chartUltimos.data.labels = result.dados.map(d => d.data);
                 chartUltimos.data.datasets[0].data = result.dados.map(d => d.peso);
-                chartUltimos.data.datasets[0].label = tipo === 'entrada' ? 'kg Recebido' : 'kg Torrado';
+                chartUltimos.data.datasets[0].label = result.label;
                 chartUltimos.data.datasets[0].borderColor = color;
                 chartUltimos.data.datasets[0].backgroundColor = bgColor;
                 chartUltimos.update(); 
+
+                document.getElementById('tituloMovimentacao').innerText = result.titulo;
             }
         } catch (error) {
-            console.error("Erro ao alternar gráfico de movimentação:", error);
+            console.error("Erro ao carregar movimentação:", error);
         }
+    }
+
+    /**
+     * AJAX: Alternar entre Entradas (Recebimentos) e Saídas (Torras)
+     */
+    function toggleMovimentacao(tipo) {
+        currentTipo = tipo;
+        
+        // Estilo dos botões
+        const btnE = document.getElementById('btn-mov-entrada');
+        const btnS = document.getElementById('btn-mov-saida');
+        
+        if(tipo === 'entrada') {
+            btnE.className = 'btn btn-sm btn-success text-white';
+            btnS.className = 'btn btn-sm btn-outline-danger';
+        } else {
+            btnE.className = 'btn btn-sm btn-outline-success';
+            btnS.className = 'btn btn-sm btn-danger text-white';
+        }
+
+        refreshMovimentacao();
     }
 
     /**
@@ -269,24 +350,25 @@ function initCharts() {
             chartUltimos = new Chart(elUltimos, {
                 type: 'line',
                 data: {
-                    labels: dataRecebimentoInicial.map(d => add3Hours(d.data)),
+                    labels: [],
                     datasets: [{
                         label: 'kg',
-                        data: dataRecebimentoInicial.map(d => d.peso),
+                        data: [],
                         borderColor: '#c0a16b',
                         backgroundColor: 'rgba(192, 161, 107, 0.1)',
-                        fill: true, 
+                        fill: true,
                         tension: 0.4,
                         borderWidth: 3
                     }]
                 },
                 options: { 
                     responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } } 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
                 }
             });
         }
+    }
 
         // 3. Gráfico de Mapa de Estoque por Perfil (Barra)
         const elEstoque = document.getElementById('chartEstoqueTotal');
@@ -316,19 +398,18 @@ function initCharts() {
      */
     function toggleProfileFilter(profileId) {
         const cards = document.querySelectorAll('.profile-card');
+        
         if (activeProfileId === profileId) {
             activeProfileId = null;
             cards.forEach(c => c.classList.remove('active-filter', 'inactive-filter'));
-            updateChartUltimos(dataRecebimentoInicial);
         } else {
             activeProfileId = profileId;
             cards.forEach(c => {
                 c.classList.toggle('active-filter', c.id === `profile-${profileId}`);
                 c.classList.toggle('inactive-filter', c.id !== `profile-${profileId}`);
             });
-            const filtered = dataRecebimentoInicial.filter(d => d.perfil_id == profileId);
-            updateChartUltimos(filtered);
         }
+        refreshMovimentacao();
     }
 
     /**
@@ -360,8 +441,8 @@ function initCharts() {
     // Inicialização ao carregar a janela
     window.onload = () => {
         initCharts();
+        applyQuickFilter('last_week'); // Já carrega os dados iniciais
         enableHorizontalScroll();
-        // Sincronia: O Laboratório inicia no gráfico diário (D) para precisão de segundos
         updateChartLab('D');
     };
 </script>
