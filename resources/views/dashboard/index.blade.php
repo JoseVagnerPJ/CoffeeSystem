@@ -2,14 +2,13 @@
 
 @section('content')
 <div class="container-fluid py-4" style="background-color: #f4f1ee; min-height: 100vh;">
-    {{-- Saudação --}}
     <div class="mb-4">
         <h2 class="h3 fw-bold mb-0" style="color: #3d2b1f;">Bem vindo, {{ $user->name }}! 👋</h2>
     </div>
 
-    {{-- MAPA DE ESTOQUE TOTAL --}}
+    {{-- MAPA DE ESTOQUE --}}
     <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px;">
-        <h6 class="fw-bold mb-4 text-dark">MAPA DE ESTOQUE POR PERFIL (TOTAL KG)</h6>
+        <h6 class="fw-bold mb-4 text-dark text-uppercase" style="font-size: 0.8rem;">Mapa de Estoque por Perfil (Total KG)</h6>
         @if($estoquePorPerfil->isEmpty())
             <div class="py-5 text-center text-muted">Não existem dados a exibir</div>
         @else
@@ -17,42 +16,37 @@
             <div class="d-flex flex-wrap justify-content-center mt-4 gap-3">
                 @foreach($estoquePorPerfil as $item)
                     <div class="d-flex align-items-center">
-                        <div style="width: 15px; height: 15px; border-radius: 3px; background-color: {{ $item->sensoryProfile->color_hex }}; margin-right: 6px;"></div>
-                        <span style="font-size: 0.75rem; color: #000; font-weight: 900;">{{ strtoupper($item->sensoryProfile->name) }}</span>
+                        <div style="width: 12px; height: 12px; border-radius: 3px; background-color: {{ $item->sensoryProfile->color_hex }}; margin-right: 6px;"></div>
+                        <span style="font-size: 0.7rem; color: #000; font-weight: 800;">{{ strtoupper($item->sensoryProfile->name) }}</span>
                     </div>
                 @endforeach
             </div>
         @endif
     </div>
 
-    {{-- GRID DE PERFIS --}}
-    <h6 class="fw-bold text-uppercase mb-3" style="color: #c0a16b; font-size: 0.75rem; letter-spacing: 1px;">Filtragem por Perfil Sensorial</h6>
+    {{-- FILTRO SENSORIAL --}}
+    <h6 class="fw-bold text-uppercase mb-3" style="color: #c0a16b; font-size: 0.7rem; letter-spacing: 1px;">Filtragem por Perfil</h6>
     <div class="sensory-scroll-container mb-4">
         <div class="sensory-single-row">
-            @forelse($estoquePorPerfil as $item)
-            <div class="card profile-card border-0 shadow-sm" 
-                id="profile-{{ $item->sensory_profile_id }}"
-                onclick="toggleProfileFilter({{ $item->sensory_profile_id }})"
-                style="background-color: {{ $item->sensoryProfile->color_hex ?? '#3d2b1f' }}; min-width: 260px;">
+            @foreach($estoquePorPerfil as $item)
+            <div class="card profile-card border-0 shadow-sm" id="profile-{{ $item->sensory_profile_id }}" onclick="toggleProfileFilter({{ $item->sensory_profile_id }})" style="background-color: {{ $item->sensoryProfile->color_hex }}; min-width: 240px;">
                 <div class="glass-film p-2 d-flex flex-column justify-content-center h-100">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold profile-name text-black text-uppercase" style="font-size: 1.1rem; color: #000 !important;">{{ $item->sensoryProfile->name }}</span>
-                        <span class="fw-bold" style="font-size: 0.65rem; color: #000 !important; opacity: 0.8;">#{{ $item->reference }}</span>
+                        <span class="fw-bold text-black text-uppercase" style="font-size: 1rem;">{{ $item->sensoryProfile->name }}</span>
+                        <span class="fw-bold small opacity-75">#{{ $item->reference }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-1">
-                        <h4 class="fw-bold mb-0 text-black" style="font-size: 1.3rem; color: #000 !important;">{{ number_format($item->total_kg, 1) }}<small style="font-size: 0.7rem;">kg</small></h4>
-                        <span class="fw-bold text-black" style="font-size: 0.85rem; color: #000 !important;">{{ $item->total_sacas }} SACAS</span>
+                        <h4 class="fw-bold mb-0 text-black">{{ number_format($item->total_kg, 1) }}<small class="small">kg</small></h4>
+                        <span class="fw-bold text-black small">{{ $item->total_sacas }} SACAS</span>
                     </div>
                 </div>
             </div>
-            @empty
-                <div class="w-100 text-center py-4 bg-white shadow-sm" style="border-radius: 15px;"><span class="text-muted">Não existem dados</span></div>
-            @endforelse
+            @endforeach
         </div>
     </div>
 
-    {{-- PAINEL DE FILTROS GLOBAL --}}
-    <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 20px; background: #fff;">
+    {{-- PAINEL DE FILTROS --}}
+    <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 20px;">
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="fw-bold text-muted mb-1 small">DATA INICIAL</label>
@@ -63,7 +57,7 @@
                 <input type="date" id="filter_end_date" class="form-control border-0 bg-light">
             </div>
             <div class="col-md-3">
-                <label class="fw-bold text-muted mb-1 small">ATALHO RÁPIDO</label>
+                <label class="fw-bold text-muted mb-1 small">ATALHO</label>
                 <select class="form-select border-0 bg-light fw-bold" id="quick_filter" onchange="applyQuickFilter(this.value)">
                     <option value="last_week">Última Semana</option>
                     <option value="curr_month">Mês Atual</option>
@@ -74,24 +68,18 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <button onclick="refreshAllData()" class="btn btn-dark w-100 fw-bold" style="height: 45px;">
-                    <i class="bi bi-filter-circle-fill me-2"></i> APLICAR FILTROS
-                </button>
+                <button onclick="refreshAllData()" class="btn btn-dark w-100 fw-bold" style="height: 40px;">APLICAR FILTROS</button>
             </div>
         </div>
     </div>
 
-    {{-- GRÁFICOS --}}
-    <div class="row g-4 mb-4">
-        {{-- Produtividade Laboratório --}}
+    <div class="row g-4">
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
                 <h6 class="fw-bold mb-4" style="color: #3d2b1f;">PRODUTIVIDADE LABORATÓRIO</h6>
                 <div style="height: 300px;"><canvas id="chartLab"></canvas></div>
             </div>
         </div>
-
-        {{-- Movimentação --}}
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -108,65 +96,39 @@
 </div>
 
 <style>
-    .sensory-scroll-container { overflow-x: auto; padding-bottom: 15px; white-space: nowrap; }
-    .sensory-single-row { display: flex; gap: 12px; height: 100px; }
+    .sensory-scroll-container { overflow-x: auto; padding-bottom: 10px; }
+    .sensory-single-row { display: flex; gap: 12px; height: 90px; }
     .profile-card { cursor: pointer; border-radius: 12px; overflow: hidden; transition: transform 0.2s; flex-shrink: 0; }
-    .glass-film { background: rgba(255, 255, 255, 0.23); width: 100%; height: 100%; }
-    .profile-card:hover { transform: scale(1.03); }
-    .active-filter { box-shadow: 0 0 0 4px #3d2b1f !important; transform: scale(1.05); z-index: 10; }
-    .inactive-filter { opacity: 0.4; filter: grayscale(0.6); }
-    .sensory-scroll-container::-webkit-scrollbar { height: 8px; }
-    .sensory-scroll-container::-webkit-scrollbar-thumb { background: #c0a16b; border-radius: 10px; }
+    .glass-film { background: rgba(255, 255, 255, 0.2); width: 100%; height: 100%; }
+    .active-filter { box-shadow: 0 0 0 4px #3d2b1f !important; transform: scale(1.03); z-index: 5; }
+    .inactive-filter { opacity: 0.4; filter: grayscale(0.7); }
+    .text-black { color: #000 !important; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let activeProfileId = null;
-    let currentTipo = 'entrada';
-    let chartLab, chartUltimos, chartEstoque;
+    let activeProfileId = null, currentTipo = 'entrada', chartLab, chartUltimos, chartEstoque;
     let selectedRangeType = 'last_week';
 
-    /**
-     * Lógica de Atalhos Rápidos de Data
-     */
     function applyQuickFilter(value) {
         selectedRangeType = value;
         const startInput = document.getElementById('filter_start_date');
         const endInput = document.getElementById('filter_end_date');
         const now = new Date();
-        let start = new Date();
-        let end = new Date();
+        let start = new Date(), end = new Date();
 
         switch(value) {
-            case 'last_week':
-                start.setDate(now.getDate() - 6);
-                break;
-            case 'curr_month':
-                start = new Date(now.getFullYear(), now.getMonth(), 1);
-                break;
-            case 'last_month':
-                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                end = new Date(now.getFullYear(), now.getMonth(), 0);
-                break;
-            case 'this_year':
-                start = new Date(now.getFullYear(), 0, 1);
-                break;
-            case 'last_year':
-                start = new Date(now.getFullYear() - 1, 0, 1);
-                end = new Date(now.getFullYear() - 1, 11, 31);
-                break;
-            case 'all':
-                start = new Date(2025, 0, 1);
-                break;
+            case 'last_week': start.setDate(now.getDate() - 6); break;
+            case 'curr_month': start = new Date(now.getFullYear(), now.getMonth(), 1); break;
+            case 'last_month': start = new Date(now.getFullYear(), now.getMonth() - 1, 1); end = new Date(now.getFullYear(), now.getMonth(), 0); break;
+            case 'this_year': start = new Date(now.getFullYear(), 0, 1); break;
+            case 'last_year': start = new Date(now.getFullYear() - 1, 0, 1); end = new Date(now.getFullYear() - 1, 11, 31); break;
+            case 'all': start = new Date(2025, 0, 1); break;
         }
-
         startInput.value = start.toISOString().split('T')[0];
         endInput.value = end.toISOString().split('T')[0];
     }
 
-    /**
-     * Gera os labels do gráfico e preenche com zero onde não há dados
-     */
     function processChartData(apiData, type) {
         if (selectedRangeType === 'all') {
             return {
@@ -177,247 +139,99 @@
             };
         }
 
-        // LÓGICA DE PREENCHIMENTO DE DIAS VAZIOS (Para Semana/Mês)
         const start = new Date(document.getElementById('filter_start_date').value + 'T00:00:00');
         const end = new Date(document.getElementById('filter_end_date').value + 'T23:59:59');
-        let labels = [];
-        let valuesMesas = [];
-        let valuesXicaras = [];
-        let valuesMov = [];
-
+        let labels = [], vMesas = [], vXicaras = [], vMov = [];
         let current = new Date(start);
         const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
         while (current <= end) {
             const dd = String(current.getDate()).padStart(2, '0');
             const mm = String(current.getMonth() + 1).padStart(2, '0');
-            const dataChave = `${dd}/${mm}`;
-            
-            labels.push(selectedRangeType === 'last_week' ? [diasSemana[current.getDay()], dataChave] : dd);
-
-            const match = apiData.find(d => (d.tempo || d.data) === dataChave);
-            
+            const chave = `${dd}/${mm}`;
+            labels.push(selectedRangeType === 'last_week' ? [diasSemana[current.getDay()], chave] : dd);
+            const match = apiData.find(d => (d.tempo || d.data) === chave);
             if (type === 'lab') {
-                valuesMesas.push(match ? match.total_mesas : 0);
-                valuesXicaras.push(match ? match.total_xicaras : 0);
+                vMesas.push(match ? match.total_mesas : 0);
+                vXicaras.push(match ? match.total_xicaras : 0);
             } else {
-                valuesMov.push(match ? match.peso : 0);
+                vMov.push(match ? match.peso : 0);
             }
             current.setDate(current.getDate() + 1);
         }
-        return { labels, mesas: valuesMesas, xicaras: valuesXicaras, mov: valuesMov };
+        return { labels, mesas: vMesas, xicaras: vXicaras, mov: vMov };
     }
 
-    /**
-     * Refresh Geral de todos os gráficos
-     */
     async function refreshAllData() {
         const start = document.getElementById('filter_start_date').value;
         const end = document.getElementById('filter_end_date').value;
-        const perfil = activeProfileId;
-
-        // 1. Atualizar Laboratório
+        
+        // Lab
         try {
-            const resLab = await fetch(`/dashboard/laboratorio-data?start_date=${start}&end_date=${end}`);
-            const dataLab = await resLab.json();
-            const processedLab = processChartData(dataLab.raw_data, 'lab');
-            
-            chartLab.data.labels = processedLab.labels;
-            chartLab.data.datasets[0].data = processedLab.mesas;
-            chartLab.data.datasets[1].data = processedLab.xicaras;
+            const res = await fetch(`/dashboard/laboratorio-data?start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`);
+            const json = await res.json();
+            const proc = processChartData(json.raw_data, 'lab');
+            chartLab.data.labels = proc.labels;
+            chartLab.data.datasets[0].data = proc.mesas;
+            chartLab.data.datasets[1].data = proc.xicaras;
             chartLab.update();
-        } catch(e) { console.error(e); }
+        } catch(e) {}
 
-        // 2. Atualizar Movimentação
+        // Movimentação
         try {
-            const resMov = await fetch(`/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}`);
-            const dataMov = await resMov.json();
-            const processedMov = processChartData(dataMov.dados, 'mov');
-
-            document.getElementById('tituloMovimentacao').innerText = dataMov.titulo;
-            chartUltimos.data.labels = processedMov.labels;
-            chartUltimos.data.datasets[0].data = processedMov.mov;
-            chartUltimos.data.datasets[0].label = dataMov.label;
+            const res = await fetch(`/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${activeProfileId || ''}&start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`);
+            const json = await res.json();
+            const proc = processChartData(json.dados, 'mov');
+            document.getElementById('tituloMovimentacao').innerText = json.titulo;
+            chartUltimos.data.labels = proc.labels;
+            chartUltimos.data.datasets[0].data = proc.mov;
+            chartUltimos.data.datasets[0].label = json.label;
             chartUltimos.update();
-        } catch(e) { console.error(e); }
+        } catch(e) {}
     }
 
     function toggleMovimentacao(tipo) {
         currentTipo = tipo;
-        const btnE = document.getElementById('btn-tipo-entrada');
-        const btnS = document.getElementById('btn-tipo-saida');
-        btnE.className = tipo === 'entrada' ? 'btn btn-sm btn-success text-white' : 'btn btn-sm btn-outline-success';
-        btnS.className = tipo === 'saida' ? 'btn btn-sm btn-danger text-white' : 'btn btn-sm btn-outline-danger';
+        document.getElementById('btn-tipo-entrada').className = tipo === 'entrada' ? 'btn btn-sm btn-success text-white' : 'btn btn-sm btn-outline-success';
+        document.getElementById('btn-tipo-saida').className = tipo === 'saida' ? 'btn btn-sm btn-danger text-white' : 'btn btn-sm btn-outline-danger';
         refreshAllData();
     }
 
-    public function getMovimentacaoData(Request $request) 
-    {
-        $tipo = $request->get('tipo', 'entrada');
-        $perfilId = $request->get('perfil_id');
-        $startDate = $request->get('start_date');
-        $endDate = $request->get('end_date');
-        $rangeType = $request->get('range_type');
-
-        // Definimos qual query usar
-        $query = ($tipo == 'entrada') 
-            ? GreenCoffeeLot::query() 
-            : StockMovement::where('type', 'out');
-
-        // --- FILTRO SENSORIAL (Garantindo que funcione em Entradas e Saídas) ---
-        if ($perfilId) {
-            if ($tipo == 'entrada') {
-                $query->where('sensory_profile_id', $perfilId);
-            } else {
-                // Aqui partimos do pressuposto que StockMovement tem o método 'lote()'
-                $query->whereHas('lote', function($q) use ($perfilId) {
-                    $q->where('sensory_profile_id', $perfilId);
-                });
-            }
-        }
-
-        // --- FILTRO DE DATA ---
-        if ($startDate && $endDate && $rangeType !== 'all') {
-            $query->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(), 
-                Carbon::parse($endDate)->endOfDay()
-            ]);
-        }
-
-        if ($rangeType === 'all') {
-            // LÓGICA "TODOS": Cronológico puro, sem agrupar por dia
-            $dados = $query->orderBy('created_at', 'ASC')
-                ->get()
-                ->map(function($item) use ($tipo) {
-                    return [
-                        'peso' => ($tipo == 'entrada') ? $item->total_weight : $item->weight,
-                        // Formato solicitado: 21/01/26 - 14:43:23
-                        'data' => $item->created_at->subHours(3)->format('d/m/y - H:i:s')
-                    ];
-                });
-        } else {
-            // LÓGICA POR PERÍODO: Agrupado por Dia
-            $colPeso = ($tipo == 'entrada') ? 'total_weight' : 'weight';
-            $dados = $query->select(
-                DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '%d/%m') as data"),
-                DB::raw("SUM($colPeso) as peso"),
-                DB::raw("MAX(created_at) as sort_date")
-            )
-            ->groupBy('data')
-            ->orderBy('sort_date', 'ASC')
-            ->get();
-        }
-
-        return response()->json([
-            'dados' => $dados,
-            'titulo' => ($tipo == 'entrada') ? "RECEBIMENTOS" : "SAÍDAS (TORRA)",
-            'label' => ($tipo == 'entrada') ? "kg" : "kg"
-        ]);
-    }
-
-    public function getLaboratorioData(Request $request)
-    {
-        $startDate = $request->get('start_date');
-        $endDate = $request->get('end_date');
-        $rangeType = $request->get('range_type');
-
-        $query = CuppingSession::withCount('items');
-
-        if ($startDate && $endDate && $rangeType !== 'all') {
-            $query->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(), 
-                Carbon::parse($endDate)->endOfDay()
-            ]);
-        }
-
-        if ($rangeType === 'all') {
-            // Cada ponto é uma mesa individual
-            $dados = $query->orderBy('created_at', 'ASC')
-                ->get()
-                ->map(fn($s) => [
-                    'tempo' => $s->created_at->subHours(3)->format('d/m/y - H:i:s'),
-                    'total_mesas' => 1,
-                    'total_xicaras' => $s->items_count
-                ]);
-        } else {
-            // Agrupado por Dia
-            $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
-                ->select(
-                    DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
-                    DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
-                    DB::raw('COUNT(cupping_items.id) as total_xicaras'),
-                    DB::raw('MAX(cupping_sessions.created_at) as sort_date')
-                )
-                ->groupBy('tempo')
-                ->orderBy('sort_date', 'ASC')
-                ->get();
-        }
-
-        return response()->json(['raw_data' => $dados]);
-    }
-
-    function toggleProfileFilter(profileId) {
-        const cards = document.querySelectorAll('.profile-card');
-        if (activeProfileId === profileId) {
-            activeProfileId = null;
-            cards.forEach(c => c.classList.remove('active-filter', 'inactive-filter'));
-        } else {
-            activeProfileId = profileId;
-            cards.forEach(c => {
-                c.classList.toggle('active-filter', c.id === `profile-${profileId}`);
-                c.classList.toggle('inactive-filter', c.id !== `profile-${profileId}`);
-            });
-        }
+    function toggleProfileFilter(id) {
+        activeProfileId = (activeProfileId === id) ? null : id;
+        document.querySelectorAll('.profile-card').forEach(c => {
+            c.classList.toggle('active-filter', activeProfileId === parseInt(c.id.split('-')[1]));
+            c.classList.toggle('inactive-filter', activeProfileId !== null && activeProfileId !== parseInt(c.id.split('-')[1]));
+        });
         refreshAllData();
     }
 
     function initCharts() {
-        // Lab Chart
         chartLab = new Chart(document.getElementById('chartLab'), {
             type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    { label: 'Mesas', data: [], borderColor: '#3d2b1f', backgroundColor: 'rgba(61, 43, 31, 0.05)', fill: true, tension: 0.3 },
-                    { label: 'Xícaras', data: [], borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.05)', fill: true, tension: 0.3 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 10 } } }, y: { beginAtZero: true } } }
+            data: { labels: [], datasets: [
+                { label: 'Mesas', data: [], borderColor: '#3d2b1f', backgroundColor: 'rgba(61, 43, 31, 0.05)', fill: true, tension: 0.3 },
+                { label: 'Xícaras', data: [], borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.05)', fill: true, tension: 0.3 }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false }
         });
-
-        // Movement Chart
         chartUltimos = new Chart(document.getElementById('chartUltimos'), {
             type: 'line',
-            data: {
-                labels: [],
-                datasets: [{ label: 'kg', data: [], borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.1)', fill: true, tension: 0.3, borderWidth: 3 }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 } } } } }
+            data: { labels: [], datasets: [{ label: 'kg', data: [], borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.1)', fill: true, tension: 0.3, borderWidth: 3 }]},
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }}
         });
-
-        // Estoque Total (Barra fixa)
         chartEstoque = new Chart(document.getElementById('chartEstoqueTotal'), {
             type: 'bar',
             data: {
                 labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
                 datasets: [{ data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!}, backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!}, borderRadius: 5 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } }}
         });
-    }
-
-    function enableHorizontalScroll() {
-        const container = document.querySelector('.sensory-scroll-container');
-        if (container) {
-            container.addEventListener('wheel', (evt) => {
-                if (evt.deltaY !== 0) { evt.preventDefault(); container.scrollLeft += evt.deltaY; }
-            });
-        }
     }
 
     window.onload = () => {
         initCharts();
-        enableHorizontalScroll();
         applyQuickFilter('last_week');
         refreshAllData();
     };
