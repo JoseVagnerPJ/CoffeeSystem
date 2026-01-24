@@ -91,48 +91,50 @@
     </div>
 
     {{-- Coluna de Movimentação (5/12 avos da tela) --}}
-    {{-- Coluna de Movimentação --}}
-<div class="col-lg-6">
-    <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0 text-dark" id="tituloMovimentacao">RECEBIMENTOS</h6>
-            
-            <div class="btn-group shadow-sm">
-                <button onclick="toggleMovimentacao('entrada')" id="btn-mov-entrada" class="btn btn-sm btn-success text-white">📈 Entradas</button>
-                <button onclick="toggleMovimentacao('saida')" id="btn-mov-saida" class="btn btn-sm btn-outline-danger">📉 Saídas</button>
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 text-dark" id="tituloMovimentacao">ÚLTIMOS RECEBIMENTOS</h6>
+                
+                <div class="btn-group shadow-sm">
+                    <button id="btn-tipo-entrada" onclick="toggleMovimentacao('entrada')" class="btn btn-sm btn-success text-white" title="Ver Recebimentos">
+                        📈 Entradas
+                    </button>
+                    <button id="btn-tipo-saida" onclick="toggleMovimentacao('saida')" class="btn btn-sm btn-outline-danger" title="Ver Saídas">
+                        📉 Saídas
+                    </button>
+                </div>
             </div>
-        </div>
+            <div style="height: 250px;">
+                <canvas id="chartUltimos"></canvas>
+            </div>
 
-        <div style="height: 200px;">
-            <canvas id="chartUltimos"></canvas>
-        </div>
-
-        {{-- FILTROS DE DATA --}}
-        <div class="mt-3 pt-3 border-top">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <label class="small fw-bold text-muted">DATA INICIAL</label>
-                    <input type="date" id="filter_start_date" class="form-control form-control-sm border-0 bg-light" onchange="refreshMovimentacao()">
-                </div>
-                <div class="col-md-4">
-                    <label class="small fw-bold text-muted">DATA FINAL</label>
-                    <input type="date" id="filter_end_date" class="form-control form-control-sm border-0 bg-light" onchange="refreshMovimentacao()">
-                </div>
-                <div class="col-md-4">
-                    <label class="small fw-bold text-muted">FILTRO RÁPIDO</label>
-                    <select id="quick_filter" class="form-select form-select-sm border-0 bg-light fw-bold" onchange="applyQuickFilter(this.value)">
-                        <option value="last_week">Última Semana</option>
-                        <option value="curr_month">Mês Atual</option>
-                        <option value="last_month">Último Mês</option>
-                        <option value="this_year">Este Ano</option>
-                        <option value="last_year">Último Ano</option>
-                        <option value="all">Geral</option>
-                    </select>
+            {{-- NOVOS FILTROS DE DATA ABAIXO DO GRÁFICO --}}
+            <div class="mt-3 pt-3 border-top">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="fw-bold text-muted mb-1" style="font-size: 0.65rem;">DATA INICIAL</label>
+                        <input type="date" id="filter_start_date" class="form-control form-control-sm border-0 bg-light" onchange="refreshMovimentacao()">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="fw-bold text-muted mb-1" style="font-size: 0.65rem;">DATA FINAL</label>
+                        <input type="date" id="filter_end_date" class="form-control form-control-sm border-0 bg-light" onchange="refreshMovimentacao()">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="fw-bold text-muted mb-1" style="font-size: 0.65rem;">FILTRO RÁPIDO</label>
+                        <select class="form-select form-select-sm border-0 bg-light fw-bold" style="font-size: 0.75rem;" id="quick_filter" onchange="applyQuickFilter(this.value)">
+                            <option value="last_week">Última semana</option>
+                            <option value="curr_month">Mês atual</option>
+                            <option value="last_month">Último mês</option>
+                            <option value="this_year">Esse ano</option>
+                            <option value="last_year">Último ano</option>
+                            <option value="all">Geral</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
     
 </div>
 
@@ -166,8 +168,11 @@
     .text-black {
         color: #000000 !important;
     }
-    .active-filter { box-shadow: 0 0 15px rgba(0,0,0,0.2) !important; background: #fffceb; }
-    .inactive-filter { opacity: 0.5; }
+    .active-filter { 
+        box-shadow: 0 0 0 3px #3d2b1f !important;
+        transform: scale(1.05);
+    }
+    .inactive-filter { opacity: 0.4; filter: grayscale(0.5); }
 
     .sensory-scroll-container::-webkit-scrollbar { height: 17px; }
     .sensory-scroll-container::-webkit-scrollbar-thumb { background: #c0a16b; border-radius: 17px; }
@@ -175,10 +180,26 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let currentTipo = 'entrada';
+    // Função auxiliar para somar 3 horas aos rótulos de tempo
+    function add3Hours(label) {
+        if (!label || typeof label !== 'string' || !label.includes(':')) return label;
+        let parts = label.split(' ');
+        let timePart = parts.length > 1 ? parts[1] : parts[0];
+        let datePart = parts.length > 1 ? parts[0] : null;
+        let [h, m, s] = timePart.split(':').map(Number);
+        h = (h + 3) % 24;
+        let newTime = h.toString().padStart(2, '0') + ":" + (m || 0).toString().padStart(2, '0') + (s !== undefined ? ":" + s.toString().padStart(2, '0') : "");
+        return datePart ? datePart + " " + newTime : newTime;
+    }
+
+    // Variáveis Globais para manter o estado e acesso aos objetos Chart.js
     let activeProfileId = null;
+    let currentTipo = 'entrada';
     let chartLab, chartUltimos, chartEstoque;
 
+    /**
+     * Atalhos de Data: Preenche os inputs e dispara o refresh centralizado
+     */
     function applyQuickFilter(value) {
         const startInput = document.getElementById('filter_start_date');
         const endInput = document.getElementById('filter_end_date');
@@ -205,7 +226,7 @@
                 end = new Date(now.getFullYear() - 1, 11, 31);
                 break;
             case 'all':
-                start = new Date(2020, 0, 1); 
+                start = new Date(2025, 0, 1); // Marco inicial do sistema
                 break;
         }
 
@@ -214,46 +235,32 @@
         
         refreshMovimentacao();
     }
-    // Função auxiliar para somar 3 horas aos rótulos de tempo
-    function add3Hours(label) {
-        if (!label || typeof label !== 'string' || !label.includes(':')) return label;
-        let parts = label.split(' ');
-        let timePart = parts.length > 1 ? parts[1] : parts[0];
-        let datePart = parts.length > 1 ? parts[0] : null;
-        let [h, m, s] = timePart.split(':').map(Number);
-        h = (h + 3) % 24;
-        let newTime = h.toString().padStart(2, '0') + ":" + (m || 0).toString().padStart(2, '0') + (s !== undefined ? ":" + s.toString().padStart(2, '0') : "");
-        return datePart ? datePart + " " + newTime : newTime;
-    }
 
-    // Variáveis Globais para manter o estado e acesso aos objetos Chart.js
-    const dataRecebimentoInicial = {!! json_encode($ultimosRecebimentos) !!};
-    let activeProfileId = null;
-    let chartLab, chartUltimos, chartEstoque;
-
+    /**
+     * Função Centralizada para buscar dados com TODOS os filtros (Tipo + Perfil + Datas)
+     */
     async function refreshMovimentacao() {
         const start = document.getElementById('filter_start_date').value;
         const end = document.getElementById('filter_end_date').value;
         const perfil = activeProfileId;
 
         try {
-            const url = `/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}`;
-            const response = await fetch(url);
+            const response = await fetch(`/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}`);
             const result = await response.json();
 
+            const tituloElem = document.getElementById('tituloMovimentacao');
+            if(tituloElem) tituloElem.innerText = result.titulo;
+
             if (chartUltimos) {
-                const isEntrada = currentTipo === 'entrada';
-                const color = isEntrada ? '#c0a16b' : '#dc3545';
-                const bgColor = isEntrada ? 'rgba(192, 161, 107, 0.1)' : 'rgba(220, 53, 69, 0.1)';
+                const color = currentTipo === 'entrada' ? '#c0a16b' : '#dc3545';
+                const bgColor = currentTipo === 'entrada' ? 'rgba(192, 161, 107, 0.1)' : 'rgba(220, 53, 69, 0.1)';
                 
-                chartUltimos.data.labels = result.dados.map(d => d.data);
+                chartUltimos.data.labels = result.dados.map(d => add3Hours(d.data));
                 chartUltimos.data.datasets[0].data = result.dados.map(d => d.peso);
-                chartUltimos.data.datasets[0].label = result.label;
+                chartUltimos.data.datasets[0].label = currentTipo === 'entrada' ? 'kg Recebido' : 'kg Torrado';
                 chartUltimos.data.datasets[0].borderColor = color;
                 chartUltimos.data.datasets[0].backgroundColor = bgColor;
                 chartUltimos.update(); 
-
-                document.getElementById('tituloMovimentacao').innerText = result.titulo;
             }
         } catch (error) {
             console.error("Erro ao carregar movimentação:", error);
@@ -261,140 +268,32 @@
     }
 
     /**
-     * AJAX: Alternar entre Entradas (Recebimentos) e Saídas (Torras)
+     * Alternar entre Entradas e Saídas (Mantém Perfil e Data)
      */
     function toggleMovimentacao(tipo) {
         currentTipo = tipo;
         
-        // Estilo dos botões
-        const btnE = document.getElementById('btn-mov-entrada');
-        const btnS = document.getElementById('btn-mov-saida');
+        // Ajuste visual dos botões
+        const btnEntrada = document.getElementById('btn-tipo-entrada');
+        const btnSaida = document.getElementById('btn-tipo-saida');
         
-        if(tipo === 'entrada') {
-            btnE.className = 'btn btn-sm btn-success text-white';
-            btnS.className = 'btn btn-sm btn-outline-danger';
+        if (tipo === 'entrada') {
+            btnEntrada.classList.replace('btn-outline-success', 'btn-success');
+            btnEntrada.classList.add('text-white');
+            btnSaida.classList.replace('btn-danger', 'btn-outline-danger');
+            btnSaida.classList.remove('text-white');
         } else {
-            btnE.className = 'btn btn-sm btn-outline-success';
-            btnS.className = 'btn btn-sm btn-danger text-white';
+            btnSaida.classList.replace('btn-outline-danger', 'btn-danger');
+            btnSaida.classList.add('text-white');
+            btnEntrada.classList.replace('btn-success', 'btn-outline-success');
+            btnEntrada.classList.remove('text-white');
         }
 
         refreshMovimentacao();
     }
 
     /**
-     * AJAX: Atualizar Gráfico do Laboratório (D, S, M, T, Se, A)
-     */
-    async function updateChartLab(periodo) {
-    try {
-        const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
-        const res = await response.json();
-        
-        if (chartLab) {
-            chartLab.data.labels = res.labels.map(l => add3Hours(l));
-            chartLab.data.datasets[0].data = res.mesas; // Deve bater com o JSON: 'mesas'
-            chartLab.data.datasets[1].data = res.xicaras; // Deve bater com o JSON: 'xicaras'
-            chartLab.update();
-        }
-
-            // Atualização visual dos botões de filtro
-            document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
-            const btnAtivo = document.getElementById(`btn-lab-${periodo}`);
-            if (btnAtivo) btnAtivo.classList.replace('btn-outline-dark', 'btn-dark');
-        } catch (e) {
-            console.error("Erro ao atualizar dados do laboratório:", e);
-        }
-    }
-
-    /**
-     * Inicialização de todos os gráficos da página
-     */
-function initCharts() {
-        const elLab = document.getElementById('chartLab');
-        if (elLab) {
-            chartLab = new Chart(elLab, {
-                type: 'line',
-                data: {
-                    // Pega as labels do mesasData (que é o dadosLab mapeado)
-                    labels: {!! json_encode($mesasData->pluck('data')) !!}.map(l => add3Hours(l)),
-                    datasets: [
-                        { 
-                            label: 'Mesas', 
-                            data: {!! json_encode($mesasData->pluck('total')) !!}, 
-                            borderColor: '#3d2b1f', 
-                            backgroundColor: 'rgba(61, 43, 31, 0.1)', 
-                            fill: true, tension: 0.4 
-                        },
-                        { 
-                            label: 'Xícaras', 
-                            data: {!! json_encode($xicarasData->pluck('total')) !!}, 
-                            borderColor: '#c0a16b', 
-                            backgroundColor: 'rgba(192, 161, 107, 0.1)', 
-                            fill: true, tension: 0.4 
-                        }
-                    ]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    scales: { 
-                        x: { ticks: { autoSkip: true, maxRotation: 0 } },
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        }
-
-        // 2. Gráfico de Últimos Recebimentos / Movimentações (Linha)
-        const elUltimos = document.getElementById('chartUltimos');
-        if (elUltimos) {
-            chartUltimos = new Chart(elUltimos, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'kg',
-                        data: [],
-                        borderColor: '#c0a16b',
-                        backgroundColor: 'rgba(192, 161, 107, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 3
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-    }
-
-        // 3. Gráfico de Mapa de Estoque por Perfil (Barra)
-        const elEstoque = document.getElementById('chartEstoqueTotal');
-        if (elEstoque) {
-            chartEstoque = new Chart(elEstoque, {
-                type: 'bar',
-                data: {
-                    labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
-                    datasets: [{
-                        data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!},
-                        backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!},
-                        borderRadius: 5
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } },
-                    scales: { x: { display: false } } 
-                }
-            });
-        }
-    }
-
-    /**
-     * Filtro rápido ao clicar nos cards sensoriais do armazém
+     * Filtro por Perfil Sensorial (Mantém Tipo e Data)
      */
     function toggleProfileFilter(profileId) {
         const cards = document.querySelectorAll('.profile-card');
@@ -409,23 +308,84 @@ function initCharts() {
                 c.classList.toggle('inactive-filter', c.id !== `profile-${profileId}`);
             });
         }
+        
         refreshMovimentacao();
     }
 
     /**
-     * Helper: Atualiza apenas os dados do gráfico de movimentação
+     * AJAX: Atualizar Gráfico do Laboratório
      */
-    function updateChartUltimos(data) {
-        if (chartUltimos) {
-            chartUltimos.data.labels = data.map(d => add3Hours(d.data));
-            chartUltimos.data.datasets[0].data = data.map(d => d.peso);
-            chartUltimos.update();
+    async function updateChartLab(periodo) {
+        try {
+            const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
+            const res = await response.json();
+            
+            if (chartLab) {
+                chartLab.data.labels = res.labels.map(l => add3Hours(l));
+                chartLab.data.datasets[0].data = res.mesas;
+                chartLab.data.datasets[1].data = res.xicaras;
+                chartLab.update();
+            }
+
+            document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
+            const btnAtivo = document.getElementById(`btn-lab-${periodo}`);
+            if (btnAtivo) btnAtivo.classList.replace('btn-outline-dark', 'btn-dark');
+        } catch (e) {
+            console.error("Erro ao atualizar dados do laboratório:", e);
         }
     }
 
     /**
-     * Habilita rolagem horizontal do grid de perfis com a rodinha do mouse
+     * Inicialização de todos os gráficos
      */
+    function initCharts() {
+        // 1. Gráfico Lab
+        const elLab = document.getElementById('chartLab');
+        if (elLab) {
+            chartLab = new Chart(elLab, {
+                type: 'line',
+                data: {
+                    labels: {!! json_encode($mesasData->pluck('data')) !!}.map(l => add3Hours(l)),
+                    datasets: [
+                        { label: 'Mesas', data: {!! json_encode($mesasData->pluck('total')) !!}, borderColor: '#3d2b1f', backgroundColor: 'rgba(61, 43, 31, 0.1)', fill: true, tension: 0.4 },
+                        { label: 'Xícaras', data: {!! json_encode($xicarasData->pluck('total')) !!}, borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.1)', fill: true, tension: 0.4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        // 2. Gráfico Movimentação (Inicia vazio, carregado pelo applyQuickFilter)
+        const elUltimos = document.getElementById('chartUltimos');
+        if (elUltimos) {
+            chartUltimos = new Chart(elUltimos, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{ label: 'kg', data: [], borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.1)', fill: true, tension: 0.4, borderWidth: 3 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // 3. Gráfico Mapa de Estoque
+        const elEstoque = document.getElementById('chartEstoqueTotal');
+        if (elEstoque) {
+            chartEstoque = new Chart(elEstoque, {
+                type: 'bar',
+                data: {
+                    labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
+                    datasets: [{
+                        data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!},
+                        backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!},
+                        borderRadius: 5
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } } }
+            });
+        }
+    }
+
     function enableHorizontalScroll() {
         const container = document.querySelector('.sensory-scroll-container');
         if (container) {
@@ -438,11 +398,11 @@ function initCharts() {
         }
     }
 
-    // Inicialização ao carregar a janela
     window.onload = () => {
         initCharts();
-        applyQuickFilter('last_week'); // Já carrega os dados iniciais
         enableHorizontalScroll();
+        // Dispara o filtro padrão (Última semana) que já preenche datas e carrega o gráfico
+        applyQuickFilter('last_week'); 
         updateChartLab('D');
     };
 </script>
