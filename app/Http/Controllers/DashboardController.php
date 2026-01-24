@@ -42,7 +42,6 @@ class DashboardController extends Controller
 
         $query = ($tipo == 'entrada') ? GreenCoffeeLot::query() : StockMovement::where('type', 'out');
 
-        // Filtro Sensorial
         if ($perfilId) {
             if ($tipo == 'entrada') {
                 $query->where('sensory_profile_id', $perfilId);
@@ -53,22 +52,21 @@ class DashboardController extends Controller
             }
         }
 
-        // Filtro de Data (ignorado se for "all")
-        if ($rangeType !== 'all' && $startDate && $endDate) {
+        if ($startDate && $endDate) {
             $query->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(), 
                 Carbon::parse($endDate)->endOfDay()
             ]);
         }
 
+        // Se for "Todos", retorna pontos individuais (Data e Hora)
         if ($rangeType === 'all') {
-            // TODOS: Retorna cada registro individualmente com data e hora
             $dados = $query->orderBy('created_at', 'ASC')->get()->map(fn($item) => [
                 'peso' => ($tipo == 'entrada') ? $item->total_weight : $item->weight,
                 'data' => $item->created_at->subHours(3)->format('d/m/y - H:i:s')
             ]);
         } else {
-            // AGRUPADO: Soma por dia para gerar a "linha no chão"
+            // Agrupado por Dia (Padrão para manual ou períodos fixos)
             $colPeso = ($tipo == 'entrada') ? 'total_weight' : 'weight';
             $dados = $query->select(
                 DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '%d/%m') as data"),
@@ -88,48 +86,41 @@ class DashboardController extends Controller
     }
 
     public function getLaboratorioData(Request $request)
-{
-    $startDate = $request->get('start_date');
-    $endDate = $request->get('end_date');
-    $rangeType = $request->get('range_type');
+    {
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $rangeType = $request->get('range_type');
 
-    // 1. Iniciamos a query na tabela de sessões
-    $query = CuppingSession::query();
+        $query = CuppingSession::query();
 
-    // 2. Filtro de Data (Crucial: Aplicar antes do Join)
-    if ($startDate && $endDate) {
-        $query->whereBetween('cupping_sessions.created_at', [
-            Carbon::parse($startDate)->startOfDay(), 
-            Carbon::parse($endDate)->endOfDay()
-        ]);
-    }
+        if ($startDate && $endDate) {
+            $query->whereBetween('cupping_sessions.created_at', [
+                Carbon::parse($startDate)->startOfDay(), 
+                Carbon::parse($endDate)->endOfDay()
+            ]);
+        }
 
-    if ($rangeType === 'all') {
-        // Lógica "TODOS": Retorna pontos individuais (Mesa por Mesa)
-        $dados = $query->withCount('items')
-            ->orderBy('created_at', 'ASC')
-            ->get()
-            ->map(fn($s) => [
+        if ($rangeType === 'all') {
+            $dados = $query->withCount('items')->orderBy('created_at', 'ASC')->get()->map(fn($s) => [
                 'tempo' => $s->created_at->subHours(3)->format('d/m/y - H:i:s'),
                 'total_mesas' => 1,
                 'total_xicaras' => $s->items_count
             ]);
-    } else {
-        // Lógica "AGRUPADO": Soma por dia
-        // Usamos leftJoin para contar as xícaras de cada sessão
-        $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
-            ->select(
-                DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
-                DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
-                DB::raw('COUNT(cupping_items.id) as total_xicaras')
-            )
-            ->groupBy('tempo')
-            ->orderBy(DB::raw('MIN(cupping_sessions.created_at)'), 'ASC')
-            ->get();
-    }
+        } else {
+            $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
+                ->select(
+                    DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
+                    DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
+                    DB::raw('COUNT(cupping_items.id) as total_xicaras'),
+                    DB::raw('MAX(cupping_sessions.created_at) as sort_date')
+                )
+                ->groupBy('tempo')
+                ->orderBy('sort_date', 'ASC')
+                ->get();
+        }
 
-    return response()->json(['raw_data' => $dados]);
-}
+        return response()->json(['raw_data' => $dados]);
+    }
 
     public function cadastros() { return view('registries.index'); }
     public function laboratorio() { return view('laboratory.index'); }

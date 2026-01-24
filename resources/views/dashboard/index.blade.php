@@ -45,33 +45,37 @@
         </div>
     </div>
 
-    {{-- PAINEL DE FILTROS --}}
-    <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 20px;">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label class="fw-bold text-muted mb-1 small">DATA INICIAL</label>
-                <input type="date" id="filter_start_date" class="form-control border-0 bg-light">
-            </div>
-            <div class="col-md-3">
-                <label class="fw-bold text-muted mb-1 small">DATA FINAL</label>
-                <input type="date" id="filter_end_date" class="form-control border-0 bg-light">
-            </div>
-            <div class="col-md-3">
-                <label class="fw-bold text-muted mb-1 small">ATALHO</label>
-                <select class="form-select border-0 bg-light fw-bold" id="quick_filter" onchange="applyQuickFilter(this.value)">
-                    <option value="last_week">Última Semana</option>
-                    <option value="curr_month">Mês Atual</option>
-                    <option value="last_month">Último Mês</option>
-                    <option value="this_year">Este Ano</option>
-                    <option value="last_year">Último Ano</option>
-                    <option value="all">Todos (Geral)</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <button onclick="refreshAllData()" class="btn btn-dark w-100 fw-bold" style="height: 40px;">APLICAR FILTROS</button>
-            </div>
+    {{-- PAINEL DE FILTROS GLOBAL --}}
+<div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 20px; background: #fff;">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="fw-bold text-muted mb-1 small">DATA INICIAL</label>
+            {{-- Adicionado oninput para detectar mudança manual --}}
+            <input type="date" id="filter_start_date" class="form-control border-0 bg-light" oninput="setCustomRange()">
+        </div>
+        <div class="col-md-3">
+            <label class="fw-bold text-muted mb-1 small">DATA FINAL</label>
+            <input type="date" id="filter_end_date" class="form-control border-0 bg-light" oninput="setCustomRange()">
+        </div>
+        <div class="col-md-3">
+            <label class="fw-bold text-muted mb-1 small">ATALHO RÁPIDO</label>
+            <select class="form-select border-0 bg-light fw-bold" id="quick_filter" onchange="applyQuickFilter(this.value)">
+                <option value="last_week">Última Semana</option>
+                <option value="curr_month">Mês Atual</option>
+                <option value="last_month">Último Mês</option>
+                <option value="this_year">Este Ano</option>
+                <option value="last_year">Último Ano</option>
+                <option value="all">Todos (Geral)</option>
+                <option value="custom" id="opt-custom" disabled>Customizado...</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button onclick="refreshAllData()" class="btn btn-dark w-100 fw-bold" style="height: 45px;">
+                <i class="bi bi-filter-circle-fill me-2"></i> APLICAR FILTROS
+            </button>
         </div>
     </div>
+</div>
 
     <div class="row g-4">
         <div class="col-lg-6">
@@ -129,7 +133,13 @@
         endInput.value = end.toISOString().split('T')[0];
     }
 
+    function setCustomRange() {
+        selectedRangeType = 'custom';
+        document.getElementById('quick_filter').value = 'custom';
+    }
+
     function processChartData(apiData, type) {
+        // Se for "Todos", plota cada ponto sem criar lacunas
         if (selectedRangeType === 'all') {
             return {
                 labels: apiData.map(d => d.tempo || d.data),
@@ -141,8 +151,6 @@
 
         const startVal = document.getElementById('filter_start_date').value;
         const endVal = document.getElementById('filter_end_date').value;
-        
-        // Proteção caso as datas estejam vazias
         if(!startVal || !endVal) return { labels: [], mesas: [], xicaras: [], mov: [] };
 
         const start = new Date(startVal + 'T00:00:00');
@@ -152,14 +160,21 @@
         let current = new Date(start);
         const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+        // Diferença em dias para decidir o formato do label
+        const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
         while (current <= end) {
             const dd = String(current.getDate()).padStart(2, '0');
             const mm = String(current.getMonth() + 1).padStart(2, '0');
-            const dataChave = `${dd}/${mm}`; // Formato igual ao SQL: 24/01
+            const dataChave = `${dd}/${mm}`;
             
-            labels.push(selectedRangeType === 'last_week' ? [diasSemana[current.getDay()], dataChave] : dd);
+            // Se o intervalo for curto, mostra o dia da semana. Se for longo, só o número do dia.
+            if (diffDays <= 7) {
+                labels.push([diasSemana[current.getDay()], dataChave]);
+            } else {
+                labels.push(dataChave);
+            }
 
-            // Busca no JSON retornado pelo Laravel
             const match = apiData.find(d => (d.tempo || d.data) === dataChave);
             
             if (type === 'lab') {
@@ -180,32 +195,38 @@
 
         if(!start || !end) return;
 
-        // 1. Laboratório
+        // Feedback visual simples
+        const btn = document.querySelector('button[onclick="refreshAllData()"]');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> CARREGANDO...';
+
         try {
-            const url = `/dashboard/laboratorio-data?start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`;
-            const res = await fetch(url);
-            const json = await res.json();
-            const proc = processChartData(json.raw_data, 'lab');
-            
-            chartLab.data.labels = proc.labels;
-            chartLab.data.datasets[0].data = proc.mesas;
-            chartLab.data.datasets[1].data = proc.xicaras;
+            // Busca Lab
+            const resLab = await fetch(`/dashboard/laboratorio-data?start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`);
+            const dataLab = await resLab.json();
+            const procLab = processChartData(dataLab.raw_data, 'lab');
+            chartLab.data.labels = procLab.labels;
+            chartLab.data.datasets[0].data = procLab.mesas;
+            chartLab.data.datasets[1].data = procLab.xicaras;
             chartLab.update();
-        } catch(e) { console.error("Erro Lab:", e); }
 
-        // 2. Movimentação
-        try {
-            const url = `/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`;
-            const res = await fetch(url);
-            const json = await res.json();
-            const proc = processChartData(json.dados, 'mov');
-
-            document.getElementById('tituloMovimentacao').innerText = json.titulo;
-            chartUltimos.data.labels = proc.labels;
-            chartUltimos.data.datasets[0].data = proc.mov;
-            chartUltimos.data.datasets[0].label = json.label;
+            // Busca Movimentação
+            const resMov = await fetch(`/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}&range_type=${selectedRangeType}`);
+            const dataMov = await resMov.json();
+            const procMov = processChartData(dataMov.dados, 'mov');
+            document.getElementById('tituloMovimentacao').innerText = dataMov.titulo;
+            chartUltimos.data.labels = procMov.labels;
+            chartUltimos.data.datasets[0].data = procMov.mov;
+            chartUltimos.data.datasets[0].label = dataMov.label;
             chartUltimos.update();
-        } catch(e) { console.error("Erro Mov:", e); }
+
+        } catch(e) {
+            console.error("Erro no refresh:", e);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 
     function toggleMovimentacao(tipo) {
