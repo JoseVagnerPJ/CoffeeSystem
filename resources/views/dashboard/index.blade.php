@@ -229,10 +229,30 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } }}
         });
     }
+    function enableHorizontalScroll() {
+        const container = document.querySelector('.sensory-scroll-container');
+        if (container) {
+            container.addEventListener('wheel', (evt) => {
+                // Se o usuário estiver usando o scroll do mouse (vertical), rola o container horizontalmente
+                if (evt.deltaY !== 0) {
+                    evt.preventDefault();
+                    container.scrollLeft += evt.deltaY;
+                }
+            }, { passive: false });
+        }
+    }
 
     window.onload = () => {
+        // 1. Inicia os objetos dos gráficos (Chart.js)
         initCharts();
+        
+        // 2. Ativa o scroll horizontal nos perfis sensoriais
+        enableHorizontalScroll();
+        
+        // 3. Define o filtro inicial como "Última Semana"
         applyQuickFilter('last_week');
+        
+        // 4. Busca os dados iniciais do servidor
         refreshAllData();
     };
 </script>

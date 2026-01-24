@@ -93,9 +93,11 @@ class DashboardController extends Controller
         $endDate = $request->get('end_date');
         $rangeType = $request->get('range_type');
 
-        $query = CuppingSession::withCount('items');
+        // Iniciamos a query na tabela principal
+        $query = CuppingSession::query();
 
-        if ($rangeType !== 'all' && $startDate && $endDate) {
+        // APLICAÇÃO DO FILTRO DE DATA (Agora garantido)
+        if ($startDate && $endDate) {
             $query->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(), 
                 Carbon::parse($endDate)->endOfDay()
@@ -103,12 +105,17 @@ class DashboardController extends Controller
         }
 
         if ($rangeType === 'all') {
-            $dados = $query->orderBy('created_at', 'ASC')->get()->map(fn($s) => [
-                'tempo' => $s->created_at->subHours(3)->format('d/m/y - H:i:s'),
-                'total_mesas' => 1,
-                'total_xicaras' => $s->items_count
-            ]);
+            // Lógica "TODOS": Cada mesa é um ponto individual no gráfico
+            $dados = $query->withCount('items')
+                ->orderBy('created_at', 'ASC')
+                ->get()
+                ->map(fn($s) => [
+                    'tempo' => $s->created_at->subHours(3)->format('d/m/y - H:i:s'),
+                    'total_mesas' => 1,
+                    'total_xicaras' => $s->items_count
+                ]);
         } else {
+            // Lógica "AGRUPADO": Soma por dia
             $dados = $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
                 ->select(
                     DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
