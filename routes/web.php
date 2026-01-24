@@ -49,7 +49,7 @@ Route::middleware(['auth', 'company.active'])->group(function () {
         Route::post('/{id}/attach', [GreenCoffeeLotController::class, 'storeAttachment'])->name('attach');
         Route::delete('/attachment/{id}', [GreenCoffeeLotController::class, 'destroyAttachment'])->name('attachment.destroy');
         Route::post('/registrar-saida', [GreenCoffeeLotController::class, 'registrarSaida'])->name('registrar-saida');
-        Route::get('/green-coffee/movimentacao-historico', [App\Http\Controllers\GreenCoffeeLotController::class, 'getHistoryData'])->name('green-coffee.history');
+        Route::get('/movimentacao-historico', [GreenCoffeeLotController::class, 'getHistoryData'])->name('green-coffee.history');
 
         // GRUPO DE INVENTÁRIO (AUDITORIA MENSAL)
         Route::prefix('inventory')->name('inventory.')->group(function () {
