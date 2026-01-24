@@ -279,7 +279,7 @@
     </div>
 </div>
 
-{{-- MODAL DE HISTÓRICO DE MOVIMENTAÇÃO (NOVA LÓGICA) --}}
+{{-- MODAL DE HISTÓRICO DE MOVIMENTAÇÃO --}}
 <div class="modal fade" id="modalHistoricoMovimentacao" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
@@ -327,7 +327,7 @@
                             </tr>
                         </thead>
                         <tbody id="hist-body">
-                            {{-- Preenchido via JS --}}
+                            {{-- Preenchido via AJAX --}}
                         </tbody>
                     </table>
                 </div>
@@ -337,7 +337,7 @@
 </div>
 
 <script>
-    // CORREÇÃO PARA O ERRO 403: Setup global do CSRF Token para AJAX
+    // FIX 403: Envia o token de segurança em todas as chamadas AJAX
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -387,7 +387,7 @@
         });
     };
 
-    /* NOVA LÓGICA: HISTÓRICO DE MOVIMENTAÇÃO AJAX */
+    /* LÓGICA DO MODAL DE HISTÓRICO AJAX */
     let currentHistType = 'entrada';
 
     function openMovimentacaoHistorico(type) {
@@ -434,10 +434,12 @@
         const body = $('#hist-body');
         body.html('<tr><td colspan="4" class="text-center py-5"><div class="spinner-border spinner-border-sm text-secondary"></div></td></tr>');
         try {
-            const response = await fetch(`/green-coffee/movimentacao-historico?tipo=${currentHistType}&start_date=${start}&end_date=${end}`);
+            // Usa a rota nomeada para garantir o caminho absoluto
+            const url = `{{ route('estoque.green-coffee.history') }}?tipo=${currentHistType}&start_date=${start}&end_date=${end}`;
+            const response = await fetch(url);
             const data = await response.json();
             let html = '';
-            if(data.length === 0) {
+            if(!data || data.length === 0) {
                 html = '<tr><td colspan="4" class="text-center py-5 text-muted small">Nenhuma movimentação encontrada.</td></tr>';
             } else {
                 data.forEach(item => {
@@ -451,13 +453,16 @@
                             </td>
                             <td><span class="badge bg-light text-dark border" style="font-size: 0.65rem;">${item.endereco}</span></td>
                             <td class="text-end fw-bold ${isSaida ? 'text-danger' : 'text-success'}" style="font-size: 0.85rem;">
-                                ${isSaida ? '-' : '+'}${parseFloat(item.peso).toLocaleString('pt-BR', {minimumFractionDigits: 1})}kg
+                                ${isSaida ? '-' : '+'}${parseFloat(item.weight || item.peso).toLocaleString('pt-BR', {minimumFractionDigits: 1})}kg
                             </td>
                         </tr>`;
                 });
             }
             body.html(html);
-        } catch(e) { body.html('<tr><td colspan="4" class="text-center py-5 text-danger small">Erro ao carregar dados.</td></tr>'); }
+        } catch(e) { 
+            console.error(e);
+            body.html('<tr><td colspan="4" class="text-center py-5 text-danger small">Erro ao carregar dados. Verifique a conexão.</td></tr>'); 
+        }
     }
 
     /**
