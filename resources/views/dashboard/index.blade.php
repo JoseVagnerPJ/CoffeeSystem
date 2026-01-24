@@ -7,14 +7,13 @@
         <h2 class="h3 fw-bold mb-0" style="color: #3d2b1f;">Bem vindo, {{ $user->name }}! 👋</h2>
     </div>
 
-    {{-- PARTE INFERIOR: MAPA DE ESTOQUE TOTAL --}}
+    {{-- MAPA DE ESTOQUE TOTAL --}}
     <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px;">
         <h6 class="fw-bold mb-4 text-dark">MAPA DE ESTOQUE POR PERFIL (TOTAL KG)</h6>
         @if($estoquePorPerfil->isEmpty())
             <div class="py-5 text-center text-muted">Não existem dados a exibir</div>
         @else
             <div style="height: 200px;"><canvas id="chartEstoqueTotal"></canvas></div>
-            
             <div class="d-flex flex-wrap justify-content-center mt-4 gap-3">
                 @foreach($estoquePorPerfil as $item)
                     <div class="d-flex align-items-center">
@@ -26,181 +25,112 @@
         @endif
     </div>
 
-    {{-- GRID DE PERFIS (LINHA ÚNICA COLORIDA COM PELÍCULA) --}}
-    <h6 class="fw-bold text-uppercase mb-3" style="color: #c0a16b; font-size: 0.75rem; letter-spacing: 1px;">Estoque por Perfil (Filtragem Rápida)</h6>
+    {{-- GRID DE PERFIS --}}
+    <h6 class="fw-bold text-uppercase mb-3" style="color: #c0a16b; font-size: 0.75rem; letter-spacing: 1px;">Filtragem por Perfil Sensorial</h6>
     <div class="sensory-scroll-container mb-4">
         <div class="sensory-single-row">
             @forelse($estoquePorPerfil as $item)
-            
             <div class="card profile-card border-0 shadow-sm" 
                 id="profile-{{ $item->sensory_profile_id }}"
                 onclick="toggleProfileFilter({{ $item->sensory_profile_id }})"
                 style="background-color: {{ $item->sensoryProfile->color_hex ?? '#3d2b1f' }}; min-width: 260px;">
-                
-                {{-- Película Transparente Interna --}}
                 <div class="glass-film p-2 d-flex flex-column justify-content-center h-100">
                     <div class="d-flex justify-content-between align-items-center">
-                        {{-- Nome do perfil e referência --}}
-                        <span class="fw-bold profile-name text-black text-uppercase" style="font-size: 1.1rem; color: #000 !important;">
-                            {{ $item->sensoryProfile->name }}
-                        </span>
+                        <span class="fw-bold profile-name text-black text-uppercase" style="font-size: 1.1rem; color: #000 !important;">{{ $item->sensoryProfile->name }}</span>
                         <span class="fw-bold" style="font-size: 0.65rem; color: #000 !important; opacity: 0.8;">#{{ $item->reference }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-1">
-                        <h4 class="fw-bold mb-0 text-black" style="font-size: 1.3rem; color: #000 !important;">
-                            {{ number_format($item->total_kg, 1) }}<small style="font-size: 0.7rem;">kg</small>
-                        </h4>
-                        <span class="fw-bold text-black" style="font-size: 0.85rem; color: #000 !important;">
-                            {{ $item->total_sacas }} SACAS
-                        </span>
+                        <h4 class="fw-bold mb-0 text-black" style="font-size: 1.3rem; color: #000 !important;">{{ number_format($item->total_kg, 1) }}<small style="font-size: 0.7rem;">kg</small></h4>
+                        <span class="fw-bold text-black" style="font-size: 0.85rem; color: #000 !important;">{{ $item->total_sacas }} SACAS</span>
                     </div>
                 </div>
             </div>
             @empty
-                <div class="w-100 text-center py-4 bg-white shadow-sm" style="border-radius: 15px;">
-                    <span class="text-muted">Não existem dados a exibir</span>
-                </div>
+                <div class="w-100 text-center py-4 bg-white shadow-sm" style="border-radius: 15px;"><span class="text-muted">Não existem dados</span></div>
             @endforelse
         </div>
     </div>
 
-{{-- PARTE SUPERIOR: DOIS GRÁFICOS ALINHADOS --}}
-<div class="row g-4 mb-4">
-    
-    {{-- Coluna do Laboratório (7/12 avos da tela) --}}
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h6 class="fw-bold mb-0" style="color: #3d2b1f;">PRODUTIVIDADE LABORATÓRIO</h6>
-                <div class="btn-group btn-group-sm shadow-sm">
-                    @foreach(['D','S','M','T','Se','A'] as $p)
-                        <button type="button" onclick="updateChartLab('{{$p}}')" 
-                                class="btn btn-{{ $periodo == $p ? 'dark' : 'outline-dark' }} btn-lab-filter" 
-                                id="btn-lab-{{$p}}">{{$p}}</button>
-                    @endforeach
-                </div>
+    {{-- PAINEL DE FILTROS GLOBAL --}}
+    <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 20px; background: #fff;">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="fw-bold text-muted mb-1 small">DATA INICIAL</label>
+                <input type="date" id="filter_start_date" class="form-control border-0 bg-light">
             </div>
-            <div style="height: 250px;">
-                @if($mesasData->isEmpty() && $xicarasData->isEmpty())
-                    <div class="h-100 d-flex align-items-center justify-content-center text-muted">Não existem dados a exibir</div>
-                @else
-                    <canvas id="chartLab"></canvas>
-                @endif
+            <div class="col-md-3">
+                <label class="fw-bold text-muted mb-1 small">DATA FINAL</label>
+                <input type="date" id="filter_end_date" class="form-control border-0 bg-light">
+            </div>
+            <div class="col-md-3">
+                <label class="fw-bold text-muted mb-1 small">ATALHO RÁPIDO</label>
+                <select class="form-select border-0 bg-light fw-bold" id="quick_filter" onchange="applyQuickFilter(this.value)">
+                    <option value="last_week">Última Semana</option>
+                    <option value="curr_month">Mês Atual</option>
+                    <option value="last_month">Último Mês</option>
+                    <option value="this_year">Este Ano</option>
+                    <option value="last_year">Último Ano</option>
+                    <option value="all">Todos (Geral)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button onclick="refreshAllData()" class="btn btn-dark w-100 fw-bold" style="height: 45px;">
+                    <i class="bi bi-filter-circle-fill me-2"></i> APLICAR FILTROS
+                </button>
             </div>
         </div>
     </div>
 
-    {{-- Coluna de Movimentação (5/12 avos da tela) --}}
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold mb-0 text-dark" id="tituloMovimentacao">ÚLTIMOS RECEBIMENTOS</h6>
-                
-                <div class="btn-group shadow-sm">
-                    <button id="btn-tipo-entrada" onclick="toggleMovimentacao('entrada')" class="btn btn-sm btn-success text-white" title="Ver Recebimentos">
-                        📈 Entradas
-                    </button>
-                    <button id="btn-tipo-saida" onclick="toggleMovimentacao('saida')" class="btn btn-sm btn-outline-danger" title="Ver Saídas">
-                        📉 Saídas
-                    </button>
-                </div>
+    {{-- GRÁFICOS --}}
+    <div class="row g-4 mb-4">
+        {{-- Produtividade Laboratório --}}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+                <h6 class="fw-bold mb-4" style="color: #3d2b1f;">PRODUTIVIDADE LABORATÓRIO</h6>
+                <div style="height: 300px;"><canvas id="chartLab"></canvas></div>
             </div>
-            <div style="height: 250px;">
-                <canvas id="chartUltimos"></canvas>
-            </div>
+        </div>
 
-            {{-- NOVOS FILTROS DE DATA ABAIXO DO GRÁFICO --}}
-            <div class="mt-3 pt-3 border-top">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-4">
-                        <label class="fw-bold text-muted mb-1" style="font-size: 0.65rem;">DATA INICIAL</label>
-                        <input type="date" id="filter_start_date" class="form-control form-control-sm border-0 bg-light" onchange="refreshMovimentacao()">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="fw-bold text-muted mb-1" style="font-size: 0.65rem;">DATA FINAL</label>
-                        <input type="date" id="filter_end_date" class="form-control form-control-sm border-0 bg-light" onchange="refreshMovimentacao()">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="fw-bold text-muted mb-1" style="font-size: 0.65rem;">FILTRO RÁPIDO</label>
-                        <select class="form-select form-select-sm border-0 bg-light fw-bold" style="font-size: 0.75rem;" id="quick_filter" onchange="applyQuickFilter(this.value)">
-                            <option value="last_week">Última semana</option>
-                            <option value="curr_month">Mês atual</option>
-                            <option value="last_month">Último mês</option>
-                            <option value="this_year">Esse ano</option>
-                            <option value="last_year">Último ano</option>
-                            <option value="all">Geral</option>
-                        </select>
+        {{-- Movimentação --}}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="fw-bold mb-0 text-dark" id="tituloMovimentacao">MOVIMENTAÇÕES</h6>
+                    <div class="btn-group shadow-sm">
+                        <button id="btn-tipo-entrada" onclick="toggleMovimentacao('entrada')" class="btn btn-sm btn-success text-white">📈 Entradas</button>
+                        <button id="btn-tipo-saida" onclick="toggleMovimentacao('saida')" class="btn btn-sm btn-outline-danger">📉 Saídas</button>
                     </div>
                 </div>
+                <div style="height: 300px;"><canvas id="chartUltimos"></canvas></div>
             </div>
         </div>
     </div>
-    
 </div>
 
 <style>
-    /* Estilo do Grid Horizontal de 3 Linhas */
-    .sensory-scroll-container { 
-        overflow-x: auto; 
-        padding-bottom: 15px;
-        white-space: nowrap;
-    }
-    .sensory-single-row {
-        display: flex;
-        gap: 12px;
-        height: 100px; /* Altura fixa para manter os cards alinhados */
-    }
-    .profile-card { 
-        cursor: pointer; 
-        border-radius: 12px; 
-        overflow: hidden; /* Garante que a película não saia das bordas */
-        transition: transform 0.2s ease-in-out;
-        flex-shrink: 0;
-    }
-    .glass-film {
-        background: rgba(255, 255, 255, 0.23); /* Película branca semi-transparente */
-        width: 100%;
-        height: 100%;
-    }
-    .profile-card:hover { 
-        transform: scale(1.03); 
-    }
-    .text-black {
-        color: #000000 !important;
-    }
-    .active-filter { 
-        box-shadow: 0 0 0 3px #3d2b1f !important;
-        transform: scale(1.05);
-    }
-    .inactive-filter { opacity: 0.4; filter: grayscale(0.5); }
-
-    .sensory-scroll-container::-webkit-scrollbar { height: 17px; }
-    .sensory-scroll-container::-webkit-scrollbar-thumb { background: #c0a16b; border-radius: 17px; }
+    .sensory-scroll-container { overflow-x: auto; padding-bottom: 15px; white-space: nowrap; }
+    .sensory-single-row { display: flex; gap: 12px; height: 100px; }
+    .profile-card { cursor: pointer; border-radius: 12px; overflow: hidden; transition: transform 0.2s; flex-shrink: 0; }
+    .glass-film { background: rgba(255, 255, 255, 0.23); width: 100%; height: 100%; }
+    .profile-card:hover { transform: scale(1.03); }
+    .active-filter { box-shadow: 0 0 0 4px #3d2b1f !important; transform: scale(1.05); z-index: 10; }
+    .inactive-filter { opacity: 0.4; filter: grayscale(0.6); }
+    .sensory-scroll-container::-webkit-scrollbar { height: 8px; }
+    .sensory-scroll-container::-webkit-scrollbar-thumb { background: #c0a16b; border-radius: 10px; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Função auxiliar para somar 3 horas aos rótulos de tempo
-    function add3Hours(label) {
-        if (!label || typeof label !== 'string' || !label.includes(':')) return label;
-        let parts = label.split(' ');
-        let timePart = parts.length > 1 ? parts[1] : parts[0];
-        let datePart = parts.length > 1 ? parts[0] : null;
-        let [h, m, s] = timePart.split(':').map(Number);
-        h = (h + 3) % 24;
-        let newTime = h.toString().padStart(2, '0') + ":" + (m || 0).toString().padStart(2, '0') + (s !== undefined ? ":" + s.toString().padStart(2, '0') : "");
-        return datePart ? datePart + " " + newTime : newTime;
-    }
-
-    // Variáveis Globais para manter o estado e acesso aos objetos Chart.js
     let activeProfileId = null;
     let currentTipo = 'entrada';
     let chartLab, chartUltimos, chartEstoque;
+    let selectedRangeType = 'last_week';
 
     /**
-     * Atalhos de Data: Preenche os inputs e dispara o refresh centralizado
+     * Lógica de Atalhos Rápidos de Data
      */
     function applyQuickFilter(value) {
+        selectedRangeType = value;
         const startInput = document.getElementById('filter_start_date');
         const endInput = document.getElementById('filter_end_date');
         const now = new Date();
@@ -209,7 +139,7 @@
 
         switch(value) {
             case 'last_week':
-                start.setDate(now.getDate() - 7);
+                start.setDate(now.getDate() - 6);
                 break;
             case 'curr_month':
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -226,78 +156,119 @@
                 end = new Date(now.getFullYear() - 1, 11, 31);
                 break;
             case 'all':
-                start = new Date(2025, 0, 1); // Marco inicial do sistema
+                start = new Date(2025, 0, 1);
                 break;
         }
 
         startInput.value = start.toISOString().split('T')[0];
         endInput.value = end.toISOString().split('T')[0];
-        
-        refreshMovimentacao();
     }
 
     /**
-     * Função Centralizada para buscar dados com TODOS os filtros (Tipo + Perfil + Datas)
+     * Gera os labels do gráfico e preenche com zero onde não há dados
      */
-    async function refreshMovimentacao() {
+    function processChartData(apiData, type) {
+        const start = new Date(document.getElementById('filter_start_date').value + 'T00:00:00');
+        const end = new Date(document.getElementById('filter_end_date').value + 'T23:59:59');
+        
+        let labels = [];
+        let valuesMesas = [];
+        let valuesXicaras = [];
+        let valuesMov = [];
+
+        // Para o filtro "Todos/Geral", usamos os pontos crus da API
+        if (selectedRangeType === 'all') {
+            return {
+                labels: apiData.map(d => d.data),
+                mesas: apiData.map(d => d.mesas || 0),
+                xicaras: apiData.map(d => d.xicaras || 0),
+                mov: apiData.map(d => d.peso || 0)
+            };
+        }
+
+        // Para os outros filtros, iteramos dia a dia para garantir a "linha no chão"
+        let current = new Date(start);
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+        while (current <= end) {
+            let labelStr = "";
+            let dataKey = ""; // Chave para buscar no JSON da API
+
+            const dd = String(current.getDate()).padStart(2, '0');
+            const mm = String(current.getMonth() + 1).padStart(2, '0');
+            
+            if (selectedRangeType === 'last_week') {
+                // Top: Dia da semana | Bottom: Data
+                labelStr = [diasSemana[current.getDay()], `${dd}/${mm}`];
+                dataKey = `${dd}/${mm}`;
+            } else {
+                labelStr = dd; // Apenas o dia para meses/anos
+                dataKey = dd;
+            }
+
+            labels.push(labelStr);
+
+            // Busca o valor correspondente no retorno da API (comparando com o campo 'tempo' ou 'data')
+            const match = apiData.find(d => (d.tempo || d.data).includes(dd + '/' + mm) || (d.tempo || d.data) == dd);
+            
+            if (type === 'lab') {
+                valuesMesas.push(match ? match.total_mesas : 0);
+                valuesXicaras.push(match ? match.total_xicaras : 0);
+            } else {
+                valuesMov.push(match ? match.peso : 0);
+            }
+
+            current.setDate(current.getDate() + 1);
+        }
+
+        return { labels, mesas: valuesMesas, xicaras: valuesXicaras, mov: valuesMov };
+    }
+
+    /**
+     * Refresh Geral de todos os gráficos
+     */
+    async function refreshAllData() {
         const start = document.getElementById('filter_start_date').value;
         const end = document.getElementById('filter_end_date').value;
         const perfil = activeProfileId;
 
+        // 1. Atualizar Laboratório
         try {
-            const response = await fetch(`/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}`);
-            const result = await response.json();
+            const resLab = await fetch(`/dashboard/laboratorio-data?start_date=${start}&end_date=${end}`);
+            const dataLab = await resLab.json();
+            const processedLab = processChartData(dataLab.raw_data, 'lab');
+            
+            chartLab.data.labels = processedLab.labels;
+            chartLab.data.datasets[0].data = processedLab.mesas;
+            chartLab.data.datasets[1].data = processedLab.xicaras;
+            chartLab.update();
+        } catch(e) { console.error(e); }
 
-            const tituloElem = document.getElementById('tituloMovimentacao');
-            if(tituloElem) tituloElem.innerText = result.titulo;
+        // 2. Atualizar Movimentação
+        try {
+            const resMov = await fetch(`/dashboard/movimentacao-data?tipo=${currentTipo}&perfil_id=${perfil || ''}&start_date=${start}&end_date=${end}`);
+            const dataMov = await resMov.json();
+            const processedMov = processChartData(dataMov.dados, 'mov');
 
-            if (chartUltimos) {
-                const color = currentTipo === 'entrada' ? '#c0a16b' : '#dc3545';
-                const bgColor = currentTipo === 'entrada' ? 'rgba(192, 161, 107, 0.1)' : 'rgba(220, 53, 69, 0.1)';
-                
-                chartUltimos.data.labels = result.dados.map(d => add3Hours(d.data));
-                chartUltimos.data.datasets[0].data = result.dados.map(d => d.peso);
-                chartUltimos.data.datasets[0].label = currentTipo === 'entrada' ? 'kg Recebido' : 'kg Torrado';
-                chartUltimos.data.datasets[0].borderColor = color;
-                chartUltimos.data.datasets[0].backgroundColor = bgColor;
-                chartUltimos.update(); 
-            }
-        } catch (error) {
-            console.error("Erro ao carregar movimentação:", error);
-        }
+            document.getElementById('tituloMovimentacao').innerText = dataMov.titulo;
+            chartUltimos.data.labels = processedMov.labels;
+            chartUltimos.data.datasets[0].data = processedMov.mov;
+            chartUltimos.data.datasets[0].label = dataMov.label;
+            chartUltimos.update();
+        } catch(e) { console.error(e); }
     }
 
-    /**
-     * Alternar entre Entradas e Saídas (Mantém Perfil e Data)
-     */
     function toggleMovimentacao(tipo) {
         currentTipo = tipo;
-        
-        // Ajuste visual dos botões
-        const btnEntrada = document.getElementById('btn-tipo-entrada');
-        const btnSaida = document.getElementById('btn-tipo-saida');
-        
-        if (tipo === 'entrada') {
-            btnEntrada.classList.replace('btn-outline-success', 'btn-success');
-            btnEntrada.classList.add('text-white');
-            btnSaida.classList.replace('btn-danger', 'btn-outline-danger');
-            btnSaida.classList.remove('text-white');
-        } else {
-            btnSaida.classList.replace('btn-outline-danger', 'btn-danger');
-            btnSaida.classList.add('text-white');
-            btnEntrada.classList.replace('btn-success', 'btn-outline-success');
-            btnEntrada.classList.remove('text-white');
-        }
-
-        refreshMovimentacao();
+        const btnE = document.getElementById('btn-tipo-entrada');
+        const btnS = document.getElementById('btn-tipo-saida');
+        btnE.className = tipo === 'entrada' ? 'btn btn-sm btn-success text-white' : 'btn btn-sm btn-outline-success';
+        btnS.className = tipo === 'saida' ? 'btn btn-sm btn-danger text-white' : 'btn btn-sm btn-outline-danger';
+        refreshAllData();
     }
 
-    /**
-     * Filtro por Perfil Sensorial (Mantém Tipo e Data)
-     */
     function toggleProfileFilter(profileId) {
         const cards = document.querySelectorAll('.profile-card');
-        
         if (activeProfileId === profileId) {
             activeProfileId = null;
             cards.forEach(c => c.classList.remove('active-filter', 'inactive-filter'));
@@ -308,92 +279,49 @@
                 c.classList.toggle('inactive-filter', c.id !== `profile-${profileId}`);
             });
         }
-        
-        refreshMovimentacao();
+        refreshAllData();
     }
 
-    /**
-     * AJAX: Atualizar Gráfico do Laboratório
-     */
-    async function updateChartLab(periodo) {
-        try {
-            const response = await fetch(`{{ route('dashboard.laboratorio_data') }}?periodo=${periodo}`);
-            const res = await response.json();
-            
-            if (chartLab) {
-                chartLab.data.labels = res.labels.map(l => add3Hours(l));
-                chartLab.data.datasets[0].data = res.mesas;
-                chartLab.data.datasets[1].data = res.xicaras;
-                chartLab.update();
-            }
-
-            document.querySelectorAll('.btn-lab-filter').forEach(b => b.classList.replace('btn-dark', 'btn-outline-dark'));
-            const btnAtivo = document.getElementById(`btn-lab-${periodo}`);
-            if (btnAtivo) btnAtivo.classList.replace('btn-outline-dark', 'btn-dark');
-        } catch (e) {
-            console.error("Erro ao atualizar dados do laboratório:", e);
-        }
-    }
-
-    /**
-     * Inicialização de todos os gráficos
-     */
     function initCharts() {
-        // 1. Gráfico Lab
-        const elLab = document.getElementById('chartLab');
-        if (elLab) {
-            chartLab = new Chart(elLab, {
-                type: 'line',
-                data: {
-                    labels: {!! json_encode($mesasData->pluck('data')) !!}.map(l => add3Hours(l)),
-                    datasets: [
-                        { label: 'Mesas', data: {!! json_encode($mesasData->pluck('total')) !!}, borderColor: '#3d2b1f', backgroundColor: 'rgba(61, 43, 31, 0.1)', fill: true, tension: 0.4 },
-                        { label: 'Xícaras', data: {!! json_encode($xicarasData->pluck('total')) !!}, borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.1)', fill: true, tension: 0.4 }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-            });
-        }
+        // Lab Chart
+        chartLab = new Chart(document.getElementById('chartLab'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Mesas', data: [], borderColor: '#3d2b1f', backgroundColor: 'rgba(61, 43, 31, 0.05)', fill: true, tension: 0.3 },
+                    { label: 'Xícaras', data: [], borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.05)', fill: true, tension: 0.3 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 10 } } }, y: { beginAtZero: true } } }
+        });
 
-        // 2. Gráfico Movimentação (Inicia vazio, carregado pelo applyQuickFilter)
-        const elUltimos = document.getElementById('chartUltimos');
-        if (elUltimos) {
-            chartUltimos = new Chart(elUltimos, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{ label: 'kg', data: [], borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.1)', fill: true, tension: 0.4, borderWidth: 3 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-        }
+        // Movement Chart
+        chartUltimos = new Chart(document.getElementById('chartUltimos'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{ label: 'kg', data: [], borderColor: '#c0a16b', backgroundColor: 'rgba(192, 161, 107, 0.1)', fill: true, tension: 0.3, borderWidth: 3 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 } } } } }
+        });
 
-        // 3. Gráfico Mapa de Estoque
-        const elEstoque = document.getElementById('chartEstoqueTotal');
-        if (elEstoque) {
-            chartEstoque = new Chart(elEstoque, {
-                type: 'bar',
-                data: {
-                    labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
-                    datasets: [{
-                        data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!},
-                        backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!},
-                        borderRadius: 5
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } } }
-            });
-        }
+        // Estoque Total (Barra fixa)
+        chartEstoque = new Chart(document.getElementById('chartEstoqueTotal'), {
+            type: 'bar',
+            data: {
+                labels: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.name')) !!},
+                datasets: [{ data: {!! json_encode($estoquePorPerfil->pluck('total_kg')) !!}, backgroundColor: {!! json_encode($estoquePorPerfil->pluck('sensoryProfile.color_hex')) !!}, borderRadius: 5 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } } }
+        });
     }
 
     function enableHorizontalScroll() {
         const container = document.querySelector('.sensory-scroll-container');
         if (container) {
             container.addEventListener('wheel', (evt) => {
-                if (evt.deltaY !== 0) {
-                    evt.preventDefault();
-                    container.scrollLeft += evt.deltaY;
-                }
+                if (evt.deltaY !== 0) { evt.preventDefault(); container.scrollLeft += evt.deltaY; }
             });
         }
     }
@@ -401,9 +329,8 @@
     window.onload = () => {
         initCharts();
         enableHorizontalScroll();
-        // Dispara o filtro padrão (Última semana) que já preenche datas e carrega o gráfico
-        applyQuickFilter('last_week'); 
-        updateChartLab('D');
+        applyQuickFilter('last_week');
+        refreshAllData();
     };
 </script>
 @endsection

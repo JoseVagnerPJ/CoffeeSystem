@@ -6,11 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\GreenCoffeeLot;
 use App\Models\CuppingSession;
-use App\Models\Cup;
-use App\Models\Company;
-use App\Models\Farm;
-use App\Models\Producer;
-use App\Models\RoastingBatch;
+use App\Models\CuppingItem;
+use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -20,23 +17,8 @@ class DashboardController extends Controller
     public function index(Request $request) 
     {
         $user = Auth::user();
-        $periodo = $request->get('periodo', 'D');
-
-        $dataInicio = Carbon::now()->subHours(3);
-        if ($periodo == 'D') {
-            $dataInicio = $dataInicio->subHours(24);
-            $formatoSql = '%H:%i:%s';
-        } else {
-            $formatoSql = '%d/%m';
-            switch ($periodo) {
-                case 'S': $dataInicio = $dataInicio->subDays(7); break;
-                case 'T': $dataInicio = $dataInicio->subMonths(3); break;
-                case 'Se': $dataInicio = $dataInicio->subMonths(6); break;
-                case 'A': $dataInicio = $dataInicio->subYears(2); break; // Para ver o Seeder
-                default: $dataInicio = $dataInicio->startOfMonth(); break;
-            }
-        }
-
+        
+        // Mapa de Estoque por Perfil (Barra fixa no topo)
         $estoquePorPerfil = GreenCoffeeLot::with('sensoryProfile')
             ->select('sensory_profile_id', 'reference',
                 DB::raw('SUM(total_weight) as total_kg'),
@@ -44,126 +26,115 @@ class DashboardController extends Controller
             ->groupBy('sensory_profile_id', 'reference')
             ->get();
 
+        // Dados iniciais para o primeiro carregamento da página
         $ultimosRecebimentos = GreenCoffeeLot::orderBy('created_at', 'DESC')
             ->limit(6)->get()->reverse()->values()
             ->map(function($lote) {
                 return [
                     'perfil_id' => $lote->sensory_profile_id,
                     'peso' => $lote->total_weight,
-                    'data' => $lote->created_at->subHours(3)->format('d/m H:i:s')
+                    'data' => $lote->created_at->subHours(3)->format('d/m H:i')
                 ];
             });
 
-        // Query Unificada Corrigida para SQL strict mode (orderBy pelo alias)
-        $dadosLab = CuppingSession::where('cupping_sessions.created_at', '>=', $dataInicio)
-            ->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
-            ->select(
-                DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '$formatoSql') as data"),
-                DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
-                DB::raw('COUNT(cupping_items.id) as total_xicaras')
-            )
-            ->groupBy('data')
-            ->orderBy('data', 'ASC')
-            ->get();
+        // Variáveis padrão para evitar erros no blade no init
+        $mesasData = collect();
+        $xicarasData = collect();
+        $periodo = 'S'; 
 
-        // Criamos as variáveis separadas para não dar erro na View
-        $mesasData = $dadosLab->map(fn($item) => (object)['data' => $item->data, 'total' => $item->total_mesas]);
-        $xicarasData = $dadosLab->map(fn($item) => (object)['data' => $item->data, 'total' => $item->total_xicaras]);
-
-        return view('dashboard.index', compact('user', 'estoquePorPerfil', 'ultimosRecebimentos', 'dadosLab', 'mesasData', 'xicarasData', 'periodo'));
+        return view('dashboard.index', compact('user', 'estoquePorPerfil', 'ultimosRecebimentos', 'mesasData', 'xicarasData', 'periodo'));
     }
 
+    /**
+     * AJAX: Dados de Movimentação (Recebimentos ou Saídas)
+     */
     public function getMovimentacaoData(Request $request) 
-{
-    $tipo = $request->get('tipo', 'entrada');
-    $perfilId = $request->get('perfil_id');
-    $startDate = $request->get('start_date');
-    $endDate = $request->get('end_date');
-
-    // Define período padrão (última semana) caso não venha data
-    if (!$startDate || !$endDate) {
-        $startDate = Carbon::now()->subDays(7)->startOfDay();
-        $endDate = Carbon::now()->endOfDay();
-    } else {
-        $startDate = Carbon::parse($startDate)->startOfDay();
-        $endDate = Carbon::parse($endDate)->endOfDay();
-    }
-
-    if ($tipo == 'entrada') {
-        $query = \App\Models\GreenCoffeeLot::query();
-        $titulo = "RECEBIMENTOS";
-        $label = "kg Recebido";
-        $colunaPeso = 'total_weight';
-    } else {
-        $query = \App\Models\StockMovement::where('type', 'out');
-        $titulo = "SAÍDAS (TORRA)";
-        $label = "kg Torrado";
-        $colunaPeso = 'weight';
-    }
-
-    // Filtro por Perfil Sensorial
-    if ($perfilId) {
-        if ($tipo == 'entrada') {
-            $query->where('sensory_profile_id', $perfilId);
-        } else {
-            $query->whereHas('lote', function($q) use ($perfilId) {
-                $q->where('sensory_profile_id', $perfilId);
-            });
-        }
-    }
-
-    // Filtro por Data
-    $query->whereBetween('created_at', [$startDate, $endDate]);
-
-    $dados = $query->orderBy('created_at', 'ASC')
-        ->get()
-        ->map(function($item) use ($tipo, $colunaPeso) {
-            return [
-                'peso' => $item->$colunaPeso,
-                'data' => $item->created_at->subHours(3)->format('d/m H:i')
-            ];
-        });
-
-    return response()->json([
-        'dados' => $dados, 
-        'titulo' => $titulo,
-        'label' => $label
-    ]);
-}
-
-    public function getLaboratorioData(Request $request)
     {
-        $periodo = $request->get('periodo', 'D');
-        $dataInicio = Carbon::now()->subHours(3);
-        $formatoSql = ($periodo == 'D') ? '%H:%i:%s' : '%d/%m';
+        $tipo = $request->get('tipo', 'entrada');
+        $perfilId = $request->get('perfil_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $isGeral = ($request->get('range_type') === 'all');
 
-        if ($periodo == 'D') {
-            $dataInicio = $dataInicio->subHours(24);
-        } else {
-            switch ($periodo) {
-                case 'S': $dataInicio = $dataInicio->subDays(7); break;
-                case 'T': $dataInicio = $dataInicio->subMonths(3); break;
-                case 'Se': $dataInicio = $dataInicio->subMonths(6); break;
-                case 'A': $dataInicio = $dataInicio->subYears(2); break;
-                default: $dataInicio = $dataInicio->startOfMonth(); break;
+        $query = ($tipo == 'entrada') 
+            ? GreenCoffeeLot::query() 
+            : StockMovement::where('type', 'out');
+
+        // Filtro Sensorial
+        if ($perfilId) {
+            if ($tipo == 'entrada') {
+                $query->where('sensory_profile_id', $perfilId);
+            } else {
+                $query->whereHas('lote', function($q) use ($perfilId) {
+                    $q->where('sensory_profile_id', $perfilId);
+                });
             }
         }
 
-        $dados = CuppingSession::where('cupping_sessions.created_at', '>=', $dataInicio)
-            ->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
-            ->select(
-                DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '$formatoSql') as tempo"),
-                DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
-                DB::raw('COUNT(cupping_items.id) as total_xicaras')
+        // Filtro de Data
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(), 
+                Carbon::parse($endDate)->endOfDay()
+            ]);
+        }
+
+        if ($isGeral) {
+            // Retorno bruto para alta densidade
+            $dados = $query->orderBy('created_at', 'ASC')->get()->map(fn($item) => [
+                'peso' => ($tipo == 'entrada') ? $item->total_weight : $item->weight,
+                'data' => $item->created_at->subHours(3)->format('d/m H:i')
+            ]);
+        } else {
+            // Agrupamento por dia para a "linha no chão" do JS
+            $colPeso = ($tipo == 'entrada') ? 'total_weight' : 'weight';
+            $dados = $query->select(
+                DB::raw("DATE_FORMAT(DATE_SUB(created_at, INTERVAL 3 HOUR), '%d/%m') as data"),
+                DB::raw("SUM($colPeso) as peso")
             )
-            ->groupBy('tempo')
-            ->orderBy('tempo', 'ASC')
+            ->groupBy('data')
+            ->orderBy('created_at', 'ASC')
             ->get();
+        }
 
         return response()->json([
-            'labels' => $dados->pluck('tempo'),
-            'mesas' => $dados->pluck('total_mesas'),
-            'xicaras' => $dados->pluck('total_xicaras')
+            'dados' => $dados,
+            'titulo' => ($tipo == 'entrada') ? "RECEBIMENTOS" : "SAÍDAS (TORRA)",
+            'label' => ($tipo == 'entrada') ? "kg Recebido" : "kg Torrado"
+        ]);
+    }
+
+    /**
+     * AJAX: Dados do Laboratório (Mesas e Xícaras)
+     */
+    public function getLaboratorioData(Request $request)
+    {
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $isGeral = ($request->get('range_type') === 'all');
+
+        $query = CuppingSession::query();
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('cupping_sessions.created_at', [
+                Carbon::parse($startDate)->startOfDay(), 
+                Carbon::parse($endDate)->endOfDay()
+            ]);
+        }
+
+        $query->leftJoin('cupping_items', 'cupping_sessions.id', '=', 'cupping_items.cupping_session_id')
+              ->select(
+                  DB::raw("DATE_FORMAT(DATE_SUB(cupping_sessions.created_at, INTERVAL 3 HOUR), '%d/%m') as tempo"),
+                  DB::raw('COUNT(DISTINCT cupping_sessions.id) as total_mesas'),
+                  DB::raw('COUNT(cupping_items.id) as total_xicaras')
+              )
+              ->groupBy('tempo')
+              ->orderBy('cupping_sessions.created_at', 'ASC');
+
+        $dados = $query->get();
+
+        return response()->json([
+            'raw_data' => $dados
         ]);
     }
 
