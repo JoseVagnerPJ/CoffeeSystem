@@ -15,18 +15,18 @@ use Carbon\Carbon;
 
 class CuppingController extends Controller
 {
-    public function index()
+public function index()
 {
-    // Usamos select('*') dentro do eager loading para não haver dúvida
     return response()->json(
         CuppingSession::withCount('users as users_count')
             ->withCount('items') 
             ->with([
-                'items' => function($query) {
-                    $query->select('*'); // Força carregar notes, nickname, etc.
-                },
                 'items.sample', 
-                'items.evaluations.user'
+                'items.evaluations.user',
+                // ADICIONADO: Lista de usuários participantes com o status da pivô
+                'users' => function($q) {
+                    $q->select('users.id', 'users.name')->withPivot('has_finished');
+                }
             ])
             ->orderBy('id', 'desc') 
             ->get()
