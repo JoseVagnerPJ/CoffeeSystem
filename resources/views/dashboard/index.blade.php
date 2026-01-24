@@ -112,17 +112,18 @@
 <script>
     let activeProfileId = null, currentTipo = 'entrada', chartLab, chartUltimos, chartEstoque;
     let selectedRangeType = 'last_week';
+    const OFFSET_3H = 3 * 60 * 60 * 1000; // Constante de 3 horas em ms
 
     function applyQuickFilter(value) {
         selectedRangeType = value;
         const startInput = document.getElementById('filter_start_date');
         const endInput = document.getElementById('filter_end_date');
         
-        // Adicionado +3 horas no 'now'
-        const now = new Date();
-        now.setHours(now.getHours() + 3);
+        // Data atual com +3h
+        let now = new Date();
+        now.setTime(now.getTime() + OFFSET_3H);
         
-        let start = new Date(now), end = new Date(now);
+        let start = new Date(now.getTime()), end = new Date(now.getTime());
 
         switch(value) {
             case 'last_week': start.setDate(now.getDate() - 6); break;
@@ -133,9 +134,9 @@
             case 'all': start = new Date(2025, 0, 1); break;
         }
 
-        // Ajuste de +3 horas para os limites start/end calculados
-        start.setHours(start.getHours() + 3);
-        end.setHours(end.getHours() + 3);
+        // Garante que start e end também tenham o offset antes de formatar para o input
+        start.setTime(start.getTime() + OFFSET_3H);
+        end.setTime(end.getTime() + OFFSET_3H);
 
         startInput.value = start.toISOString().split('T')[0];
         endInput.value = end.toISOString().split('T')[0];
@@ -160,14 +161,14 @@
         const endVal = document.getElementById('filter_end_date').value;
         if(!startVal || !endVal) return { labels: [], mesas: [], xicaras: [], mov: [] };
 
-        // Ajuste de +3 horas na criação das datas de processamento
+        // Cria datas dos inputs e adiciona 3 horas
         const start = new Date(startVal + 'T00:00:00');
-        start.setHours(start.getHours() + 3);
+        start.setTime(start.getTime() + OFFSET_3H);
         const end = new Date(endVal + 'T23:59:59');
-        end.setHours(end.getHours() + 3);
+        end.setTime(end.getTime() + OFFSET_3H);
         
         let labels = [], valuesMesas = [], valuesXicaras = [], valuesMov = [];
-        let current = new Date(start);
+        let current = new Date(start.getTime());
         const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
         const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
@@ -273,6 +274,7 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } }}
         });
     }
+
     function enableHorizontalScroll() {
         const container = document.querySelector('.sensory-scroll-container');
         if (container) {
