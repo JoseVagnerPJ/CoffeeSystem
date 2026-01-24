@@ -137,7 +137,7 @@
             <div class="row g-2 mb-2">
                 <div class="col-md-6">
                     <div class="op-block shadow-sm h-100" style="min-height: 90px;">
-                        <div class="feed-title"><i class="bi bi-arrow-down-circle-fill text-success"></i> Últimos Recebimentos</div>
+                        <div class="feed-title" onclick="openMovimentacaoHistorico('entrada')" style="cursor: pointer;"><i class="bi bi-arrow-down-circle-fill text-success"></i> Últimos Recebimentos (Ver tudo)</div>
                         {{-- LOOP DE RECEBIMENTOS AJUSTADO --}}
                         @foreach($lotes->sortByDesc('created_at')->take(2) as $recente)
                             <div class="feed-item">
@@ -152,7 +152,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="op-block shadow-sm h-100" style="min-height: 90px;">
-                        <div class="feed-title"><i class="bi bi-arrow-up-circle-fill text-danger"></i> Últimas Saídas</div>
+                        <div class="feed-title" onclick="openMovimentacaoHistorico('saida')" style="cursor: pointer;"><i class="bi bi-arrow-up-circle-fill text-danger"></i> Últimas Saídas (Ver tudo)</div>
                         {{-- LOOP DE SAÍDAS AJUSTADO --}}
                         @isset($ultimasSaidas)
                             @foreach($ultimasSaidas as $saida)
@@ -276,6 +276,63 @@
     </div>
 </div>
 
+{{-- MODAL DE HISTÓRICO DE MOVIMENTAÇÃO (NOVA LÓGICA) --}}
+<div class="modal fade" id="modalHistoricoMovimentacao" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-light border-0 py-3" style="border-radius: 20px 20px 0 0;">
+                <h5 class="fw-bold mb-0">Histórico de Movimentação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-2 mb-4 align-items-end">
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-muted mb-1">DATA INICIAL</label>
+                        <input type="date" id="hist_start_date" class="form-control form-control-sm border-0 bg-light">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-muted mb-1">DATA FINAL</label>
+                        <input type="date" id="hist_end_date" class="form-control form-control-sm border-0 bg-light">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-muted mb-1">ATALHO</label>
+                        <select class="form-select form-select-sm border-0 bg-light fw-bold" id="hist_quick_filter" onchange="applyQuickFilterHist(this.value)">
+                            <option value="last_week">Última Semana</option>
+                            <option value="curr_month">Mês Atual</option>
+                            <option value="last_month">Último Mês</option>
+                            <option value="all">Tudo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button onclick="refreshHistorico()" class="btn btn-dark btn-sm w-100 fw-bold">APLICAR</button>
+                    </div>
+                </div>
+
+                <div class="btn-group w-100 mb-4 shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                    <button id="btn-hist-entrada" onclick="changeHistType('entrada')" class="btn btn-success fw-bold">📈 RECEBIMENTOS</button>
+                    <button id="btn-hist-saida" onclick="changeHistType('saida')" class="btn btn-outline-danger fw-bold">📉 SAÍDAS</button>
+                </div>
+
+                <div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                    <table class="table table-sm align-middle table-borderless">
+                        <thead class="sticky-top bg-white">
+                            <tr class="text-muted small text-uppercase" style="font-size: 0.65rem; border-bottom: 2px solid #f1f1f1;">
+                                <th>Data/Horário</th>
+                                <th>Lote / Perfil</th>
+                                <th>Local</th>
+                                <th class="text-end">Quantidade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hist-body">
+                            {{-- Preenchido via JS --}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function highlightOnMap(coords) {
         coords.forEach(c => {
@@ -319,6 +376,79 @@
             }
         });
     };
+
+    /* NOVA LÓGICA: HISTÓRICO DE MOVIMENTAÇÃO AJAX */
+    let currentHistType = 'entrada';
+
+    function openMovimentacaoHistorico(type) {
+        currentHistType = type;
+        applyQuickFilterHist('last_week'); 
+        var myModal = new bootstrap.Modal(document.getElementById('modalHistoricoMovimentacao'));
+        myModal.show();
+        refreshHistorico();
+    }
+
+    function changeHistType(type) {
+        currentHistType = type;
+        const btnE = $('#btn-hist-entrada');
+        const btnS = $('#btn-hist-saida');
+        if(type === 'entrada') {
+            btnE.removeClass('btn-outline-success').addClass('btn-success');
+            btnS.removeClass('btn-danger').addClass('btn-outline-danger');
+        } else {
+            btnE.removeClass('btn-success').addClass('btn-outline-success');
+            btnS.removeClass('btn-outline-danger').addClass('btn-danger');
+        }
+        refreshHistorico();
+    }
+
+    function applyQuickFilterHist(value) {
+        const startInput = document.getElementById('hist_start_date');
+        const endInput = document.getElementById('hist_end_date');
+        const now = new Date();
+        let start = new Date(), end = new Date();
+
+        switch(value) {
+            case 'last_week': start.setDate(now.getDate() - 7); break;
+            case 'curr_month': start = new Date(now.getFullYear(), now.getMonth(), 1); break;
+            case 'last_month': start = new Date(now.getFullYear(), now.getMonth() - 1, 1); end = new Date(now.getFullYear(), now.getMonth(), 0); break;
+            case 'all': start = new Date(2020, 0, 1); break;
+        }
+        startInput.value = start.toISOString().split('T')[0];
+        endInput.value = end.toISOString().split('T')[0];
+    }
+
+    async function refreshHistorico() {
+        const start = $('#hist_start_date').val();
+        const end = $('#hist_end_date').val();
+        const body = $('#hist-body');
+        body.html('<tr><td colspan="4" class="text-center py-5"><div class="spinner-border spinner-border-sm text-secondary"></div></td></tr>');
+        try {
+            const response = await fetch(`/green-coffee/movimentacao-historico?tipo=${currentHistType}&start_date=${start}&end_date=${end}`);
+            const data = await response.json();
+            let html = '';
+            if(data.length === 0) {
+                html = '<tr><td colspan="4" class="text-center py-5 text-muted small">Nenhuma movimentação encontrada.</td></tr>';
+            } else {
+                data.forEach(item => {
+                    const isSaida = item.tipo === 'saida';
+                    html += `
+                        <tr style="border-bottom: 1px solid #f8f9fa;">
+                            <td><div class="fw-bold" style="font-size: 0.75rem;">${item.data}</div></td>
+                            <td>
+                                <div class="fw-bold small">${item.ref}</div>
+                                <span class="badge rounded-pill" style="font-size: 0.6rem; background-color: ${item.cor}15; color: ${item.cor}; border: 1px solid ${item.cor};">${item.perfil}</span>
+                            </td>
+                            <td><span class="badge bg-light text-dark border" style="font-size: 0.65rem;">${item.endereco}</span></td>
+                            <td class="text-end fw-bold ${isSaida ? 'text-danger' : 'text-success'}" style="font-size: 0.85rem;">
+                                ${isSaida ? '-' : '+'}${parseFloat(item.peso).toLocaleString('pt-BR', {minimumFractionDigits: 1})}kg
+                            </td>
+                        </tr>`;
+                });
+            }
+            body.html(html);
+        } catch(e) { body.html('<tr><td colspan="4" class="text-center py-5 text-danger small">Erro ao carregar dados.</td></tr>'); }
+    }
 </script>
 
 @include('green-coffee.partials.modal_create_lote')
