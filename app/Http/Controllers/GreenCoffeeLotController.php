@@ -7,6 +7,8 @@ use App\Models\GreenCoffeeLot;
 use App\Models\SensoryProfile;
 use App\Models\LotAttachment;
 use App\Models\RoastingBatch; 
+use App\Models\StockMovement;
+use Carbon\Carbon;
 use App\Models\InventorySession;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
