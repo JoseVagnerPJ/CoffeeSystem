@@ -58,7 +58,7 @@
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Título da Mesa *</label>
-                                <input type="text" id="mesa-title" name="title" class="form-control shadow-sm" placeholder="Ex: Prova de Safra 2024" required>
+                                <input type="text" id="mesa-title" name="title" class="form-control shadow-sm" placeholder="Ex: Cafés para o clube..." required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Xícaras</label>
