@@ -21,9 +21,10 @@ public function index()
         CuppingSession::withCount('users as users_count')
             ->withCount('items') 
             ->with([
-                'items.sample', 
+                // ADICIONADO: Carrega a origem da amostra e do item
+                'items.sample.origin', 
+                'items.origin',
                 'items.evaluations.user',
-                // ADICIONADO: Lista de usuários participantes com o status da pivô
                 'users' => function($q) {
                     $q->select('users.id', 'users.name')->withPivot('has_finished');
                 }
@@ -35,11 +36,16 @@ public function index()
 
 public function show($id)
 {
-    $session = CuppingSession::with(['items.sample', 'items.evaluations.user', 'items.evaluations.tags'])
+    $session = CuppingSession::with([
+            // ADICIONADO: Carrega a origem da amostra e do item
+            'items.sample.origin',
+            'items.origin',
+            'items.evaluations.user', 
+            'items.evaluations.tags'
+        ])
         ->withCount([
             'items',
-            'users', // Total de provadores que entraram na mesa
-            //Conta apenas quem já terminou (has_finished = true)
+            'users', 
             'users as finished_users_count' => function ($query) {
                 $query->where('cupping_session_user.has_finished', true);
             }

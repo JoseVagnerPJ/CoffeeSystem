@@ -28,7 +28,8 @@ class SampleController extends Controller
             ->get();
 
         if ($request->wantsJson() || $request->is('api/*')) {
-            return response()->json($samples);
+            // Ajustado para usar o formatador consistente para o App
+            return response()->json($this->formatSamplesForApi($samples));
         }
 
         return view('registries.samples.index', compact('samples'));
@@ -54,24 +55,31 @@ class SampleController extends Controller
             ->limit(10)
             ->get();
 
-        $data = $samples->map(function($s) {
+        // Utiliza o método auxiliar para manter a consistência de dados com o Flutter
+        return response()->json($this->formatSamplesForApi($samples));
+    }
+
+    /**
+     * Função auxiliar para garantir que o JSON entregue ao App seja sempre igual.
+     * Mapeia as colunas do banco para as propriedades esperadas pelo SampleModel no Flutter.
+     */
+    private function formatSamplesForApi($samples) {
+        return $samples->map(function($s) {
             return [
-                'id' => $s->id,
-                'name' => $s->name,
-                'variety' => $s->variety,
-                'supplier_batch' => $s->supplier_batch,
+                'id'             => $s->id,
+                'name'           => $s->name,
+                'variety'        => $s->variety,
+                'supplier_batch' => $s->supplier_batch, // ID Lote Fornecedor
                 'drying_process' => $s->drying_process,
-                'fermentation' => $s->fermentation,
-                'humidity' => $s->humidity,
-                'screen' => $s->screen,
-                'altitude' => $s->altitude,
-                'crop' => $s->crop,
-                // Garantimos que a chave origin_name esteja disponível para o JavaScript
-                'origin_name' => $s->origin ? $s->origin->name : 'Não informado' 
+                'fermentation'   => $s->fermentation,
+                'humidity'       => $s->humidity,
+                'screen'         => $s->screen,
+                'altitude'       => $s->altitude,
+                'crop'           => $s->crop,
+                // Chave origin_name processada para facilitar a leitura no mobile
+                'origin_name'    => $s->origin ? $s->origin->name : 'Não informado' 
             ];
         });
-
-        return response()->json($data);
     }
 
     /**
