@@ -409,7 +409,7 @@ function addNewCup() {
                     <div class="col-12">
                         <div class="input-group input-group-sm border rounded-pill overflow-hidden bg-light">
                             <span class="input-group-text border-0 bg-transparent ps-3 text-muted"><i class="bi bi-chat-left-text"></i></span>
-                            <input type="text" name="items[${index}][pre_roast_obs]" class="form-control border-0 bg-transparent" placeholder="Observação Pré-Torra...">
+                            <input type="text" name="items[${index}][pre_roast_obs]" class="form-control border-0 bg-transparent" placeholder="Observação Pré-Prova...">
                         </div>
                     </div>
                 </div>
