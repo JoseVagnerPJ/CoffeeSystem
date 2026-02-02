@@ -25,27 +25,6 @@
         background-color: #f8f9fa;
     }
 
-    /* Estilo para o botão de Equipe (horizontal) */
-    .btn-equipe-horizontal {
-        transition: all 0.3s ease;
-        border: 2px solid transparent !important;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        background-color: white;
-    }
-
-    .btn-equipe-horizontal:not(.locked):hover {
-        border-color: var(--coffee-gold) !important;
-        transform: translateX(5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-
-    .btn-equipe-horizontal.locked {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
     .icon-box {
         width: 70px;
         height: 70px;
@@ -167,7 +146,7 @@
             @endif
         </div>
 
-        {{-- NOVO Módulo: Perfil de Prova SCA --}}
+        {{-- Módulo: Perfil de Prova SCA --}}
         <div class="col-md-6 col-lg-3">
             @if(auth()->user()->hasPermission('cupping_profile_full') || auth()->user()->hasPermission('cupping_profile_view'))
                 <a href="{{ route('registries.cupping-profiles.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
@@ -188,32 +167,27 @@
                 </div>
             @endif
         </div>
-    </div>
 
-    {{-- Seção secundária --}}
-    <div class="mt-5">
-        <h5 class="fw-bold mb-4 opacity-50" style="color: var(--coffee-brown);">Gestão Administrativa</h5>
-        <div class="row g-3">
-            {{-- Módulo: Equipe --}}
-            <div class="col-md-4">
-                @if(auth()->user()->hasPermission('team_full') || auth()->user()->hasPermission('team_user_only'))
-                    <a href="{{ route('registries.team.index') }}" class="btn-equipe-horizontal p-3 rounded shadow-sm">
-                @else
-                    <div class="btn-equipe-horizontal locked p-3 rounded shadow-sm" onclick="alert('Você não tem permissão para acessar esse módulo!')">
-                @endif
-                    <i class="bi bi-people-fill me-3 fs-4 text-muted"></i>
-                    <div>
-                        <h6 class="mb-0 fw-bold text-dark">Equipe</h6>
-                        <small class="text-muted">Gestão de colaboradores e acessos.</small>
+        {{-- Módulo: Equipe --}}
+        <div class="col-md-6 col-lg-3">
+            @if(auth()->user()->hasPermission('team_full') || auth()->user()->hasPermission('team_user_only'))
+                <a href="{{ route('registries.team.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @else
+                <div class="card card-modulo locked shadow-sm p-4 text-center h-100" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                    <i class="bi bi-lock-fill lock-badge"></i>
+            @endif
+                <div class="d-flex justify-content-center">
+                    <div class="icon-box">
+                        <i class="bi bi-people-fill fs-1"></i>
                     </div>
-                    @if(auth()->user()->hasPermission('team_full') || auth()->user()->hasPermission('team_user_only'))
-                        <i class="bi bi-arrow-right-short fs-4 ms-auto text-dark"></i>
-                        </a>
-                    @else
-                        <i class="bi bi-lock-fill fs-5 ms-auto text-muted"></i>
-                        </div>
-                    @endif
-            </div>
+                </div>
+                <h5 class="fw-bold text-dark">Equipe</h5>
+                <p class="small text-muted mb-0">Gestão de colaboradores e acessos.</p>
+            @if(auth()->user()->hasPermission('team_full') || auth()->user()->hasPermission('team_user_only'))
+                </a>
+            @else
+                </div>
+            @endif
         </div>
     </div>
 </div>
