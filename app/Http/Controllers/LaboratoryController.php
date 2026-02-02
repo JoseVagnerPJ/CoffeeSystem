@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\CuppingSession;
 use App\Models\CuppingItem;
+use App\Models\CuppingProfile;
 use App\Models\Cup;
+use App\Models\Visitor;
 use App\Models\Sample; 
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -16,76 +19,66 @@ class LaboratoryController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Iniciamos a Query básica
+        $companyId = Auth::user()->main_company_id;
+
+        // 1. Inicia a Query básica das sessões
         $query = CuppingSession::query()
-        ->with(['items.sample', 'items.evaluations'])
-        ->withCount([
-            'items', 
-            'users', // <--- ADICIONADO: Isso traz o 'users_count' (total que entrou na mesa)
-            'evaluations as participants_count' => function ($query) {
-                $query->select(DB::raw('count(distinct(user_id))'));
-            }
-        ]);
+            ->with(['items.sample', 'items.evaluations', 'profile'])
+            ->withCount([
+                'items', 
+                'users', 
+                'evaluations as participants_count' => function ($query) {
+                    $query->select(DB::raw('count(distinct(user_id))'));
+                }
+            ]);
 
         // --- APLICAÇÃO DE FILTROS ---
         if ($request->filled('title')) {
             $query->where('title', 'LIKE', "%{$request->title}%");
         }
-
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-
         if ($request->filled('start_date')) {
             $query->whereDate('created_at', '>=', $request->start_date);
         }
         if ($request->filled('end_date')) {
             $query->whereDate('created_at', '<=', $request->end_date);
         }
-
+        if ($request->filled('cupping_profile_id')) {
+            $query->where('cupping_profile_id', $request->cupping_profile_id);
+        }
         if ($request->filled('cup_nickname')) {
             $query->whereHas('items', function ($q) use ($request) {
                 $q->where('nickname', 'LIKE', "%{$request->cup_nickname}%");
             });
         }
 
-        if ($request->filled('min_participants')) {
-            $query->whereRaw('(SELECT COUNT(DISTINCT user_id) FROM cups 
-                               INNER JOIN cupping_items ON cups.cupping_item_id = cupping_items.id 
-                               WHERE cupping_items.cupping_session_id = cupping_sessions.id) >= ?', 
-                               [$request->min_participants]);
-        }
+        // --- LÓGICA DE PERFIS (Mais utilizado como padrão) ---
+        $profiles = CuppingProfile::where('main_company_id', $companyId)
+            ->withCount(['sessions' => function($q) use ($companyId) {
+                $q->where('main_company_id', $companyId);
+            }])
+            ->orderBy('sessions_count', 'desc')
+            ->get();
 
-        if ($request->filled('min_score') || $request->filled('max_score')) {
-            $min = (float) ($request->min_score ?? 0);
-            $max = (float) ($request->max_score ?? 100);
+        $defaultProfileId = $profiles->first()?->id;
 
-            $query->whereDoesntHave('items', function ($q) use ($min, $max) {
-                $q->select('cupping_items.id') 
-                  ->join('cups', 'cupping_items.id', '=', 'cups.cupping_item_id')
-                  ->groupBy('cupping_items.id')
-                  ->havingRaw('60 + AVG(cups.sweetness + cups.acidity + cups.body + cups.aftertaste) < ?', [$min])
-                  ->orHavingRaw('60 + AVG(cups.sweetness + cups.acidity + cups.body + cups.aftertaste) > ?', [$max]);
-            });
-
-            $query->whereHas('items.evaluations');
-        }
-
-        // 2. Executa a busca
+        // 2. Executa a busca das sessões
         $sessions = $query->latest()->get();
         
         // 3. KPIs Dinâmicos
         $totalSessions = $sessions->count();
         $totalCups = CuppingItem::whereIn('cupping_session_id', $sessions->pluck('id'))->count();
         
-        $maxScore = DB::table('cups')
-            ->select(DB::raw('MAX(acidity + body + sweetness + aftertaste + 60) as sca'))
-            ->value('sca') ?? 0;
+        $maxScore = Cup::where('main_company_id', $companyId)
+            ->max('final_score') ?? 0;
 
-        // 4. Lógica do Gráfico
+        // 4. Lógica do Gráfico (AJUSTADO: Removido offset de fuso horário manual)
         $filter = $request->get('chart_filter', 'M'); 
-        $now = \Carbon\Carbon::now('America/Sao_Paulo');
+        $now = now(); // Usa o tempo padrão do sistema/config
         $stats = [];
+        
         if ($filter == 'D') {
             for ($i = 23; $i >= 0; $i--) {
                 $time = $now->copy()->subHours($i);
@@ -93,7 +86,9 @@ class LaboratoryController extends Controller
                 $stats[] = [
                     'label' => $time->format('H:00'),
                     'sessions_count' => CuppingSession::whereRaw("DATE_FORMAT(created_at, '%Y-%m-%d %H') = ?", [$hourStr])->count(),
-                    'cups_count' => CuppingItem::whereHas('session', function($q) use ($hourStr) { $q->whereRaw("DATE_FORMAT(created_at, '%Y-%m-%d %H') = ?", [$hourStr]); })->count()
+                    'cups_count' => CuppingItem::whereHas('session', function($q) use ($hourStr) { 
+                        $q->whereRaw("DATE_FORMAT(created_at, '%Y-%m-%d %H') = ?", [$hourStr]); 
+                    })->count()
                 ];
             }
         } else {
@@ -103,12 +98,17 @@ class LaboratoryController extends Controller
                 $stats[] = [
                     'label' => $date->format('d/m'),
                     'sessions_count' => CuppingSession::whereDate('created_at', $date->toDateString())->count(),
-                    'cups_count' => CuppingItem::whereHas('session', function($q) use ($date) { $q->whereDate('created_at', $date->toDateString()); })->count()
+                    'cups_count' => CuppingItem::whereHas('session', function($q) use ($date) { 
+                        $q->whereDate('created_at', $date->toDateString()); 
+                    })->count()
                 ];
             }
         }
 
-        return view('laboratory.index', compact('sessions', 'totalSessions', 'totalCups', 'maxScore', 'stats', 'filter'));
+        return view('laboratory.index', compact(
+            'sessions', 'totalSessions', 'totalCups', 
+            'maxScore', 'stats', 'filter', 'profiles', 'defaultProfileId'
+        ));
     }
 
     public function searchSamples(Request $request)
@@ -144,56 +144,59 @@ class LaboratoryController extends Controller
         return response()->json($data);
     }
 
-public function store(Request $request)
-{
-    $request->validate([
-        'title' => 'required|string|max:255',
-        'items' => 'required|array|min:1',
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'cupping_profile_id' => 'required|exists:cupping_profiles,id',
+            'items' => 'required|array|min:1',
+        ]);
 
-    try {
-        DB::transaction(function () use ($request) {
-            $companyId = Auth::user()->main_company_id;
+        try {
+            DB::transaction(function () use ($request) {
+                $companyId = Auth::user()->main_company_id;
 
-            $session = CuppingSession::create([
-                'main_company_id' => $companyId,
-                'title'           => $request->title,
-                'session_date'    => now(), 
-                'created_by'      => Auth::id(), 
-                'status'          => 'aberto',
-                'started_at'      => now(),
-            ]);
-
-            foreach ($request->items as $itemData) {
-                // Lógica de captura de notas com Fallback
-                $cupNotes = !empty($itemData['notes']) ? $itemData['notes'] : ($itemData['pre_roast_obs'] ?? null);
-
-                $session->items()->create([
-                    'main_company_id' => $companyId,
-                    'position'       => $itemData['position'],
-                    'is_avulso'      => ($itemData['is_avulso'] == "1"),
-                    'sample_id'      => $itemData['sample_id'] ?? null,
-                    'nickname'       => $itemData['nickname'] ?? null,
-                    'variety'        => $itemData['variety'] ?? null,
-                    'drying_process' => $itemData['drying_process'] ?? null,
-                    'fermentation'   => $itemData['fermentation'] ?? null,
-                    'humidity'       => $itemData['humidity'] ?? null,
-                    'screen'         => $itemData['screen'] ?? null,
-                    'lot_id'         => $itemData['lot_id'] ?? null,
-                    'altitude'       => $itemData['altitude'] ?? null,
-                    'crop'           => $itemData['crop'] ?? null,
-                    'origin_id'      => $itemData['origin_id'] ?? null,
-                    'origin_type'    => $itemData['origin_type'] ?? null,
-                    'notes'          => !empty($cupNotes) ? trim($cupNotes) : null,
+                $session = CuppingSession::create([
+                    'main_company_id'    => $companyId,
+                    'cupping_profile_id' => $request->cupping_profile_id,
+                    'title'              => $request->title,
+                    'session_date'       => now(), 
+                    'created_by'         => Auth::id(), 
+                    'status'             => 'aberto',
+                    'is_blind'           => $request->has('is_blind'),
+                    'started_at'         => now(),
                 ]);
-            }
-        });
 
-        return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
-    } catch (\Exception $e) {
-        return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
+                foreach ($request->items as $itemData) {
+                    $cupNotes = !empty($itemData['notes']) ? $itemData['notes'] : ($itemData['pre_roast_obs'] ?? null);
+
+                    $session->items()->create([
+                        'main_company_id' => $companyId,
+                        'position'       => $itemData['position'],
+                        'is_avulso'      => ($itemData['is_avulso'] == "1"),
+                        'sample_id'      => $itemData['sample_id'] ?? null,
+                        'nickname'       => $itemData['nickname'] ?? null,
+                        'variety'        => $itemData['variety'] ?? null,
+                        'drying_process' => $itemData['drying_process'] ?? null,
+                        'fermentation'   => $itemData['fermentation'] ?? null,
+                        'humidity'       => $itemData['humidity'] ?? null,
+                        'screen'         => $itemData['screen'] ?? null,
+                        'lot_id'         => $itemData['lot_id'] ?? null,
+                        'altitude'       => $itemData['altitude'] ?? null,
+                        'crop'           => $itemData['crop'] ?? null,
+                        'origin_id'      => $itemData['origin_id'] ?? null,
+                        'origin_type'    => $itemData['origin_type'] ?? null,
+                        'notes'          => !empty($cupNotes) ? trim($cupNotes) : null,
+                    ]);
+                }
+            });
+
+            return redirect()->route('laboratorio')->with('success', 'Mesa iniciada com sucesso!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao criar mesa: ' . $e->getMessage())->withInput();
+        }
     }
-}
+
     public function destroy($id)
     {
         DB::transaction(function () use ($id) {
@@ -207,7 +210,85 @@ public function store(Request $request)
         return back()->with('success', 'Mesa removida com sucesso.');
     }
 
-    public function getTechInfo($index) { return view('laboratory.partials.modal_cup_tech_info', compact('index')); }
-    public function getSessionInfo($id) { $session = CuppingSession::with(['items', 'evaluations.user'])->findOrFail($id); return view('laboratory.partials.modal_cupping_session_info', compact('session')); }
-    public function getCuppingInfo($id) { $item = CuppingItem::with(['sample', 'evaluations.user', 'evaluations.tags'])->findOrFail($id); return view('laboratory.partials.modal_cupping_info', compact('item')); }
+    public function getTechInfo($index) 
+    { 
+        return view('laboratory.partials.modal_cup_tech_info', compact('index')); 
+    }
+
+    public function getSessionInfo($id) 
+    { 
+        $session = CuppingSession::with(['items.sample', 'evaluations.user', 'profile', 'visitors'])->findOrFail($id); 
+        return view('laboratory.partials.modal_cupping_session_info', compact('session')); 
+    }
+
+    public function getCuppingInfo($id) 
+    { 
+        $item = CuppingItem::with(['sample', 'evaluations.user', 'evaluations.tags', 'session.profile'])->findOrFail($id); 
+        
+        $isMasked = $item->session->is_blind && 
+                    $item->session->status !== 'finalizado' && 
+                    Auth::id() !== $item->session->created_by;
+
+        return view('laboratory.partials.modal_cupping_info', compact('item', 'isMasked')); 
+    }
+
+public function generatePdf(Request $request, $id)
+{
+    $target = $request->query('target');
+    if (!$target) return abort(400, "Provador não selecionado.");
+
+    $parts = explode('_', $target);
+    $type = $parts[0]; 
+    $evaluatorId = $parts[1];
+
+    // 1. Busca a sessão com perfil e itens
+    $mesa = \App\Models\CuppingSession::with(['profile', 'items.sample'])->findOrFail($id);
+    $profile = $mesa->profile;
+    
+    // 2. Identifica o provador e busca as notas (Cups)
+    if ($type === 'user') {
+        $evaluator = \App\Models\User::findOrFail($evaluatorId);
+        $query = \App\Models\Cup::where('user_id', $evaluatorId);
+    } else {
+        $evaluator = \App\Models\CuppingVisitor::findOrFail($evaluatorId);
+        $query = \App\Models\Cup::where('cupping_visitor_id', $evaluatorId);
+    }
+
+    $evaluations = $query->whereHas('item', function($q) use ($id) {
+            $q->where('cupping_session_id', $id);
+        })
+        ->with(['item.sample', 'tags'])
+        ->get();
+
+    // 3. Lógica "Desmarcado = 10" [cite: 18-24]
+    $map = [
+        'eval_fragrance' => 'fragrance_aroma',
+        'eval_flavor'    => 'flavor',
+        'eval_aftertaste'=> 'aftertaste',
+        'eval_acidity'   => 'acidity',
+        'eval_body'      => 'body',
+        'eval_balance'   => 'balance',
+        'eval_uniformity'=> 'uniformity',
+        'eval_clean_cup' => 'clean_cup',
+        'eval_sweetness' => 'sweetness',
+        'eval_overall'   => 'overall',
+    ];
+
+    foreach ($evaluations as $cup) {
+        foreach ($map as $profileKey => $cupKey) {
+            if (isset($profile->$profileKey) && !$profile->$profileKey) {
+                $cup->$cupKey = 10.0; // Atributo desmarcado no perfil ganha nota máxima [cite: 18]
+            }
+        }
+    }
+
+    // 4. Gera o PDF passando a variável 'evaluations' (sem o 'ByRound' para evitar o erro)
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sca_form', [
+        'mesa' => $mesa,
+        'user' => $evaluator,
+        'evaluations' => $evaluations, // NOME CORRIGIDO AQUI
+    ])->setPaper('a4', 'landscape');
+
+    return $pdf->stream("Relatorio_SCA_Mesa_{$id}.pdf");
+}
 }

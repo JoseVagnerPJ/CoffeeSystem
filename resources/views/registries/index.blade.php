@@ -166,6 +166,28 @@
                 </div>
             @endif
         </div>
+
+        {{-- NOVO Módulo: Perfil de Prova SCA --}}
+        <div class="col-md-6 col-lg-3">
+            @if(auth()->user()->hasPermission('cupping_profile_full') || auth()->user()->hasPermission('cupping_profile_view'))
+                <a href="{{ route('registries.cupping-profiles.index') }}" class="card card-modulo shadow-sm p-4 text-decoration-none text-center h-100">
+            @else
+                <div class="card card-modulo locked shadow-sm p-4 text-center h-100" onclick="alert('Você não tem permissão para acessar esse módulo!')">
+                    <i class="bi bi-lock-fill lock-badge"></i>
+            @endif
+                <div class="d-flex justify-content-center">
+                    <div class="icon-box">
+                        <i class="bi bi-award fs-1"></i>
+                    </div>
+                </div>
+                <h5 class="fw-bold text-dark">Perfil de Prova SCA</h5>
+                <p class="small text-muted mb-0">Configuração de protocolos e atributos de avaliação.</p>
+            @if(auth()->user()->hasPermission('cupping_profile_full') || auth()->user()->hasPermission('cupping_profile_view'))
+                </a>
+            @else
+                </div>
+            @endif
+        </div>
     </div>
 
     {{-- Seção secundária --}}

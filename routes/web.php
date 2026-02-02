@@ -7,15 +7,34 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SensoryProfileController;
+use App\Http\Controllers\CuppingProfileController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\Api\CuppingController;
 use App\Http\Controllers\LaboratoryController;
 use App\Http\Controllers\RoastController;
 
-// Rota pública para a Política de Privacidade
-Route::get('/politica-de-privacidade', function () {
-    return view('privacy');
-})->name('privacy');
+    // Rota pública para a Política de Privacidade
+    Route::get('/politica-de-privacidade', function () {
+        return view('privacy');
+    })->name('privacy');
+
+    // --- MÓDULO: PROVAS DOS VISITANTES ---
+    Route::prefix('prova/v1')->group(function () {
+    // Tela inicial para Nome/CPF
+    Route::get('/{uuid}', [App\Http\Controllers\CuppingVisitorController::class, 'landing'])->name('visitor.landing');
+    
+    // Processa a entrada do visitante
+    Route::post('/{uuid}/join', [App\Http\Controllers\CuppingVisitorController::class, 'join'])->name('visitor.join');
+
+    // Tela de Prova (Protegida por lógica interna do Controller)
+    Route::get('/{uuid}/evaluation', [App\Http\Controllers\CuppingVisitorController::class, 'evaluation'])->name('visitor.evaluation');
+    
+    // Salva as avaliações
+    Route::post('/{uuid}/submit', [App\Http\Controllers\CuppingVisitorController::class, 'submit'])->name('visitor.submit');
+    
+    // Tela de agradecimento
+    Route::get('/{uuid}/success', [App\Http\Controllers\CuppingVisitorController::class, 'success'])->name('visitor.success');
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +85,7 @@ Route::middleware(['auth', 'company.active'])->group(function () {
         Route::get('/cup-tech-info/{index}', [LaboratoryController::class, 'getTechInfo'])->name('laboratory.tech-info');
         Route::get('/session-info/{id}', [LaboratoryController::class, 'getSessionInfo'])->name('laboratory.session-info');
         Route::get('/cupping-info/{id}', [LaboratoryController::class, 'getCuppingInfo'])->name('laboratory.cupping-info');
+        Route::get('/cupping-pdf/{id}', [LaboratoryController::class, 'generatePdf'])->name('laboratory.cupping-pdf');
     });
 
     // --- MÓDULO: TORREFAÇÃO ---
@@ -145,6 +165,18 @@ Route::middleware(['auth', 'company.active'])->group(function () {
                 'update'  => 'sensory-profiles.update',
                 'destroy' => 'sensory-profiles.destroy',
             ])->parameter('', 'sensory_profile');
+        });
+
+        // --- NOVO: Perfis de Prova SCA ---
+        Route::prefix('cupping-profiles')->group(function () {
+            Route::resource('/', CuppingProfileController::class)->only([
+                'index', 'store', 'update', 'destroy'
+            ])->names([
+                'index'   => 'cupping-profiles.index',
+                'store'   => 'cupping-profiles.store',
+                'update'  => 'cupping-profiles.update',
+                'destroy' => 'cupping-profiles.destroy',
+            ])->parameter('', 'cupping_profile');
         });
 
         // Equipe e Unidade

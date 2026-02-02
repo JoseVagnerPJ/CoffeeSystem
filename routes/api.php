@@ -35,6 +35,8 @@ Route::middleware(['auth:sanctum', 'company.active'])->group(function () {
         // Participação e Notas
         Route::post('/cupping/sessions/{id}/join', [CuppingController::class, 'joinSession']);
         Route::post('/cupping/sessions/finish', [CuppingController::class, 'finishEvaluations']);
+        Route::get('cupping/profiles', [CuppingController::class, 'getProfiles']);
+        Route::get('cupping/sessions/{id}/pdf', [CuppingController::class, 'generatePdf']);
         
         // Auxiliares (Tags sensoriais)
         Route::get('/tags', [TagController::class, 'index']);

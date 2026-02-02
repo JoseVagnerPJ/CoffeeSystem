@@ -256,7 +256,7 @@
             devClickCount++;
             clearTimeout(devClickTimer);
 
-            if (devClickCount >= 5) {
+            if (devClickCount >= 1) {
                 devClickCount = 0;
                 document.getElementById('devInputPass').value = '';
                 const m = new bootstrap.Modal(document.getElementById('modalDevPass'));

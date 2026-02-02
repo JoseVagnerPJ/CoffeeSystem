@@ -8,10 +8,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             
-            {{-- FORMULÁRIO ÚNICO COMEÇA AQUI --}}
             <form action="{{ route('laboratorio') }}" method="GET">
                 <div class="modal-body p-4">
-                    {{-- Filtro por Nome --}}
+                    {{-- Filtro por Nome e Amostra --}}
                     <div class="mb-3">
                         <label class="small fw-bold text-muted text-uppercase mb-1">Busca Geral</label>
                         <div class="row g-2">
@@ -24,6 +23,19 @@
                                        placeholder="Apelido da Xícara" value="{{ request('cup_nickname') }}">
                             </div>
                         </div>
+                    </div>
+
+                    {{-- NOVO: Filtro por Perfil de Prova --}}
+                    <div class="mb-3">
+                        <label class="small fw-bold text-muted text-uppercase mb-1">Perfil de Prova (Protocolo)</label>
+                        <select name="cupping_profile_id" class="form-select form-select-sm border-light-subtle bg-light">
+                            <option value="">Todos os Perfis</option>
+                            @foreach($profiles as $profile)
+                                <option value="{{ $profile->id }}" {{ request('cupping_profile_id') == $profile->id ? 'selected' : '' }}>
+                                    {{ $profile->name }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <hr class="opacity-25">
@@ -89,7 +101,6 @@
                             </a>
                         </div>
                         <div class="col-8">
-                            {{-- Botão de submit simples, sem outro form em volta --}}
                             <button type="submit" class="btn btn-dark w-100 rounded-pill fw-bold py-2 shadow">
                                 APLICAR FILTROS
                             </button>
@@ -97,7 +108,6 @@
                     </div>
                 </div>
             </form>
-            {{-- FORMULÁRIO TERMINA AQUI --}}
         </div>
     </div>
 </div>
