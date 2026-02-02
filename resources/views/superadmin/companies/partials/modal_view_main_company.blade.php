@@ -60,7 +60,16 @@
                                     <i class="bi bi-cpu-fill me-1"></i> Módulos do Sistema
                                 </label>
                                 <div class="row g-2">
-                                    @php $modules = ['lab' => 'Laboratório', 'stock' => 'Estoque Verde', 'roast' => 'Torrefação', 'production' => 'Produção']; @endphp
+                                    {{-- ADICIONADO LOGISTICS NA LISTA DE MÓDULOS --}}
+                                    @php 
+                                        $modules = [
+                                            'lab' => 'Laboratório', 
+                                            'stock' => 'Estoque Verde', 
+                                            'roast' => 'Torrefação', 
+                                            'production' => 'Produção',
+                                            'logistics' => 'Logística'
+                                        ]; 
+                                    @endphp
                                     @foreach($modules as $key => $label)
                                     <div class="col-6">
                                         <div class="form-check form-switch p-2 border rounded-3 bg-white d-flex align-items-center justify-content-between shadow-xs">
@@ -111,21 +120,17 @@
 </div>
 
 <script>
-    // Função aprimorada para converter e adicionar 3 horas
     function add3Hours(dateString) {
         if (!dateString || dateString === '--/--') return dateString;
         
         try {
-            // Se a data vier com espaço (MySQL), substitui por T para o JS entender como ISO
             let isoFormat = dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString;
             let date = new Date(isoFormat);
             
             if (isNaN(date.getTime())) return dateString;
 
-            // Adiciona as 3 horas
             date.setHours(date.getHours() + 3);
 
-            // Formatação manual para garantir o padrão DD/MM/YYYY HH:MM:SS
             let d = String(date.getDate()).padStart(2, '0');
             let m = String(date.getMonth() + 1).padStart(2, '0');
             let y = date.getFullYear();
@@ -148,7 +153,6 @@
         document.getElementById('viewId').innerText = `#${String(data.id).padStart(2, '0')}`;
         document.getElementById('viewCnpj').innerText = data.cnpj;
         
-        // Aplica +3 horas na criação
         document.getElementById('viewCreatedAt').innerText = add3Hours(data.created_at);
         
         const img = document.getElementById('viewLogoPreview');
@@ -163,7 +167,8 @@
             icon.style.display = 'block';
         }
 
-        const modules = ['lab', 'stock', 'roast', 'production'];
+        // ADICIONADO LOGISTICS NO ARRAY DE MÓDULOS DO JS
+        const modules = ['lab', 'stock', 'roast', 'production', 'logistics'];
         modules.forEach(m => {
             const el = document.getElementById('view_mod_' + m);
             if(el) el.checked = data.modules_active.includes(m);
@@ -173,7 +178,6 @@
         historyBody.innerHTML = '';
         if (data.payments && data.payments.length > 0) {
             data.payments.forEach(p => {
-                // Aplica +3 horas no histórico
                 historyBody.innerHTML += `
                     <tr>
                         <td class="ps-3 py-2 text-muted fw-medium border-0">${add3Hours(p.date)}</td>

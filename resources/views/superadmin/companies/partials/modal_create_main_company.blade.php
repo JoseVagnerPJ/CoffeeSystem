@@ -66,6 +66,13 @@
                                 <label class="form-check-label small fw-medium" for="mod_prod">Produção</label>
                             </div>
                         </div>
+                        {{-- NOVO MÓDULO: LOGÍSTICA --}}
+                        <div class="col-6">
+                            <div class="form-check form-switch p-2 border rounded shadow-xs bg-white ms-0 ps-5">
+                                <input class="form-check-input" type="checkbox" role="switch" id="mod_logistics" name="module_logistics">
+                                <label class="form-check-label small fw-medium" for="mod_logistics">Logística</label>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- AVISO SOBRE USUÁRIO --}}
@@ -88,7 +95,6 @@
     </div>
 </div>
 
-{{-- SCRIPT DA MÁSCARA DO CNPJ OTIMIZADO --}}
 <script>
 document.getElementById('cnpj_mask').addEventListener('input', function (e) {
     let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é dígito

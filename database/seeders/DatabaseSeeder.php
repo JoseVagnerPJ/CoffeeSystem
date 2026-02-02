@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             'mod_stock' => true,
             'mod_roast' => false,
             'mod_prod'  => false,
+            'mod_logistics' => true,
         ]);
 
         // 2. Criar o Perfil de Desenvolvedor com todas as permissões

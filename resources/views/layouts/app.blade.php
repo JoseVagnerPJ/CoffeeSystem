@@ -126,7 +126,7 @@
                                 $hasModule = auth()->user()->mainCompany->mod_roast ?? false;
                                 $hasPerm = auth()->user()->hasPermission('roast_view') || auth()->user()->hasPermission('roast_full'); 
                             @endphp
-                            <a href="javascript:void(0)" class="nav-link d-flex align-items-center" 
+                            <a href="javascript:void(0)" class="nav-link d-flex align-items-center {{ Request::is('roasting*') ? 'active' : '' }}" 
                                onclick="devModuleAccess(event, '{{ route('roasting.index') }}', {{ $hasModule ? 'true' : 'false' }}, {{ $hasPerm ? 'true' : 'false' }})">
                                 <i class="bi bi-fire me-2"></i> Torrefação 
                                 @if(!$hasModule) 
@@ -145,6 +145,24 @@
                             <a href="javascript:void(0)" class="nav-link d-flex align-items-center" 
                                onclick="devModuleAccess(event, '#', {{ $hasModule ? 'true' : 'false' }}, {{ $hasPerm ? 'true' : 'false' }})">
                                 <i class="bi bi-boxes me-2"></i> Produção 
+                                @if(!$hasModule) 
+                                    <i class="bi bi-lock-fill ms-auto text-danger" title="Módulo não contratado"></i>
+                                @elseif(!$hasPerm)
+                                    <i class="bi bi-lock-fill ms-auto opacity-50" title="Sem permissão"></i> 
+                                @endif
+                            </a>
+                        </li>
+
+                        {{-- MÓDULO: LOGÍSTICA (ACESSO DIRETO HABILITADO) --}}
+                        <li>
+                            @php 
+                                $hasModule = auth()->user()->mainCompany->mod_logistics ?? false;
+                                $hasPerm = auth()->user()->hasPermission('logistics_view') || auth()->user()->hasPermission('logistics_full'); 
+                            @endphp
+                            <a href="{{ ($hasModule && $hasPerm) ? route('logistics.index') : 'javascript:void(0)' }}" 
+                               class="nav-link {{ Request::is('logistics*') ? 'active' : '' }} d-flex align-items-center" 
+                               onclick="checkAccess(event, {{ $hasModule ? 'true' : 'false' }}, {{ $hasPerm ? 'true' : 'false' }})">
+                                <i class="bi bi-truck me-2"></i> Logística
                                 @if(!$hasModule) 
                                     <i class="bi bi-lock-fill ms-auto text-danger" title="Módulo não contratado"></i>
                                 @elseif(!$hasPerm)

@@ -6,6 +6,7 @@ use App\Http\Controllers\GreenCoffeeLotController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\SampleController;
+use App\Http\Controllers\LogisticsController;
 use App\Http\Controllers\SensoryProfileController;
 use App\Http\Controllers\CuppingProfileController;
 use App\Http\Controllers\TeamController;
@@ -104,6 +105,13 @@ Route::middleware(['auth', 'company.active'])->group(function () {
         Route::post('/batches/{id}/finish', [RoastController::class, 'apiFinishBatch']);
         Route::post('/batches/{id}/discard', [RoastController::class, 'apiDiscardBatch']);
         Route::post('/machines/{id}/clean', [RoastController::class, 'apiRegisterCleaning']);
+    });
+
+    // --- MÓDULO: LOGÍSTICA ---
+    Route::prefix('logistics')->name('logistics.')->group(function () {
+        Route::get('/', [LogisticsController::class, 'index'])->name('index');
+        Route::post('/sync', [LogisticsController::class, 'syncOrders'])->name('sync');
+        Route::get('/validate-data/{id}', [LogisticsController::class, 'getValidationData']); // <--- NOVA
     });
 
     // --- MÓDULO: CONFIGURAÇÕES (Geral) ---
