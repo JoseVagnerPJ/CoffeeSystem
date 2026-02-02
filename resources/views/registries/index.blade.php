@@ -54,7 +54,7 @@
 <div class="fade-in px-3">
     <div class="mb-5">
         <h2 class="h4 fw-bold" style="color: var(--coffee-brown);">Central de Cadastros</h2>
-        <p class="text-muted">Gerencie os ativos, parceiros e a estrutura técnica da Unique Cafés.</p>
+        <p class="text-muted">Gerencie os ativos, parceiros e a estrutura técnica da sua empresa.</p>
     </div>
 
     <div class="row g-4">
