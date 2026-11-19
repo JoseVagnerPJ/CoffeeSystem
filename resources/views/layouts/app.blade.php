@@ -32,6 +32,8 @@
         .unit-logo-nav { height: 47px; width: 47px; object-fit: cover; border-radius: 6px; background-color: white; margin-right: 10px; }
         .btn-privacy-link { font-size: 0.65rem; color: var(--coffee-gold-light); text-decoration: none; opacity: 0.5; }
 
+        .mobile-sidebar-backdrop { display: none; }
+
         /* Ajustes responsivos compartilhados */
         .table-responsive { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 12px; }
         .table-responsive table { width: 100%; }
@@ -56,6 +58,17 @@
             }
             .sidebar.collapse:not(.show) { display: none; }
             .sidebar.collapsing { display: flex; height: auto !important; transition: none; }
+            .mobile-sidebar-backdrop.show {
+                display: block;
+                position: fixed;
+                top: 55px;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                z-index: 1030;
+                border: 0;
+                background: rgba(0, 0, 0, 0.4);
+            }
 
             .main-content { margin-top: 55px; padding: 12px 10px 30px !important; }
             .main-content > .container-fluid { padding-left: 0; padding-right: 0; }
@@ -83,8 +96,9 @@
     <nav class="navbar navbar-dark fixed-top navbar-top shadow-sm py-0">
         <div class="container-fluid d-flex align-items-center justify-content-between" style="height: 55px;">
             @auth
-            <button class="btn btn-link text-white d-md-none px-1 flex-shrink-0" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu">
-                <i class="bi bi-list fs-3"></i>
+            <button id="mobileMenuToggle" class="btn btn-outline-light btn-sm d-md-none px-2 flex-shrink-0" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu de navegação">
+                <i class="bi bi-list fs-5 align-middle" aria-hidden="true"></i>
+                <span class="align-middle">Menu</span>
             </button>
             @endauth
 
@@ -129,6 +143,7 @@
     <div class="container-fluid">
         <div class="row">
             @auth
+            <button id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop" type="button" aria-label="Fechar menu"></button>
             <nav id="mobileSidebar" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="flex-grow-1">
                     <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
@@ -339,11 +354,24 @@
         document.addEventListener("DOMContentLoaded", function() {
             const sidebar = document.getElementById('mobileSidebar');
             if (sidebar) {
+                const backdrop = document.getElementById('mobileSidebarBackdrop');
+                const menuToggle = document.getElementById('mobileMenuToggle');
+                const sidebarCollapse = bootstrap.Collapse.getOrCreateInstance(sidebar, { toggle: false });
+
+                sidebar.addEventListener('show.bs.collapse', function() {
+                    if (window.innerWidth < 768 && backdrop) backdrop.classList.add('show');
+                    if (menuToggle) menuToggle.setAttribute('aria-expanded', 'true');
+                });
+                sidebar.addEventListener('hide.bs.collapse', function() {
+                    if (backdrop) backdrop.classList.remove('show');
+                    if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
+                });
+                if (backdrop) backdrop.addEventListener('click', function() { sidebarCollapse.hide(); });
+
                 sidebar.querySelectorAll('a[href]:not([href="javascript:void(0)"])').forEach(function(link) {
                     link.addEventListener('click', function() {
                         if (window.innerWidth < 768) {
-                            const sidebarCollapse = bootstrap.Collapse.getInstance(sidebar);
-                            if (sidebarCollapse) sidebarCollapse.hide();
+                            sidebarCollapse.hide();
                         }
                     });
                 });
