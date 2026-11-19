@@ -96,21 +96,22 @@
     <nav class="navbar navbar-dark fixed-top navbar-top shadow-sm py-0">
         <div class="container-fluid d-flex align-items-center justify-content-between" style="height: 55px;">
             @auth
-            <button id="mobileMenuToggle" class="btn btn-outline-light btn-sm d-md-none px-2 flex-shrink-0" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu de navegação">
-                <i class="bi bi-list fs-5 align-middle" aria-hidden="true"></i>
-                <span class="align-middle">Menu</span>
-            </button>
-            @endauth
-
-            {{-- Lado Esquerdo: Empresa --}}
-            <div class="d-none d-md-flex align-items-center" style="flex: 1;">
+            {{-- Lado Esquerdo: Botão Menu + Nome da Empresa (Visível também no mobile) --}}
+            <div class="d-flex align-items-center" style="flex: 1;">
+                <button id="mobileMenuToggle" class="btn btn-outline-light btn-sm d-md-none px-2 flex-shrink-0 me-2" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu de navegação">
+                    <i class="bi bi-list fs-5 align-middle" aria-hidden="true"></i>
+                    <span class="align-middle">Menu</span>
+                </button>
                 @if(Auth::check() && Auth::user()->mainCompany && Auth::user()->mainCompany->logo)
-                    <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" class="unit-logo-nav">
+                    <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" class="unit-logo-nav d-none d-md-inline-block">
                 @endif
-                <span class="text-white fw-bold opacity-75 text-truncate" style="font-size: 1.6rem;">
+                <span class="text-white fw-bold opacity-75 text-truncate" style="font-size: clamp(0.9rem, 2.5vw, 1.6rem);">
                     {{ Auth::check() && Auth::user()->mainCompany ? Auth::user()->mainCompany->name : 'Unique Cafés' }}
                 </span>
             </div>
+            @else
+            <div style="flex: 1;"></div>
+            @endauth
 
             {{-- Centro: Logo Sistema --}}
             <div class="d-flex justify-content-center" style="flex: 1;">
