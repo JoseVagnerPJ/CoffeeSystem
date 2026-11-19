@@ -12,6 +12,18 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <style>
+            *, *::before, *::after { box-sizing: border-box; }
+            body { margin: 0; min-width: 0; }
+            @media (max-width: 767.98px) {
+                body { min-height: 100vh; }
+                input, select, textarea, button { font-size: 16px; }
+                .px-6 { padding-inline: 1rem !important; }
+                .sm\:max-w-md { max-width: 100% !important; }
+                .sm\:rounded-lg { border-radius: 0.75rem !important; }
+                .w-full { max-width: 100%; }
+            }
+        </style>
     </head>
     <body>
         <div class="font-sans text-gray-900 antialiased">

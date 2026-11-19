@@ -32,14 +32,62 @@
         .unit-logo-nav { height: 47px; width: 47px; object-fit: cover; border-radius: 6px; background-color: white; margin-right: 10px; }
         .btn-privacy-link { font-size: 0.65rem; color: var(--coffee-gold-light); text-decoration: none; opacity: 0.5; }
 
-        /* Ajuste de tabelas */
-        .table-responsive { overflow-x: hidden !important; border-radius: 12px; }
-        .table-responsive table { width: 100% !important; min-width: auto !important; }
+        /* Ajustes responsivos compartilhados */
+        .table-responsive { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+        .table-responsive table { width: 100%; }
+        .modal-dialog { max-height: calc(100vh - 1rem); }
+        .modal-content { max-height: calc(100vh - 1rem); }
+
+        @media (max-width: 767.98px) {
+            .navbar-top .container-fluid { height: 55px !important; padding-inline: 8px; }
+            .navbar-top { min-height: 55px; }
+            .brand-text-style { font-size: 1.15rem; }
+            .logo-bg-circle { width: 30px; height: 34px; margin-right: 6px; }
+            .logo-bg-circle img { height: 28px; }
+            .user-avatar-nav { width: 38px; height: 38px; }
+
+            .sidebar {
+                top: 55px;
+                bottom: 0;
+                width: min(280px, 85vw);
+                z-index: 1035;
+                box-shadow: 8px 0 24px rgba(0, 0, 0, 0.25);
+                overflow-y: auto;
+            }
+            .sidebar.collapse:not(.show) { display: none; }
+            .sidebar.collapsing { display: flex; height: auto !important; transition: none; }
+
+            .main-content { margin-top: 55px; padding: 12px 10px 30px !important; }
+            .main-content > .container-fluid { padding-left: 0; padding-right: 0; }
+            .main-content .card { border-radius: 12px !important; }
+
+            .table-responsive table { min-width: 720px; }
+            .table-responsive-inner table { min-width: 720px; }
+
+            .modal-dialog { margin: 0.5rem auto; }
+            .modal-dialog.modal-xl,
+            .modal-dialog.modal-lg,
+            .modal-dialog.modal-sm { max-width: calc(100vw - 1rem); }
+            .modal-content { max-height: calc(100vh - 1rem); }
+            .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+            .nav-pills,
+            .nav-tabs { flex-wrap: nowrap; overflow-x: auto; }
+            .nav-pills .nav-link,
+            .nav-tabs .nav-link { white-space: nowrap; }
+            .btn-group { flex-wrap: wrap; }
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-dark fixed-top navbar-top shadow-sm py-0">
         <div class="container-fluid d-flex align-items-center justify-content-between" style="height: 55px;">
+            @auth
+            <button class="btn btn-link text-white d-md-none px-1 flex-shrink-0" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu">
+                <i class="bi bi-list fs-3"></i>
+            </button>
+            @endauth
+
             {{-- Lado Esquerdo: Empresa --}}
             <div class="d-none d-md-flex align-items-center" style="flex: 1;">
                 @if(Auth::check() && Auth::user()->mainCompany && Auth::user()->mainCompany->logo)
@@ -81,7 +129,7 @@
     <div class="container-fluid">
         <div class="row">
             @auth
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+            <nav id="mobileSidebar" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="flex-grow-1">
                     <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
                     <ul class="nav flex-column">
@@ -289,6 +337,18 @@
         }
 
         document.addEventListener("DOMContentLoaded", function() {
+            const sidebar = document.getElementById('mobileSidebar');
+            if (sidebar) {
+                sidebar.querySelectorAll('a[href]:not([href="javascript:void(0)"])').forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth < 768) {
+                            const sidebarCollapse = bootstrap.Collapse.getInstance(sidebar);
+                            if (sidebarCollapse) sidebarCollapse.hide();
+                        }
+                    });
+                });
+            }
+
             const forms = document.querySelectorAll('form');
             forms.forEach(form => form.setAttribute('autocomplete', 'off'));
 
