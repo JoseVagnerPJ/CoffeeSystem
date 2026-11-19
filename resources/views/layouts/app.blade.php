@@ -55,9 +55,11 @@
                 z-index: 1035;
                 box-shadow: 8px 0 24px rgba(0, 0, 0, 0.25);
                 overflow-y: auto;
+                transform: translateX(-100%);
+                visibility: hidden;
+                transition: transform 0.2s ease, visibility 0.2s ease;
             }
-            .sidebar.collapse:not(.show) { display: none; }
-            .sidebar.collapsing { display: flex; height: auto !important; transition: none; }
+            .sidebar.mobile-open { transform: translateX(0); visibility: visible; }
             .mobile-sidebar-backdrop.show {
                 display: block;
                 position: fixed;
@@ -99,9 +101,9 @@
             {{-- Lado Esquerdo: Botão Menu (Mobile) + Nome da Empresa --}}
             <div class="d-flex align-items-center" style="flex: 1; min-width: 0;">
                 @auth
-                <button id="mobileMenuToggle" class="btn btn-outline-light btn-sm d-md-none px-2 me-2 flex-shrink-0" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu de navegação">
+                <button id="mobileMenuToggle" class="btn btn-outline-light btn-sm d-md-none px-2 me-2 flex-shrink-0" type="button" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu de navegação">
                     <i class="bi bi-list fs-5 align-middle" aria-hidden="true"></i>
-                    <span class="align-middle d-none d-xs-inline">Menu</span>
+                    <span class="align-middle">Menu</span>
                 </button>
                 @endauth
 
@@ -145,7 +147,7 @@
         <div class="row">
             @auth
             <button id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop" type="button" aria-label="Fechar menu"></button>
-            <nav id="mobileSidebar" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+            <nav id="mobileSidebar" class="col-md-3 col-lg-2 d-md-block sidebar" aria-label="Menu principal" aria-hidden="true">
                 <div class="flex-grow-1">
                     <div class="sidebar-heading" style="opacity: 0.5; padding: 1rem; color: #fff; font-size: 0.65rem; font-weight: bold; text-transform: uppercase;">Menu Operacional</div>
                     <ul class="nav flex-column">
@@ -357,23 +359,28 @@
             if (sidebar) {
                 const backdrop = document.getElementById('mobileSidebarBackdrop');
                 const menuToggle = document.getElementById('mobileMenuToggle');
-                const sidebarCollapse = bootstrap.Collapse.getOrCreateInstance(sidebar, { toggle: false });
+                const setMobileMenuOpen = function(isOpen) {
+                    const open = isOpen && window.innerWidth < 768;
+                    sidebar.classList.toggle('mobile-open', open);
+                    sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+                    if (backdrop) backdrop.classList.toggle('show', open);
+                    if (menuToggle) menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                };
 
-                sidebar.addEventListener('show.bs.collapse', function() {
-                    if (window.innerWidth < 768 && backdrop) backdrop.classList.add('show');
-                    if (menuToggle) menuToggle.setAttribute('aria-expanded', 'true');
+                if (menuToggle) menuToggle.addEventListener('click', function() {
+                    setMobileMenuOpen(!sidebar.classList.contains('mobile-open'));
                 });
-                sidebar.addEventListener('hide.bs.collapse', function() {
-                    if (backdrop) backdrop.classList.remove('show');
-                    if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
+                if (backdrop) backdrop.addEventListener('click', function() { setMobileMenuOpen(false); });
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape') setMobileMenuOpen(false);
                 });
-                if (backdrop) backdrop.addEventListener('click', function() { sidebarCollapse.hide(); });
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth >= 768) setMobileMenuOpen(false);
+                });
 
                 sidebar.querySelectorAll('a[href]:not([href="javascript:void(0)"])').forEach(function(link) {
                     link.addEventListener('click', function() {
-                        if (window.innerWidth < 768) {
-                            sidebarCollapse.hide();
-                        }
+                        setMobileMenuOpen(false);
                     });
                 });
             }
