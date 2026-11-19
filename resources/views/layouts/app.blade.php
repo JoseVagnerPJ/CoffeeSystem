@@ -95,45 +95,45 @@
 <body>
     <nav class="navbar navbar-dark fixed-top navbar-top shadow-sm py-0">
         <div class="container-fluid d-flex align-items-center justify-content-between" style="height: 55px;">
-            @auth
-            {{-- Lado Esquerdo: Botão Menu + Nome da Empresa (Visível também no mobile) --}}
-            <div class="d-flex align-items-center" style="flex: 1;">
-                <button id="mobileMenuToggle" class="btn btn-outline-light btn-sm d-md-none px-2 flex-shrink-0 me-2" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu de navegação">
+            
+            {{-- Lado Esquerdo: Botão Menu (Mobile) + Nome da Empresa --}}
+            <div class="d-flex align-items-center" style="flex: 1; min-width: 0;">
+                @auth
+                <button id="mobileMenuToggle" class="btn btn-outline-light btn-sm d-md-none px-2 me-2 flex-shrink-0" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Abrir menu de navegação">
                     <i class="bi bi-list fs-5 align-middle" aria-hidden="true"></i>
-                    <span class="align-middle">Menu</span>
+                    <span class="align-middle d-none d-xs-inline">Menu</span>
                 </button>
+                @endauth
+
                 @if(Auth::check() && Auth::user()->mainCompany && Auth::user()->mainCompany->logo)
                     <img src="{{ asset('storage/' . Auth::user()->mainCompany->logo) }}" class="unit-logo-nav d-none d-md-inline-block">
                 @endif
-                <span class="text-white fw-bold opacity-75 text-truncate" style="font-size: clamp(0.9rem, 2.5vw, 1.6rem);">
+                <span class="text-white fw-bold opacity-75 text-truncate" style="font-size: clamp(0.85rem, 2vw, 1.6rem);">
                     {{ Auth::check() && Auth::user()->mainCompany ? Auth::user()->mainCompany->name : 'Unique Cafés' }}
                 </span>
             </div>
-            @else
-            <div style="flex: 1;"></div>
-            @endauth
 
             {{-- Centro: Logo Sistema --}}
-            <div class="d-flex justify-content-center" style="flex: 1;">
+            <div class="d-flex justify-content-center flex-shrink-0" style="flex: 0 0 auto; margin: 0 5px;">
                 <a class="d-flex align-items-center text-decoration-none" href="{{ route('inicio') }}">
                     <div class="logo-bg-circle"><img src="{{ asset('images/logo.png') }}" height="35"></div>
-                    <span class="brand-text-style">Q-Grader</span>
+                    <span class="brand-text-style d-none d-sm-inline">Q-Grader</span>
                 </a>
             </div>
 
             {{-- Lado Direito: Usuário --}}
-            <div class="d-flex justify-content-end align-items-center" style="flex: 1;">
+            <div class="d-flex justify-content-end align-items-center" style="flex: 1; min-width: 0;">
                 <div class="text-end me-2 d-none d-sm-block text-white">
                     <div class="fw-bold mb-0">{{ Auth::user()->name ?? 'Visitante' }}</div>
                     <small style="color: #cfd8dc !important;">{{ Auth::user()->profile->name ?? '' }}</small>
                 </div>
 
                 @if(Auth::check() && Auth::user()->photo)
-                    <div class="rounded-circle shadow-sm border border-2 border-white user-avatar-nav" style="overflow: hidden; background-color: white;">
+                    <div class="rounded-circle shadow-sm border border-2 border-white user-avatar-nav flex-shrink-0" style="overflow: hidden; background-color: white;">
                         <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="User" class="w-100 h-100" style="object-fit: cover;">
                     </div>
                 @else
-                    <div class="rounded-circle bg-white text-dark shadow-sm user-avatar-nav" style="border: 2px solid white;">
+                    <div class="rounded-circle bg-white text-dark shadow-sm user-avatar-nav flex-shrink-0" style="border: 2px solid white;">
                         <i class="bi bi-person-fill fs-4"></i>
                     </div>
                 @endif
